@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deeper - Couples Connection Games</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="app-header">
+            <h1>Deeper</h1>
+            <p>3 rounds of meaningful connection</p>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <div class="start-options">
+                <div class="option-card" onclick="createRoom()">
+                    <h3>Create Room</h3>
+                    <p>Start a new game and invite your partner</p>
+                </div>
+                
+                <div class="option-card" onclick="showJoinScreen()">
+                    <h3>Join Room</h3>
+                    <p>Enter a room code to join your partner</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Room Screen -->
+        <div id="create-screen" class="screen">
+            <button class="btn back-button" onclick="showScreen('start-screen')">← Back</button>
+            <div class="room-code-display">
+                <h2>Share this code with your partner:</h2>
+                <div class="room-code" id="room-code">----</div>
+                <p style="color: #666; margin-top: 20px;">Waiting for partner to join...</p>
+            </div>
+            <div class="player-setup">
+                <div class="player-input">
+                    <label>Your Name</label>
+                    <input type="text" id="creator-name" placeholder="Enter your name" onblur="updateCreatorName()" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Join Room Screen -->
+        <div id="join-screen" class="screen">
+            <button class="btn back-button" onclick="showScreen('start-screen')">← Back</button>
+            <div class="join-input">
+                <h2 style="text-align: center; margin-bottom: 20px;">Enter Room Code</h2>
+                <input type="text" class="code-input" id="join-code" maxlength="4" placeholder="----" />
+                <div class="player-input">
+                    <label>Your Name</label>
+                    <input type="text" id="joiner-name" placeholder="Enter your name" />
+                </div>
+                <button class="btn btn-primary" onclick="joinRoom()" style="width: 100%;">
+                    Join Game
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <button class="btn btn-danger" onclick="leaveGame()">Leave Game</button>
+            
+            <div class="player-status">
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="game-player1">Waiting...</span>
+                </div>
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="game-player2">Waiting...</span>
+                </div>
+            </div>
+            
+            <div class="game-screen">
+                <div id="round-indicator" class="round-indicator" style="display: none;">
+                    <!-- Round announcement will appear here -->
+                </div>
+                
+                <div class="turn-indicator" id="turn-indicator">
+                    Loading...
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                
+                <div id="question-content">
+                    <div class="question-card">
+                        <div class="question-number" id="question-number">Loading...</div>
+                        <div class="question-text" id="question-text">
+                            Connecting to game...
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="nextQuestion()" id="next-btn" disabled>
+                            Next Question
+                        </button>
+                        <button class="btn btn-secondary" onclick="skipQuestion()" id="skip-btn" disabled>
+                            Skip (3 left)
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="waiting-content" style="display: none;">
+                    <div class="waiting-message">
+                        <h3>Waiting for your partner to finish their turn...</h3>
+                        <p style="margin-top: 20px;">Get ready for your next question!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <!-- Our Scripts -->
+    <script src="config.js"></script>
+    <script src="questions.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
