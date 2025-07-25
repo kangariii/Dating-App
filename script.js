@@ -189,12 +189,13 @@ function handleGameUpdate(gameData) {
             startNewRound(1);
         }
     } else if (gameData.gameStarted) {
-        showScreen('game-screen');
-        updateGameScreen(gameData);
-        
-        // Handle guessing game updates
+        // Handle guessing game updates first if in a guessing round
         if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'guessing') {
             handleGuessingGameUpdate(gameData);
+        } else {
+            // Only show game screen and update for question rounds
+            showScreen('game-screen');
+            updateGameScreen(gameData);
         }
     }
 }
@@ -247,18 +248,26 @@ function startGuessingGame(roundNumber) {
     const randomIndex = Math.floor(Math.random() * questionBank.length);
     const guessingQuestion = questionBank[randomIndex];
     
-    // Determine who answers first
+    // Determine who answers first based on player order
     const playerIds = Object.keys(currentGame.players);
-    const isPlayerOneAnswerer = roundNumber === 1 ? (playerId === playerIds[0]) : 
-                                roundNumber === 3 ? (playerId !== playerIds[0]) :
-                                Math.random() < 0.5;
+    const hostIndex = playerIds.indexOf(currentGame.host);
+    
+    // Alternate who goes first, or random for round 5
+    let hostIsAnswerer;
+    if (roundNumber === 1) {
+        hostIsAnswerer = true; // Host answers first in round 1
+    } else if (roundNumber === 3) {
+        hostIsAnswerer = false; // Non-host answers first in round 3
+    } else {
+        hostIsAnswerer = Math.random() < 0.5; // Random for round 5
+    }
     
     gameRef.update({
         gameStarted: true,
         currentRound: roundNumber,
         roundName: `Round ${roundNumber} - ${GAME_STRUCTURE[roundNumber].name}`,
         guessingQuestion: guessingQuestion,
-        isPlayerOneAnswerer: isPlayerOneAnswerer,
+        hostIsAnswerer: hostIsAnswerer,
         guessingPhase: 'intro',
         playerAnswer: null,
         playerGuess: null,
@@ -267,12 +276,19 @@ function startGuessingGame(roundNumber) {
 }
 
 function handleGuessingGameUpdate(gameData) {
-    // Always recalculate role based on current game state
-    const playerIds = Object.keys(gameData.players);
-    const myIndex = playerIds.indexOf(playerId);
-    const isAnswerer = (gameData.isPlayerOneAnswerer && myIndex === 0) || 
-                      (!gameData.isPlayerOneAnswerer && myIndex === 1);
+    if (!gameData.guessingQuestion) return; // Safety check
+    
+    // Determine if current player is the answerer
+    const isAnswerer = (gameData.hostIsAnswerer && playerId === gameData.host) || 
+                      (!gameData.hostIsAnswerer && playerId !== gameData.host);
     guessingRole = isAnswerer ? 'answerer' : 'guesser';
+    
+    console.log('Guessing update:', { 
+        phase: gameData.guessingPhase, 
+        role: guessingRole, 
+        hasAnswer: !!gameData.playerAnswer,
+        hasGuess: !!gameData.playerGuess 
+    });
     
     if (gameData.guessingPhase === 'intro' && !gameData.showingRoundIntro) {
         if (guessingRole === 'answerer') {
@@ -281,16 +297,24 @@ function handleGuessingGameUpdate(gameData) {
             showWaitingForAnswer();
         }
         
-        // Update phase
+        // Update phase to answering
         if (isHost) {
-            gameRef.update({ guessingPhase: 'answering' });
+            setTimeout(() => {
+                gameRef.update({ guessingPhase: 'answering' });
+            }, 100);
         }
     } else if (gameData.guessingPhase === 'guessing' && gameData.playerAnswer) {
-        // Show guess screen for guesser, keep answer screen for answerer
+        // When in guessing phase with an answer
         if (guessingRole === 'guesser') {
             showGuessScreen(gameData.guessingQuestion, gameData.playerAnswer);
+        } else {
+            // Answerer waits while guesser is choosing
+            showScreen('guessing-answer-screen');
+            document.getElementById('submit-answer-btn').style.display = 'none';
+            document.getElementById('answer-waiting').style.display = 'block';
+            document.getElementById('answer-waiting').textContent = 'Waiting for your partner to guess...';
         }
-    } else if (gameData.guessingPhase === 'complete' && gameData.playerGuess) {
+    } else if (gameData.guessingPhase === 'complete' && gameData.playerGuess !== null) {
         // Both players see the result
         showGuessingResult(gameData.playerGuess === gameData.playerAnswer, gameData.playerAnswer, gameData.playerGuess);
     }
@@ -306,9 +330,9 @@ function showAnswerScreen(question) {
 
 function showWaitingForAnswer() {
     showScreen('guessing-guess-screen');
-    document.getElementById('guess-question').textContent = 'Waiting for your partner to answer...';
-    document.getElementById('guess-options').innerHTML = '';
-    document.getElementById('guess-waiting').style.display = 'block';
+    document.getElementById('guess-question').textContent = currentGame.guessingQuestion.question;
+    document.getElementById('guess-options').innerHTML = '<p style="color: rgba(255,255,255,0.7); text-align: center;">Waiting for your partner to answer...</p>';
+    document.getElementById('guess-waiting').style.display = 'none'; // Hide the other waiting text
 }
 
 function showGuessScreen(question, realAnswer) {
@@ -374,19 +398,24 @@ function updateGameScreen(gameData) {
         return;
     }
     
+    // Hide round indicator after intro
     document.getElementById('round-indicator').style.display = 'none';
     
-    // Check if this is a guessing round or question round
+    // Only update question game UI if it's a question round
     if (GAME_STRUCTURE[gameData.currentRound]?.type === 'questions') {
         updateQuestionGame(gameData);
     }
 }
 
 function showRoundIntro(roundName) {
+    // Always show game screen first
+    showScreen('game-screen');
+    
     const roundIndicator = document.getElementById('round-indicator');
     roundIndicator.textContent = roundName;
     roundIndicator.style.display = 'block';
     
+    // Hide both question and waiting content during intro
     document.getElementById('question-content').style.display = 'none';
     document.getElementById('waiting-content').style.display = 'none';
 }
@@ -490,13 +519,24 @@ document.getElementById('submit-answer-btn').addEventListener('click', () => {
         return;
     }
     
+    console.log('Submitting answer:', answer);
+    
     // Hide submit button and show waiting text
     document.getElementById('submit-answer-btn').style.display = 'none';
     document.getElementById('answer-waiting').style.display = 'block';
     
+    // Update Firebase with the answer and change phase
     gameRef.update({
         playerAnswer: answer,
         guessingPhase: 'guessing'
+    }).then(() => {
+        console.log('Answer submitted successfully');
+    }).catch((error) => {
+        console.error('Error submitting answer:', error);
+        alert('Error submitting answer. Please try again.');
+        // Reset UI on error
+        document.getElementById('submit-answer-btn').style.display = 'block';
+        document.getElementById('answer-waiting').style.display = 'none';
     });
 });
 
