@@ -1,0 +1,25 @@
+# QUICK COMMANDS
+
+## See Changes Locally
+1. Open index.html in browser
+
+## Deploy Changes
+1. GitHub Desktop → Commit → Push origin
+2. Wait 2-3 minutes
+3. Visit: https://kangariii.github.io/Dating-App/
+
+## Test Multiplayer
+1. Open site in two different browsers
+2. Create room in one
+3. Join with code in other
+
+## Emergency Rollback
+1. GitHub Desktop → History
+2. Right-click previous commit
+3. "Revert this commit"
+
+## File Locations
+- Questions: questions.js
+- Colors/Design: styles.css
+- Game Logic: script.js
+- Structure: index.html

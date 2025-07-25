@@ -125,6 +125,44 @@
                 </div>
             </div>
         </div>
+
+        <!-- Guessing Game Answer Screen -->
+        <div id="guessing-answer-screen" class="screen">
+            <div class="container">
+                <h2 class="round-title">Quick! Answer this:</h2>
+                <p id="guessing-question" class="question"></p>
+                <div class="input-group">
+                    <input type="text" id="guessing-answer-input" placeholder="Type your answer..." maxlength="50">
+                </div>
+                <button id="submit-answer-btn" class="play-btn">Submit Answer</button>
+                <p class="waiting-text" id="answer-waiting" style="display: none;">Waiting for your partner to guess...</p>
+            </div>
+        </div>
+
+        <!-- Guessing Game Guess Screen -->
+        <div id="guessing-guess-screen" class="screen">
+            <div class="container">
+                <h2 class="round-title">Can you guess their answer?</h2>
+                <p id="guess-question" class="question"></p>
+                <div id="guess-options" class="guess-options">
+                    <!-- Options will be dynamically added -->
+                </div>
+                <p class="waiting-text" id="guess-waiting" style="display: none;">Waiting for your partner to answer...</p>
+            </div>
+        </div>
+
+        <!-- Guessing Game Result Screen -->
+        <div id="guessing-result-screen" class="screen">
+            <div class="container">
+                <h2 id="guess-result-title" class="round-title"></h2>
+                <div class="result-details">
+                    <p class="result-question"></p>
+                    <p class="result-answer"><strong>Their answer:</strong> <span id="actual-answer"></span></p>
+                    <p class="result-guess"><strong>Your guess:</strong> <span id="player-guess"></span></p>
+                </div>
+                <button id="continue-from-guess-btn" class="play-btn">Continue</button>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase -->
@@ -134,6 +172,7 @@
     <!-- Our Scripts -->
     <script src="config.js"></script>
     <script src="questions.js"></script>
+    <script src="guessing-questions.js"></script> 
     <script src="script.js"></script>
 </body>
 </html>
