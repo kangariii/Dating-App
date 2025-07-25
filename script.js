@@ -34,27 +34,17 @@ function generatePlayerId() {
 }
 
 function showScreen(screenId) {
-    const currentScreen = document.querySelector('.screen.active');
-    const nextScreen = document.getElementById(screenId);
+    const screens = document.querySelectorAll('.screen');
+    screens.forEach(screen => {
+        screen.classList.remove('active');
+        screen.style.display = 'none';
+    });
     
-    if (currentScreen && currentScreen !== nextScreen) {
-        currentScreen.style.opacity = '0';
-        setTimeout(() => {
-            currentScreen.classList.remove('active');
-            currentScreen.style.display = 'none';
-            
-            nextScreen.style.display = 'block';
-            nextScreen.style.opacity = '0';
-            nextScreen.classList.add('active');
-            
-            setTimeout(() => {
-                nextScreen.style.opacity = '1';
-            }, 50);
-        }, 300);
-    } else {
-        nextScreen.style.display = 'block';
-        nextScreen.classList.add('active');
-        nextScreen.style.opacity = '1';
+    const targetScreen = document.getElementById(screenId);
+    if (targetScreen) {
+        targetScreen.style.display = 'block';
+        targetScreen.classList.add('active');
+        targetScreen.style.opacity = '1';
     }
 }
 
@@ -114,7 +104,22 @@ function setupRoom() {
     gameRef.on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
+            // Force update even if data appears same
+            const previousPhase = currentGame?.guessingPhase;
+            const previousAnswer = currentGame?.playerAnswer;
+            
             currentGame = data;
+            
+            console.log('Firebase update received:', {
+                round: data.currentRound,
+                phase: data.guessingPhase,
+                hasAnswer: !!data.playerAnswer,
+                roundType: GAME_STRUCTURE[data.currentRound]?.type,
+                phaseChanged: previousPhase !== data.guessingPhase,
+                answerChanged: previousAnswer !== data.playerAnswer
+            });
+            
+            // Always handle update, don't skip based on previous state
             handleGameUpdate(data);
         }
     });
@@ -150,7 +155,22 @@ function joinRoom() {
                 gameRef.on('value', (snapshot) => {
                     const data = snapshot.val();
                     if (data) {
+                        // Force update even if data appears same
+                        const previousPhase = currentGame?.guessingPhase;
+                        const previousAnswer = currentGame?.playerAnswer;
+                        
                         currentGame = data;
+                        
+                        console.log('Firebase update received (joiner):', {
+                            round: data.currentRound,
+                            phase: data.guessingPhase,
+                            hasAnswer: !!data.playerAnswer,
+                            roundType: GAME_STRUCTURE[data.currentRound]?.type,
+                            phaseChanged: previousPhase !== data.guessingPhase,
+                            answerChanged: previousAnswer !== data.playerAnswer
+                        });
+                        
+                        // Always handle update, don't skip based on previous state
                         handleGameUpdate(data);
                     }
                 });
@@ -172,6 +192,9 @@ function joinRoom() {
 
 // Game Logic
 function handleGameUpdate(gameData) {
+    // Always update currentGame first
+    currentGame = gameData;
+    
     const playerCount = Object.keys(gameData.players).length;
     
     const playerIds = Object.keys(gameData.players);
@@ -189,11 +212,25 @@ function handleGameUpdate(gameData) {
             startNewRound(1);
         }
     } else if (gameData.gameStarted) {
-        // Handle guessing game updates first if in a guessing round
+        // Check if we're in a guessing round
         if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'guessing') {
-            handleGuessingGameUpdate(gameData);
+            // Handle round intro for guessing games
+            if (gameData.showingRoundIntro) {
+                showRoundIntro(gameData.roundName);
+                setTimeout(() => {
+                    if (isHost && gameRef) {
+                        gameRef.update({
+                            showingRoundIntro: false,
+                            guessingPhase: 'answering'
+                        });
+                    }
+                }, 3000);
+            } else {
+                // After intro, handle the guessing game
+                handleGuessingGameUpdate(gameData);
+            }
         } else {
-            // Only show game screen and update for question rounds
+            // Handle question rounds
             showScreen('game-screen');
             updateGameScreen(gameData);
         }
@@ -276,66 +313,100 @@ function startGuessingGame(roundNumber) {
 }
 
 function handleGuessingGameUpdate(gameData) {
-    if (!gameData.guessingQuestion) return; // Safety check
+    if (!gameData.guessingQuestion || !playerId) {
+        console.log('Missing data:', { hasQuestion: !!gameData.guessingQuestion, hasPlayerId: !!playerId });
+        return;
+    }
     
-    // Determine if current player is the answerer
-    const isAnswerer = (gameData.hostIsAnswerer && playerId === gameData.host) || 
-                      (!gameData.hostIsAnswerer && playerId !== gameData.host);
+    // Get all player IDs to determine order
+    const playerIds = Object.keys(gameData.players);
+    const myPlayerIndex = playerIds.indexOf(playerId);
+    
+    if (myPlayerIndex === -1) {
+        console.error('Player not found in game!', { playerId, playerIds });
+        return;
+    }
+    
+    // Determine if current player is the answerer based on their position
+    const hostIndex = playerIds.indexOf(gameData.host);
+    const isAnswerer = (gameData.hostIsAnswerer && myPlayerIndex === hostIndex) || 
+                      (!gameData.hostIsAnswerer && myPlayerIndex !== hostIndex);
     guessingRole = isAnswerer ? 'answerer' : 'guesser';
     
     console.log('Guessing update:', { 
         phase: gameData.guessingPhase, 
         role: guessingRole, 
         hasAnswer: !!gameData.playerAnswer,
-        hasGuess: !!gameData.playerGuess 
+        hasGuess: !!gameData.playerGuess,
+        playerId: playerId,
+        playerIndex: myPlayerIndex,
+        hostIndex: hostIndex,
+        hostIsAnswerer: gameData.hostIsAnswerer
     });
     
-    if (gameData.guessingPhase === 'intro' && !gameData.showingRoundIntro) {
-        if (guessingRole === 'answerer') {
-            showAnswerScreen(gameData.guessingQuestion);
-        } else {
-            showWaitingForAnswer();
-        }
-        
-        // Update phase to answering
-        if (isHost) {
-            setTimeout(() => {
-                gameRef.update({ guessingPhase: 'answering' });
-            }, 100);
-        }
-    } else if (gameData.guessingPhase === 'guessing' && gameData.playerAnswer) {
-        // When in guessing phase with an answer
-        if (guessingRole === 'guesser') {
-            showGuessScreen(gameData.guessingQuestion, gameData.playerAnswer);
-        } else {
-            // Answerer waits while guesser is choosing
-            showScreen('guessing-answer-screen');
-            document.getElementById('submit-answer-btn').style.display = 'none';
-            document.getElementById('answer-waiting').style.display = 'block';
-            document.getElementById('answer-waiting').textContent = 'Waiting for your partner to guess...';
-        }
-    } else if (gameData.guessingPhase === 'complete' && gameData.playerGuess !== null) {
-        // Both players see the result
-        showGuessingResult(gameData.playerGuess === gameData.playerAnswer, gameData.playerAnswer, gameData.playerGuess);
+    switch(gameData.guessingPhase) {
+        case 'intro':
+            // This is handled by showRoundIntro, just wait
+            break;
+            
+        case 'answering':
+            if (guessingRole === 'answerer') {
+                showAnswerScreen(gameData.guessingQuestion);
+            } else {
+                showWaitingForAnswer();
+            }
+            break;
+            
+        case 'guessing':
+            if (gameData.playerAnswer) {
+                // Add a small delay to ensure UI is ready
+                setTimeout(() => {
+                    if (guessingRole === 'guesser') {
+                        console.log('Attempting to show guess screen...');
+                        showGuessScreen(gameData.guessingQuestion, gameData.playerAnswer);
+                    } else {
+                        // Answerer waits while guesser is choosing
+                        showScreen('guessing-answer-screen');
+                        document.getElementById('submit-answer-btn').style.display = 'none';
+                        document.getElementById('answer-waiting').style.display = 'block';
+                        document.getElementById('answer-waiting').textContent = 'Waiting for your partner to guess...';
+                    }
+                }, 100);
+            }
+            break;
+            
+        case 'complete':
+            if (gameData.playerGuess !== null && gameData.playerAnswer !== null) {
+                showGuessingResult(gameData.playerGuess === gameData.playerAnswer, gameData.playerAnswer, gameData.playerGuess);
+            }
+            break;
     }
 }
 
 function showAnswerScreen(question) {
+    console.log('Showing answer screen for question:', question.question);
     showScreen('guessing-answer-screen');
     document.getElementById('guessing-question').textContent = question.question;
     document.getElementById('guessing-answer-input').value = '';
     document.getElementById('answer-waiting').style.display = 'none';
     document.getElementById('submit-answer-btn').style.display = 'block';
+    
+    // Focus on input for better UX
+    setTimeout(() => {
+        document.getElementById('guessing-answer-input').focus();
+    }, 100);
 }
 
 function showWaitingForAnswer() {
     showScreen('guessing-guess-screen');
-    document.getElementById('guess-question').textContent = currentGame.guessingQuestion.question;
+    const question = currentGame?.guessingQuestion?.question || 'Waiting for your partner to answer...';
+    document.getElementById('guess-question').textContent = question;
     document.getElementById('guess-options').innerHTML = '<p style="color: rgba(255,255,255,0.7); text-align: center;">Waiting for your partner to answer...</p>';
     document.getElementById('guess-waiting').style.display = 'none'; // Hide the other waiting text
 }
 
 function showGuessScreen(question, realAnswer) {
+    console.log('Showing guess screen with answer:', realAnswer);
     showScreen('guessing-guess-screen');
     document.getElementById('guess-question').textContent = question.question;
     document.getElementById('guess-waiting').style.display = 'none';
@@ -526,10 +597,14 @@ document.getElementById('submit-answer-btn').addEventListener('click', () => {
     document.getElementById('answer-waiting').style.display = 'block';
     
     // Update Firebase with the answer and change phase
-    gameRef.update({
+    // Force a complete update to ensure all clients get notified
+    const updates = {
         playerAnswer: answer,
-        guessingPhase: 'guessing'
-    }).then(() => {
+        guessingPhase: 'guessing',
+        lastUpdate: Date.now() // Add timestamp to force update
+    };
+    
+    gameRef.update(updates).then(() => {
         console.log('Answer submitted successfully');
     }).catch((error) => {
         console.error('Error submitting answer:', error);
