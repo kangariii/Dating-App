@@ -20,10 +20,28 @@ function generatePlayerId() {
 }
 
 function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.remove('active');
-    });
-    document.getElementById(screenId).classList.add('active');
+    const currentScreen = document.querySelector('.screen.active');
+    const nextScreen = document.getElementById(screenId);
+    
+    if (currentScreen && currentScreen !== nextScreen) {
+        currentScreen.style.opacity = '0';
+        setTimeout(() => {
+            currentScreen.classList.remove('active');
+            currentScreen.style.display = 'none';
+            
+            nextScreen.style.display = 'block';
+            nextScreen.style.opacity = '0';
+            nextScreen.classList.add('active');
+            
+            setTimeout(() => {
+                nextScreen.style.opacity = '1';
+            }, 50);
+        }, 300);
+    } else {
+        nextScreen.style.display = 'block';
+        nextScreen.classList.add('active');
+        nextScreen.style.opacity = '1';
+    }
 }
 
 // Room Management
