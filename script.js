@@ -267,13 +267,14 @@ function startGuessingGame(roundNumber) {
 }
 
 function handleGuessingGameUpdate(gameData) {
+    // Always recalculate role based on current game state
+    const playerIds = Object.keys(gameData.players);
+    const myIndex = playerIds.indexOf(playerId);
+    const isAnswerer = (gameData.isPlayerOneAnswerer && myIndex === 0) || 
+                      (!gameData.isPlayerOneAnswerer && myIndex === 1);
+    guessingRole = isAnswerer ? 'answerer' : 'guesser';
+    
     if (gameData.guessingPhase === 'intro' && !gameData.showingRoundIntro) {
-        // Determine role
-        const playerIds = Object.keys(gameData.players);
-        const myIndex = playerIds.indexOf(playerId);
-        guessingRole = (gameData.isPlayerOneAnswerer && myIndex === 0) || 
-                      (!gameData.isPlayerOneAnswerer && myIndex === 1) ? 'answerer' : 'guesser';
-        
         if (guessingRole === 'answerer') {
             showAnswerScreen(gameData.guessingQuestion);
         } else {
@@ -284,9 +285,13 @@ function handleGuessingGameUpdate(gameData) {
         if (isHost) {
             gameRef.update({ guessingPhase: 'answering' });
         }
-    } else if (gameData.guessingPhase === 'guessing' && gameData.playerAnswer && guessingRole === 'guesser') {
-        showGuessScreen(gameData.guessingQuestion, gameData.playerAnswer);
+    } else if (gameData.guessingPhase === 'guessing' && gameData.playerAnswer) {
+        // Show guess screen for guesser, keep answer screen for answerer
+        if (guessingRole === 'guesser') {
+            showGuessScreen(gameData.guessingQuestion, gameData.playerAnswer);
+        }
     } else if (gameData.guessingPhase === 'complete' && gameData.playerGuess) {
+        // Both players see the result
         showGuessingResult(gameData.playerGuess === gameData.playerAnswer, gameData.playerAnswer, gameData.playerGuess);
     }
 }
