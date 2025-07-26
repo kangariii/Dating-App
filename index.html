@@ -45,12 +45,20 @@
             <div class="room-code-display">
                 <h2>Share this code with your partner:</h2>
                 <div class="room-code" id="room-code">----</div>
-                <p style="color: #666; margin-top: 20px;">Waiting for partner to join...</p>
-            </div>
-            <div class="player-setup">
-                <div class="player-input">
-                    <label>Your Name</label>
-                    <input type="text" id="creator-name" placeholder="Enter your name" onblur="updateCreatorName()" />
+                <div id="creator-setup" class="player-setup">
+                    <div class="player-input">
+                        <label>Your Name</label>
+                        <input type="text" id="creator-name" placeholder="Enter your name" />
+                    </div>
+                    <button class="btn btn-primary" onclick="submitCreatorName()" style="width: 100%; margin-top: 15px;">
+                        Ready to Play
+                    </button>
+                </div>
+                <div id="creator-waiting" style="display: none;">
+                    <p style="color: white; margin-top: 20px; text-align: center;">
+                        <strong>You're all set!</strong><br>
+                        Waiting for partner to join...
+                    </p>
                 </div>
             </div>
         </div>
@@ -128,7 +136,7 @@
 
         <!-- Guessing Game Answer Screen -->
         <div id="guessing-answer-screen" class="screen">
-            <div class="container">
+            <div class="container" style="text-align: center;">
                 <h2 class="round-title">Quick! Answer this:</h2>
                 <p id="guessing-question" class="question"></p>
                 <div class="input-group">
@@ -141,7 +149,7 @@
 
         <!-- Guessing Game Guess Screen -->
         <div id="guessing-guess-screen" class="screen">
-            <div class="container">
+            <div class="container" style="text-align: center;">
                 <h2 class="round-title">Can you guess their answer?</h2>
                 <p id="guess-question" class="question"></p>
                 <div id="guess-options" class="guess-options">

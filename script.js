@@ -65,9 +65,26 @@ function showJoinScreen() {
 }
 
 function updateCreatorName() {
-    const name = document.getElementById('creator-name').value || 'Player 1';
+    // Keep this function for backward compatibility but don't use it
+}
+
+function submitCreatorName() {
+    const name = document.getElementById('creator-name').value.trim();
+    if (!name) {
+        alert('Please enter your name');
+        return;
+    }
+    
+    // Update name in Firebase
     if (gameRef && playerId) {
-        gameRef.child(`players/${playerId}/name`).set(name);
+        gameRef.child(`players/${playerId}`).update({
+            name: name,
+            ready: true
+        });
+        
+        // Hide setup, show waiting
+        document.getElementById('creator-setup').style.display = 'none';
+        document.getElementById('creator-waiting').style.display = 'block';
     }
 }
 
@@ -82,7 +99,8 @@ function setupRoom() {
         players: {
             [playerId]: {
                 name: name,
-                connected: true
+                connected: true,
+                ready: false
             }
         },
         mode: null,
@@ -147,7 +165,8 @@ function joinRoom() {
         if (snapshot.exists()) {
             gameRef.child(`players/${playerId}`).set({
                 name: name,
-                connected: true
+                connected: true,
+                ready: true
             })
             .then(() => {
                 console.log('Successfully joined room!');
@@ -208,7 +227,9 @@ function handleGameUpdate(gameData) {
     }
     
     if (playerCount === 2 && !gameData.gameStarted) {
-        if (isHost) {
+        // Check if both players are ready
+        const allReady = Object.values(gameData.players).every(player => player.ready);
+        if (allReady && isHost) {
             startNewRound(1);
         }
     } else if (gameData.gameStarted) {
@@ -637,4 +658,11 @@ function shuffleArray(array) {
 // Auto-format room code input
 document.getElementById('join-code').addEventListener('input', function(e) {
     e.target.value = e.target.value.toUpperCase();
+});
+
+// Allow Enter key to submit creator name
+document.getElementById('creator-name').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        submitCreatorName();
+    }
 });

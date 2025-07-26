@@ -377,6 +377,205 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+/* Guessing Game Specific Styles - MODERNIZED */
+.round-title {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    animation: float 3s ease-in-out infinite;
+    color: white;
+    text-align: center;
+}
+
+.input-group {
+    margin: 2rem 0;
+    display: flex;
+    justify-content: center;
+}
+
+.guess-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 2rem auto;
+    max-width: 500px;
+    width: 100%;
+}
+
+.guess-option {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 1.5rem 1rem;
+    font-size: 1.1rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.guess-option:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.guess-option:active {
+    transform: translateY(-1px) scale(1.01);
+}
+
+.guess-option.selected {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.03);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.guess-option.correct {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3) 0%, rgba(129, 199, 132, 0.3) 100%);
+    border-color: rgba(76, 175, 80, 0.6);
+    animation: correctPulse 0.6s ease;
+}
+
+.guess-option.incorrect {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.3) 0%, rgba(239, 83, 80, 0.3) 100%);
+    border-color: rgba(244, 67, 54, 0.6);
+    animation: shake 0.5s ease;
+}
+
+@keyframes correctPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+#guessing-answer-input {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 1.2rem 2rem;
+    font-size: 1.2rem;
+    color: white;
+    width: 100%;
+    max-width: 450px;
+    transition: all 0.3s ease;
+    text-align: center;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 400;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+#guessing-answer-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+
+#guessing-answer-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+    transform: scale(1.02);
+}
+
+.question {
+    font-size: 1.4rem;
+    color: white;
+    text-align: center;
+    margin: 2rem 0;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+.result-details {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 25px;
+    padding: 2.5rem;
+    margin: 2rem auto;
+    max-width: 500px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.result-question {
+    font-size: 1.3rem;
+    margin-bottom: 2rem;
+    color: white;
+    text-align: center;
+    font-weight: 500;
+}
+
+.result-answer, .result-guess {
+    font-size: 1.1rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    text-align: center;
+}
+
+.result-answer span, .result-guess span {
+    color: white;
+    font-weight: 600;
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.waiting-text {
+    color: rgba(255, 255, 255, 0.8);
+    font-style: italic;
+    margin-top: 2rem;
+    animation: pulse 2s ease-in-out infinite;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.play-btn {
+    padding: 15px 35px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
+    color: white;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    font-family: 'Poppins', sans-serif;
+}
+
+.play-btn:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.25) 100%);
+    box-shadow: 0 8px 30px rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.play-btn:active {
+    transform: translateY(0);
+}
+
 /* Text colors for better readability */
 h2, h3 {
     color: white;
@@ -384,6 +583,29 @@ h2, h3 {
 
 p {
     color: rgba(255, 255, 255, 0.9);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+    .guess-options {
+        grid-template-columns: 1fr;
+        max-width: 350px;
+    }
+    
+    .guess-option {
+        min-height: 70px;
+        font-size: 1rem;
+        padding: 1.2rem 0.8rem;
+    }
+    
+    #guessing-answer-input {
+        font-size: 1.1rem;
+        padding: 1rem 1.5rem;
+    }
+    
+    .question {
+        font-size: 1.2rem;
+    }
 }
 
 @media (max-width: 480px) {
