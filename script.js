@@ -25,6 +25,7 @@ const GAME_STRUCTURE = {
 let currentGuessingQuestion = null;
 let guessingRole = null; // 'answerer' or 'guesser'
 let guessingQuestionsAsked = 0; // Track how many guessing questions have been asked this round
+let processingContinue = false; // Prevent double-clicking continue button
 
 // Helper Functions
 function generateRoomCode() {
@@ -216,6 +217,11 @@ function handleGameUpdate(gameData) {
     // Always update currentGame first
     currentGame = gameData;
     
+    // Sync guessing questions counter
+    if (gameData.guessingQuestionsAsked !== undefined) {
+        guessingQuestionsAsked = gameData.guessingQuestionsAsked;
+    }
+    
     const playerCount = Object.keys(gameData.players).length;
     
     const playerIds = Object.keys(gameData.players);
@@ -302,6 +308,8 @@ function startNewRound(roundNumber = null) {
 }
 
 function startGuessingGame(roundNumber) {
+    console.log('Starting guessing game for round:', roundNumber);
+    
     // Get appropriate questions for this round
     const questionBank = roundNumber === 1 ? guessingQuestions.round1 :
                         roundNumber === 3 ? guessingQuestions.round3 :
@@ -330,13 +338,20 @@ function startGuessingGame(roundNumber) {
         hostIsAnswerer = (questionNumber % 2 === 0); // Host answers questions 4 and 6
     }
     
+    console.log('Guessing game setup:', {
+        questionNumber,
+        hostIsAnswerer,
+        guessingQuestionsAsked,
+        showIntro: guessingQuestionsAsked === 0
+    });
+    
     gameRef.update({
         gameStarted: true,
         currentRound: roundNumber,
         roundName: `Round ${roundNumber} - ${GAME_STRUCTURE[roundNumber].name}`,
         guessingQuestion: guessingQuestion,
         hostIsAnswerer: hostIsAnswerer,
-        guessingPhase: 'intro',
+        guessingPhase: guessingQuestionsAsked === 0 ? 'intro' : 'answering', // Go directly to answering for questions 2-6
         playerAnswer: null,
         playerGuess: null,
         showingRoundIntro: guessingQuestionsAsked === 0, // Only show intro for first question
@@ -349,6 +364,9 @@ function handleGuessingGameUpdate(gameData) {
         console.log('Missing data:', { hasQuestion: !!gameData.guessingQuestion, hasPlayerId: !!playerId });
         return;
     }
+    
+    // Reset processing flag when we get a new state
+    processingContinue = false;
     
     // Sync the questions asked counter
     guessingQuestionsAsked = gameData.guessingQuestionsAsked || 0;
@@ -511,6 +529,7 @@ function showGuessingResult(isCorrect, correctAnswer, playerGuess) {
     
     // Update continue button text to show progress
     const continueBtn = document.getElementById('continue-from-guess-btn');
+    continueBtn.disabled = false; // Re-enable button
     const questionsLeft = 6 - (currentGame.guessingQuestionsAsked + 1);
     if (questionsLeft > 0) {
         continueBtn.textContent = `Continue (${questionsLeft} questions left)`;
@@ -692,21 +711,78 @@ document.getElementById('submit-answer-btn').addEventListener('click', () => {
 });
 
 document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
-    // Increment questions asked
-    guessingQuestionsAsked++;
+    console.log('Continue button clicked', { isHost, guessingQuestionsAsked, processingContinue });
     
-    // Update Firebase with the new count
-    gameRef.update({
-        guessingQuestionsAsked: guessingQuestionsAsked
+    // Prevent multiple simultaneous continues
+    if (processingContinue) return;
+    
+    // Disable button to prevent double clicks
+    const continueBtn = document.getElementById('continue-from-guess-btn');
+    if (continueBtn.disabled) return; // Already processing
+    
+    continueBtn.disabled = true;
+    processingContinue = true;
+    continueBtn.textContent = 'Loading next question...';
+    
+    // Use Firebase value for questions asked to ensure sync
+    const nextQuestionNumber = (currentGame.guessingQuestionsAsked || 0) + 1;
+    
+    console.log('Processing continue...', { 
+        currentQuestionsAsked: currentGame.guessingQuestionsAsked,
+        nextQuestionNumber 
     });
     
     // Check if we've completed 6 questions
-    if (guessingQuestionsAsked >= 6) {
-        // Move to next round
+    if (nextQuestionNumber >= 6) {
+        // Reset counter and move to next round
+        guessingQuestionsAsked = 0;
+        processingContinue = false;
         startNewRound();
     } else {
-        // Continue with next guessing question
-        startGuessingGame(currentGame.currentRound);
+        // Get appropriate questions for this round
+        const questionBank = currentGame.currentRound === 1 ? guessingQuestions.round1 :
+                            currentGame.currentRound === 3 ? guessingQuestions.round3 :
+                            guessingQuestions.round5;
+        
+        // Select a new random question
+        const randomIndex = Math.floor(Math.random() * questionBank.length);
+        const newQuestion = questionBank[randomIndex];
+        
+        // Determine who answers next based on question number
+        const questionNumber = nextQuestionNumber + 1; // +1 because it's the next question
+        let hostIsAnswerer;
+        
+        if (questionNumber <= 3) {
+            hostIsAnswerer = (questionNumber % 2 === 1); // Host answers questions 1 and 3
+        } else {
+            hostIsAnswerer = (questionNumber % 2 === 0); // Host answers questions 4 and 6
+        }
+        
+        console.log('Updating Firebase for next question...', {
+            questionNumber,
+            hostIsAnswerer,
+            question: newQuestion.question
+        });
+        
+        // Update Firebase to start next question - either player can do this
+        gameRef.update({
+            guessingQuestion: newQuestion,
+            hostIsAnswerer: hostIsAnswerer,
+            guessingPhase: 'answering',
+            playerAnswer: null,
+            playerGuess: null,
+            guessingQuestionsAsked: nextQuestionNumber,
+            showingRoundIntro: false,
+            lastUpdate: Date.now() // Force update
+        }).then(() => {
+            console.log('Firebase updated successfully');
+            processingContinue = false;
+        }).catch(error => {
+            console.error('Error updating Firebase:', error);
+            continueBtn.disabled = false;
+            continueBtn.textContent = 'Try Again';
+            processingContinue = false;
+        });
     }
 });
 
