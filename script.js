@@ -11,18 +11,20 @@ let gameRef = null;
 let currentGame = null;
 
 // New game structure - 6 rounds alternating between guessing and questions
+// Each round now has 6 questions total
 const GAME_STRUCTURE = {
-    1: { type: 'guessing', name: 'Guessing Game #1' },
-    2: { type: 'questions', category: 'first-date', name: 'Getting to Know You' },
-    3: { type: 'guessing', name: 'Guessing Game #2' },
-    4: { type: 'questions', category: 'getting-closer', name: 'Going Deeper' },
-    5: { type: 'guessing', name: 'Guessing Game #3' },
-    6: { type: 'questions', category: null, name: 'Final Round' } // Will be randomly chosen
+    1: { type: 'guessing', name: 'Guessing Game #1' },      // 6 guessing questions
+    2: { type: 'questions', category: 'first-date', name: 'Getting to Know You' }, // 6 regular questions
+    3: { type: 'guessing', name: 'Guessing Game #2' },      // 6 guessing questions
+    4: { type: 'questions', category: 'getting-closer', name: 'Going Deeper' },     // 6 regular questions
+    5: { type: 'guessing', name: 'Guessing Game #3' },      // 6 guessing questions
+    6: { type: 'questions', category: null, name: 'Final Round' } // 6 regular questions (randomly chosen)
 };
 
 // Guessing game state
 let currentGuessingQuestion = null;
 let guessingRole = null; // 'answerer' or 'guesser'
+let guessingQuestionsAsked = 0; // Track how many guessing questions have been asked this round
 
 // Helper Functions
 function generateRoomCode() {
@@ -236,7 +238,7 @@ function handleGameUpdate(gameData) {
         // Check if we're in a guessing round
         if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'guessing') {
             // Handle round intro for guessing games
-            if (gameData.showingRoundIntro) {
+            if (gameData.showingRoundIntro && gameData.guessingQuestionsAsked === 0) {
                 showRoundIntro(gameData.roundName);
                 setTimeout(() => {
                     if (isHost && gameRef) {
@@ -247,7 +249,7 @@ function handleGameUpdate(gameData) {
                     }
                 }, 3000);
             } else {
-                // After intro, handle the guessing game
+                // After intro or between questions, handle the guessing game
                 handleGuessingGameUpdate(gameData);
             }
         } else {
@@ -271,6 +273,8 @@ function startNewRound(roundNumber = null) {
     const roundInfo = GAME_STRUCTURE[roundNumber];
     
     if (roundInfo.type === 'guessing') {
+        // Reset guessing questions counter for new round
+        guessingQuestionsAsked = 0;
         startGuessingGame(roundNumber);
     } else {
         // Question round
@@ -291,7 +295,8 @@ function startNewRound(roundNumber = null) {
             roundName: `Round ${roundNumber} - ${roundInfo.name}`,
             questionsAskedThisRound: 0,
             showingRoundIntro: true,
-            guessingPhase: null
+            guessingPhase: null,
+            guessingQuestionsAsked: 0 // Reset for clean state
         });
     }
 }
@@ -302,22 +307,27 @@ function startGuessingGame(roundNumber) {
                         roundNumber === 3 ? guessingQuestions.round3 :
                         guessingQuestions.round5;
     
-    // Select a random question
+    // If starting a new guessing round, reset counter
+    if (!currentGame.guessingQuestionsAsked || currentGame.guessingQuestionsAsked === 0) {
+        guessingQuestionsAsked = 0;
+    } else {
+        guessingQuestionsAsked = currentGame.guessingQuestionsAsked;
+    }
+    
+    // Select a random question (making sure we have enough questions)
     const randomIndex = Math.floor(Math.random() * questionBank.length);
     const guessingQuestion = questionBank[randomIndex];
     
-    // Determine who answers first based on player order
-    const playerIds = Object.keys(currentGame.players);
-    const hostIndex = playerIds.indexOf(currentGame.host);
-    
-    // Alternate who goes first, or random for round 5
+    // Determine who answers based on question number
+    // Questions 1,2,3: host answers if odd question number
+    // Questions 4,5,6: host answers if even question number
+    const questionNumber = guessingQuestionsAsked + 1;
     let hostIsAnswerer;
-    if (roundNumber === 1) {
-        hostIsAnswerer = true; // Host answers first in round 1
-    } else if (roundNumber === 3) {
-        hostIsAnswerer = false; // Non-host answers first in round 3
+    
+    if (questionNumber <= 3) {
+        hostIsAnswerer = (questionNumber % 2 === 1); // Host answers questions 1 and 3
     } else {
-        hostIsAnswerer = Math.random() < 0.5; // Random for round 5
+        hostIsAnswerer = (questionNumber % 2 === 0); // Host answers questions 4 and 6
     }
     
     gameRef.update({
@@ -329,7 +339,8 @@ function startGuessingGame(roundNumber) {
         guessingPhase: 'intro',
         playerAnswer: null,
         playerGuess: null,
-        showingRoundIntro: true
+        showingRoundIntro: guessingQuestionsAsked === 0, // Only show intro for first question
+        guessingQuestionsAsked: guessingQuestionsAsked
     });
 }
 
@@ -338,6 +349,9 @@ function handleGuessingGameUpdate(gameData) {
         console.log('Missing data:', { hasQuestion: !!gameData.guessingQuestion, hasPlayerId: !!playerId });
         return;
     }
+    
+    // Sync the questions asked counter
+    guessingQuestionsAsked = gameData.guessingQuestionsAsked || 0;
     
     // Get all player IDs to determine order
     const playerIds = Object.keys(gameData.players);
@@ -362,7 +376,8 @@ function handleGuessingGameUpdate(gameData) {
         playerId: playerId,
         playerIndex: myPlayerIndex,
         hostIndex: hostIndex,
-        hostIsAnswerer: gameData.hostIsAnswerer
+        hostIsAnswerer: gameData.hostIsAnswerer,
+        questionsAsked: guessingQuestionsAsked
     });
     
     switch(gameData.guessingPhase) {
@@ -407,6 +422,12 @@ function handleGuessingGameUpdate(gameData) {
 function showAnswerScreen(question) {
     console.log('Showing answer screen for question:', question.question);
     showScreen('guessing-answer-screen');
+    
+    // Show question number
+    const questionNum = (currentGame.guessingQuestionsAsked || 0) + 1;
+    document.querySelector('#guessing-answer-screen .round-title').textContent = 
+        `Question ${questionNum} of 6 - Quick! Answer this:`;
+    
     document.getElementById('guessing-question').textContent = question.question;
     document.getElementById('guessing-answer-input').value = '';
     document.getElementById('answer-waiting').style.display = 'none';
@@ -421,6 +442,10 @@ function showAnswerScreen(question) {
 function showWaitingForAnswer() {
     showScreen('guessing-guess-screen');
     const question = currentGame?.guessingQuestion?.question || 'Waiting for your partner to answer...';
+    const questionNum = (currentGame?.guessingQuestionsAsked || 0) + 1;
+    
+    document.querySelector('#guessing-guess-screen .round-title').textContent = 
+        `Question ${questionNum} of 6 - Waiting...`;
     document.getElementById('guess-question').textContent = question;
     document.getElementById('guess-options').innerHTML = '<p style="color: rgba(255,255,255,0.7); text-align: center;">Waiting for your partner to answer...</p>';
     document.getElementById('guess-waiting').style.display = 'none'; // Hide the other waiting text
@@ -429,6 +454,12 @@ function showWaitingForAnswer() {
 function showGuessScreen(question, realAnswer) {
     console.log('Showing guess screen with answer:', realAnswer);
     showScreen('guessing-guess-screen');
+    
+    // Show question number
+    const questionNum = (currentGame.guessingQuestionsAsked || 0) + 1;
+    document.querySelector('#guessing-guess-screen .round-title').textContent = 
+        `Question ${questionNum} of 6 - Can you guess their answer?`;
+    
     document.getElementById('guess-question').textContent = question.question;
     document.getElementById('guess-waiting').style.display = 'none';
     
@@ -477,6 +508,15 @@ function showGuessingResult(isCorrect, correctAnswer, playerGuess) {
     document.querySelector('.result-question').textContent = currentGame.guessingQuestion.question;
     document.getElementById('actual-answer').textContent = correctAnswer;
     document.getElementById('player-guess').textContent = playerGuess;
+    
+    // Update continue button text to show progress
+    const continueBtn = document.getElementById('continue-from-guess-btn');
+    const questionsLeft = 6 - (currentGame.guessingQuestionsAsked + 1);
+    if (questionsLeft > 0) {
+        continueBtn.textContent = `Continue (${questionsLeft} questions left)`;
+    } else {
+        continueBtn.textContent = 'Continue to Next Round';
+    }
 }
 
 function updateGameScreen(gameData) {
@@ -545,8 +585,23 @@ function updateQuestionGame(gameData) {
         `Round ${gameData.currentRound}/6 • Question ${questionsAsked + 1} of 6`;
     document.getElementById('question-text').textContent = currentQuestion;
     
-    // Update progress bar (now out of 6 rounds)
-    const progress = ((gameData.currentRound - 1) / 6) * 100;
+    // Update progress bar to reflect total questions (6 per round, 36 total)
+    const totalQuestionsInGame = 36; // 6 rounds × 6 questions each
+    let totalQuestionsCompleted = 0;
+    
+    // Calculate questions completed based on rounds
+    if (gameData.currentRound > 1) {
+        totalQuestionsCompleted = (gameData.currentRound - 1) * 6;
+    }
+    
+    // Add current round progress
+    if (GAME_STRUCTURE[gameData.currentRound]?.type === 'questions') {
+        totalQuestionsCompleted += gameData.questionsAskedThisRound || 0;
+    } else {
+        totalQuestionsCompleted += gameData.guessingQuestionsAsked || 0;
+    }
+    
+    const progress = (totalQuestionsCompleted / totalQuestionsInGame) * 100;
     document.getElementById('progress-fill').style.width = progress + '%';
     
     const skipBtn = document.getElementById('skip-btn');
@@ -578,7 +633,7 @@ function skipQuestion() {
 }
 
 function endGame() {
-    alert(`Amazing connection! You've completed all 6 rounds - 3 guessing games and 18 meaningful questions together! 💕`);
+    alert(`Amazing connection! You've completed all 6 rounds - sharing 36 meaningful moments together (18 guessing games and 18 deep questions)! 💕`);
     leaveGame();
 }
 
@@ -637,7 +692,22 @@ document.getElementById('submit-answer-btn').addEventListener('click', () => {
 });
 
 document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
-    startNewRound();
+    // Increment questions asked
+    guessingQuestionsAsked++;
+    
+    // Update Firebase with the new count
+    gameRef.update({
+        guessingQuestionsAsked: guessingQuestionsAsked
+    });
+    
+    // Check if we've completed 6 questions
+    if (guessingQuestionsAsked >= 6) {
+        // Move to next round
+        startNewRound();
+    } else {
+        // Continue with next guessing question
+        startGuessingGame(currentGame.currentRound);
+    }
 });
 
 // Helper functions for guessing game
@@ -664,5 +734,26 @@ document.getElementById('join-code').addEventListener('input', function(e) {
 document.getElementById('creator-name').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         submitCreatorName();
+    }
+});
+
+// Allow Enter key to join room from code input
+document.getElementById('join-code').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        joinRoom();
+    }
+});
+
+// Allow Enter key to join room
+document.getElementById('joiner-name').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        joinRoom();
+    }
+});
+
+// Allow Enter key to submit guessing answer
+document.getElementById('guessing-answer-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && document.getElementById('submit-answer-btn').style.display !== 'none') {
+        document.getElementById('submit-answer-btn').click();
     }
 });
