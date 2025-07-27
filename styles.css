@@ -585,6 +585,134 @@ p {
     color: rgba(255, 255, 255, 0.9);
 }
 
+/* Trivia Game Specific Styles */
+.trivia-header {
+    margin-bottom: 2rem;
+}
+
+.trivia-scores {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.score-badge {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 0.5rem 1.5rem;
+    font-size: 1.1rem;
+    color: white;
+    font-weight: 600;
+}
+
+.trivia-options {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin: 2rem auto;
+    max-width: 600px;
+    width: 100%;
+}
+
+.trivia-option {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 1.2rem 1.5rem;
+    font-size: 1.1rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.trivia-option:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateX(10px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.trivia-option.selected {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.02);
+}
+
+.trivia-option.correct {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3) 0%, rgba(129, 199, 132, 0.3) 100%);
+    border-color: rgba(76, 175, 80, 0.6);
+}
+
+.trivia-option.incorrect {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.3) 0%, rgba(239, 83, 80, 0.3) 100%);
+    border-color: rgba(244, 67, 54, 0.6);
+}
+
+.trivia-option.disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.player-answers {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.player-answers p {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1rem;
+    border-radius: 15px;
+    font-size: 1.1rem;
+}
+
+.correct-answer {
+    font-size: 1.2rem;
+    color: #4CAF50;
+    margin: 1.5rem 0;
+    text-align: center;
+}
+
+.final-scores {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin: 3rem 0;
+}
+
+.score-display {
+    text-align: center;
+}
+
+.score-display h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.final-score {
+    font-size: 3rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.winner-text {
+    font-size: 1.3rem;
+    color: white;
+    margin: 2rem 0;
+    font-weight: 600;
+    animation: pulse 2s ease-in-out infinite;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 600px) {
     .guess-options {
@@ -605,6 +733,16 @@ p {
     
     .question {
         font-size: 1.2rem;
+    }
+    
+    .trivia-scores {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .final-scores {
+        flex-direction: column;
+        gap: 2rem;
     }
 }
 

@@ -10,15 +10,18 @@ let isHost = false;
 let gameRef = null;
 let currentGame = null;
 
-// New game structure - 6 rounds alternating between guessing and questions
+// New game structure - 9 rounds alternating between guessing, trivia, and questions
 // Each round now has 6 questions total
 const GAME_STRUCTURE = {
-    1: { type: 'guessing', name: 'Guessing Game #1' },      // 6 guessing questions
-    2: { type: 'questions', category: 'first-date', name: 'Getting to Know You' }, // 6 regular questions
-    3: { type: 'guessing', name: 'Guessing Game #2' },      // 6 guessing questions
-    4: { type: 'questions', category: 'getting-closer', name: 'Going Deeper' },     // 6 regular questions
-    5: { type: 'guessing', name: 'Guessing Game #3' },      // 6 guessing questions
-    6: { type: 'questions', category: null, name: 'Final Round' } // 6 regular questions (randomly chosen)
+    1: { type: 'guessing', name: 'Guessing Game #1' },          // 6 guessing questions
+    2: { type: 'trivia', name: 'Trivia Challenge #1' },         // 6 trivia questions
+    3: { type: 'questions', category: 'first-date', name: 'Getting to Know You' }, // 6 regular questions
+    4: { type: 'guessing', name: 'Guessing Game #2' },          // 6 guessing questions
+    5: { type: 'trivia', name: 'Trivia Challenge #2' },         // 6 trivia questions
+    6: { type: 'questions', category: 'getting-closer', name: 'Going Deeper' },     // 6 regular questions
+    7: { type: 'guessing', name: 'Guessing Game #3' },          // 6 guessing questions
+    8: { type: 'trivia', name: 'Trivia Challenge #3' },         // 6 trivia questions
+    9: { type: 'questions', category: null, name: 'Final Round' } // 6 regular questions (randomly chosen)
 };
 
 // Guessing game state
@@ -26,6 +29,14 @@ let currentGuessingQuestion = null;
 let guessingRole = null; // 'answerer' or 'guesser'
 let guessingQuestionsAsked = 0; // Track how many guessing questions have been asked this round
 let processingContinue = false; // Prevent double-clicking continue button
+
+// Trivia game state
+let currentTriviaQuestion = null;
+let triviaQuestionsAsked = 0;
+let triviaScores = { player1: 0, player2: 0 };
+let myTriviaAnswer = null;
+let partnerTriviaAnswer = null;
+let triviaRoundScores = { player1: 0, player2: 0 };
 
 // Helper Functions
 function generateRoomCode() {
@@ -258,6 +269,21 @@ function handleGameUpdate(gameData) {
                 // After intro or between questions, handle the guessing game
                 handleGuessingGameUpdate(gameData);
             }
+        } else if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'trivia') {
+            // Handle trivia rounds
+            if (gameData.showingRoundIntro && gameData.triviaQuestionsAsked === 0) {
+                showRoundIntro(gameData.roundName);
+                setTimeout(() => {
+                    if (isHost && gameRef) {
+                        gameRef.update({
+                            showingRoundIntro: false,
+                            triviaPhase: 'questioning'
+                        });
+                    }
+                }, 3000);
+            } else {
+                handleTriviaGameUpdate(gameData);
+            }
         } else {
             // Handle question rounds
             showScreen('game-screen');
@@ -271,7 +297,7 @@ function startNewRound(roundNumber = null) {
         roundNumber = (currentGame.currentRound || 0) + 1;
     }
     
-    if (roundNumber > 6) {
+    if (roundNumber > 9) {
         endGame();
         return;
     }
@@ -282,12 +308,17 @@ function startNewRound(roundNumber = null) {
         // Reset guessing questions counter for new round
         guessingQuestionsAsked = 0;
         startGuessingGame(roundNumber);
+    } else if (roundInfo.type === 'trivia') {
+        // Reset trivia counters for new round
+        triviaQuestionsAsked = 0;
+        triviaRoundScores = { player1: 0, player2: 0 };
+        startTriviaGame(roundNumber);
     } else {
         // Question round
         let mode = roundInfo.category;
         
-        // For round 6, randomly choose between soul-connection and heating-up
-        if (roundNumber === 6) {
+        // For round 9, randomly choose between soul-connection and heating-up
+        if (roundNumber === 9) {
             mode = Math.random() > 0.5 ? 'long-term' : 'spicy';
             roundInfo.name = mode === 'spicy' ? 'Heating Up 🔥' : 'Soul Connection';
         }
@@ -302,7 +333,9 @@ function startNewRound(roundNumber = null) {
             questionsAskedThisRound: 0,
             showingRoundIntro: true,
             guessingPhase: null,
-            guessingQuestionsAsked: 0 // Reset for clean state
+            guessingQuestionsAsked: 0, // Reset for clean state
+            triviaPhase: null,
+            triviaQuestionsAsked: 0
         });
     }
 }
@@ -601,11 +634,11 @@ function updateQuestionGame(gameData) {
     const questionRoundNumber = roundsCompleted + 1;
     
     document.getElementById('question-number').textContent = 
-        `Round ${gameData.currentRound}/6 • Question ${questionsAsked + 1} of 6`;
+        `Round ${gameData.currentRound}/9 • Question ${questionsAsked + 1} of 6`;
     document.getElementById('question-text').textContent = currentQuestion;
     
-    // Update progress bar to reflect total questions (6 per round, 36 total)
-    const totalQuestionsInGame = 36; // 6 rounds × 6 questions each
+    // Update progress bar to reflect total questions (6 per round, 54 total)
+    const totalQuestionsInGame = 54; // 9 rounds × 6 questions each
     let totalQuestionsCompleted = 0;
     
     // Calculate questions completed based on rounds
@@ -616,8 +649,10 @@ function updateQuestionGame(gameData) {
     // Add current round progress
     if (GAME_STRUCTURE[gameData.currentRound]?.type === 'questions') {
         totalQuestionsCompleted += gameData.questionsAskedThisRound || 0;
-    } else {
+    } else if (GAME_STRUCTURE[gameData.currentRound]?.type === 'guessing') {
         totalQuestionsCompleted += gameData.guessingQuestionsAsked || 0;
+    } else if (GAME_STRUCTURE[gameData.currentRound]?.type === 'trivia') {
+        totalQuestionsCompleted += gameData.triviaQuestionsAsked || 0;
     }
     
     const progress = (totalQuestionsCompleted / totalQuestionsInGame) * 100;
@@ -652,7 +687,7 @@ function skipQuestion() {
 }
 
 function endGame() {
-    alert(`Amazing connection! You've completed all 6 rounds - sharing 36 meaningful moments together (18 guessing games and 18 deep questions)! 💕`);
+    alert(`Amazing connection! You've completed all 9 rounds - sharing 54 meaningful moments together (18 guessing games, 18 trivia questions, and 18 deep questions)! 💕`);
     leaveGame();
 }
 
@@ -825,6 +860,239 @@ document.getElementById('joiner-name').addEventListener('keypress', function(e) 
     if (e.key === 'Enter') {
         joinRoom();
     }
+});
+
+// Trivia game functions
+function startTriviaGame(roundNumber) {
+    console.log('Starting trivia game for round:', roundNumber);
+    
+    // Get a random trivia question
+    const triviaQuestion = getRandomTriviaQuestion(roundNumber);
+    // Shuffle the options
+    const shuffledQuestion = shuffleTriviaOptions(triviaQuestion);
+    
+    gameRef.update({
+        gameStarted: true,
+        currentRound: roundNumber,
+        roundName: `Round ${roundNumber} - ${GAME_STRUCTURE[roundNumber].name}`,
+        triviaQuestion: shuffledQuestion,
+        triviaPhase: 'intro',
+        player1Answer: null,
+        player2Answer: null,
+        showingRoundIntro: triviaQuestionsAsked === 0,
+        triviaQuestionsAsked: triviaQuestionsAsked,
+        triviaRoundScores: triviaRoundScores || { player1: 0, player2: 0 }
+    });
+}
+
+function handleTriviaGameUpdate(gameData) {
+    if (!gameData.triviaQuestion) return;
+    
+    // Sync the questions asked counter
+    triviaQuestionsAsked = gameData.triviaQuestionsAsked || 0;
+    triviaRoundScores = gameData.triviaRoundScores || { player1: 0, player2: 0 };
+    
+    console.log('Trivia update:', {
+        phase: gameData.triviaPhase,
+        questionsAsked: triviaQuestionsAsked,
+        scores: triviaRoundScores
+    });
+    
+    switch(gameData.triviaPhase) {
+        case 'intro':
+            // Handled by showRoundIntro
+            break;
+            
+        case 'questioning':
+            showTriviaQuestion(gameData);
+            break;
+            
+        case 'waiting':
+            showTriviaWaiting(gameData);
+            break;
+            
+        case 'results':
+            showTriviaResults(gameData);
+            break;
+            
+        case 'complete':
+            showTriviaRoundComplete(gameData);
+            break;
+    }
+}
+
+function showTriviaQuestion(gameData) {
+    showScreen('trivia-question-screen');
+    
+    const questionNum = triviaQuestionsAsked + 1;
+    document.getElementById('trivia-question-number').textContent = 
+        `Question ${questionNum} of 6`;
+    
+    // Update scores
+    const playerIds = Object.keys(gameData.players);
+    document.getElementById('player1-score').textContent = 
+        `${gameData.players[playerIds[0]].name}: ${triviaRoundScores.player1}`;
+    document.getElementById('player2-score').textContent = 
+        `${gameData.players[playerIds[1]].name}: ${triviaRoundScores.player2}`;
+    
+    // Show question
+    document.getElementById('trivia-question').textContent = gameData.triviaQuestion.question;
+    
+    // Create option buttons
+    const optionsContainer = document.getElementById('trivia-options');
+    optionsContainer.innerHTML = '';
+    
+    gameData.triviaQuestion.options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.className = 'trivia-option';
+        button.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
+        button.addEventListener('click', () => handleTriviaAnswer(index));
+        optionsContainer.appendChild(button);
+    });
+    
+    document.getElementById('trivia-waiting').style.display = 'none';
+}
+
+function handleTriviaAnswer(answerIndex) {
+    // Disable all buttons
+    const buttons = document.querySelectorAll('.trivia-option');
+    buttons.forEach((btn, index) => {
+        btn.disabled = true;
+        btn.classList.add('disabled');
+        if (index === answerIndex) {
+            btn.classList.add('selected');
+        }
+    });
+    
+    // Show waiting message
+    document.getElementById('trivia-waiting').style.display = 'block';
+    
+    // Update Firebase with my answer
+    const playerIds = Object.keys(currentGame.players);
+    const myIndex = playerIds.indexOf(playerId);
+    
+    if (myIndex === 0) {
+        gameRef.update({
+            player1Answer: answerIndex,
+            triviaPhase: currentGame.player2Answer !== null ? 'results' : 'waiting'
+        });
+    } else {
+        gameRef.update({
+            player2Answer: answerIndex,
+            triviaPhase: currentGame.player1Answer !== null ? 'results' : 'waiting'
+        });
+    }
+}
+
+function showTriviaWaiting(gameData) {
+    // Keep showing the question screen with waiting message
+    if (document.getElementById('trivia-question-screen').classList.contains('active')) {
+        return; // Already showing waiting
+    }
+    showTriviaQuestion(gameData);
+}
+
+function showTriviaResults(gameData) {
+    showScreen('trivia-result-screen');
+    
+    const playerIds = Object.keys(gameData.players);
+    const correctAnswer = gameData.triviaQuestion.correct;
+    
+    // Check who got it right
+    const player1Correct = gameData.player1Answer === correctAnswer;
+    const player2Correct = gameData.player2Answer === correctAnswer;
+    
+    // Update title
+    let title = '';
+    if (player1Correct && player2Correct) {
+        title = '🎉 Both Correct! 🎉';
+    } else if (player1Correct || player2Correct) {
+        const winner = player1Correct ? gameData.players[playerIds[0]].name : gameData.players[playerIds[1]].name;
+        title = `🎉 ${winner} Got It! 🎉`;
+    } else {
+        title = '❌ Nobody Got It! ❌';
+    }
+    document.getElementById('trivia-result-title').textContent = title;
+    
+    // Show question and correct answer
+    document.getElementById('trivia-result-question').textContent = gameData.triviaQuestion.question;
+    document.getElementById('correct-answer').textContent = gameData.triviaQuestion.options[correctAnswer];
+    
+    // Show player answers
+    document.getElementById('player1-name-result').textContent = gameData.players[playerIds[0]].name;
+    document.getElementById('player1-answer').textContent = 
+        gameData.player1Answer !== null ? gameData.triviaQuestion.options[gameData.player1Answer] : 'No answer';
+    document.getElementById('player1-answer').style.color = player1Correct ? '#4CAF50' : '#f44336';
+    
+    document.getElementById('player2-name-result').textContent = gameData.players[playerIds[1]].name;
+    document.getElementById('player2-answer').textContent = 
+        gameData.player2Answer !== null ? gameData.triviaQuestion.options[gameData.player2Answer] : 'No answer';
+    document.getElementById('player2-answer').style.color = player2Correct ? '#4CAF50' : '#f44336';
+    
+    // Update scores if host
+    if (isHost) {
+        const newScores = {
+            player1: triviaRoundScores.player1 + (player1Correct ? 1 : 0),
+            player2: triviaRoundScores.player2 + (player2Correct ? 1 : 0)
+        };
+        
+        gameRef.update({
+            triviaRoundScores: newScores
+        });
+    }
+}
+
+function showTriviaRoundComplete(gameData) {
+    showScreen('trivia-complete-screen');
+    
+    const playerIds = Object.keys(gameData.players);
+    const scores = gameData.triviaRoundScores;
+    
+    // Show final scores
+    document.getElementById('player1-final').textContent = gameData.players[playerIds[0]].name;
+    document.getElementById('player1-final-score').textContent = scores.player1;
+    
+    document.getElementById('player2-final').textContent = gameData.players[playerIds[1]].name;
+    document.getElementById('player2-final-score').textContent = scores.player2;
+    
+    // Determine winner
+    let winnerText = '';
+    if (scores.player1 > scores.player2) {
+        winnerText = `${gameData.players[playerIds[0]].name} wins the trivia round!`;
+    } else if (scores.player2 > scores.player1) {
+        winnerText = `${gameData.players[playerIds[1]].name} wins the trivia round!`;
+    } else {
+        winnerText = "It's a tie! Great minds think alike!";
+    }
+    document.getElementById('trivia-winner').textContent = winnerText;
+}
+
+// Add event listeners for trivia buttons
+document.getElementById('continue-from-trivia-btn').addEventListener('click', () => {
+    triviaQuestionsAsked++;
+    
+    if (triviaQuestionsAsked >= 6) {
+        // Show round complete screen
+        gameRef.update({
+            triviaPhase: 'complete'
+        });
+    } else {
+        // Next question
+        const triviaQuestion = getRandomTriviaQuestion(currentGame.currentRound);
+        const shuffledQuestion = shuffleTriviaOptions(triviaQuestion);
+        
+        gameRef.update({
+            triviaQuestion: shuffledQuestion,
+            triviaPhase: 'questioning',
+            player1Answer: null,
+            player2Answer: null,
+            triviaQuestionsAsked: triviaQuestionsAsked
+        });
+    }
+});
+
+document.getElementById('continue-from-trivia-complete-btn').addEventListener('click', () => {
+    startNewRound();
 });
 
 // Allow Enter key to submit guessing answer

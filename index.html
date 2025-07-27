@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Nice to Meet You! - Couples Connection Games</title>
+        <title>Nice to Meet You - Couples Connection Games</title>
         
         <!-- Better fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,8 +20,8 @@
 <body>
     <div class="container">
         <div class="app-header">
-            <h1>Nice to Meet You! - Couples Connection Games</h1>
-            <p>3 rounds of meaningful connection</p>
+            <h1>Nice to Meet You</h1>
+            <p>9 rounds of games and connection</p>
         </div>
 
         <!-- Start Screen -->
@@ -171,6 +171,60 @@
                 <button id="continue-from-guess-btn" class="play-btn">Continue</button>
             </div>
         </div>
+
+        <!-- Trivia Question Screen -->
+        <div id="trivia-question-screen" class="screen">
+            <div class="container" style="text-align: center;">
+                <h2 class="round-title">Trivia Challenge</h2>
+                <div class="trivia-header">
+                    <p id="trivia-question-number" class="question-number"></p>
+                    <div class="trivia-scores">
+                        <span id="player1-score" class="score-badge"></span>
+                        <span id="player2-score" class="score-badge"></span>
+                    </div>
+                </div>
+                <p id="trivia-question" class="question"></p>
+                <div id="trivia-options" class="trivia-options">
+                    <!-- Options will be dynamically added -->
+                </div>
+                <p class="waiting-text" id="trivia-waiting" style="display: none;">Waiting for both players to answer...</p>
+            </div>
+        </div>
+
+        <!-- Trivia Result Screen -->
+        <div id="trivia-result-screen" class="screen">
+            <div class="container">
+                <h2 id="trivia-result-title" class="round-title"></h2>
+                <div class="result-details">
+                    <p class="result-question" id="trivia-result-question"></p>
+                    <p class="correct-answer"><strong>Correct Answer:</strong> <span id="correct-answer"></span></p>
+                    <div class="player-answers">
+                        <p><span id="player1-name-result"></span>: <span id="player1-answer"></span></p>
+                        <p><span id="player2-name-result"></span>: <span id="player2-answer"></span></p>
+                    </div>
+                </div>
+                <button id="continue-from-trivia-btn" class="play-btn">Continue</button>
+            </div>
+        </div>
+
+        <!-- Trivia Round Complete Screen -->
+        <div id="trivia-complete-screen" class="screen">
+            <div class="container" style="text-align: center;">
+                <h2 class="round-title">Trivia Round Complete!</h2>
+                <div class="final-scores">
+                    <div class="score-display">
+                        <h3 id="player1-final"></h3>
+                        <p class="final-score" id="player1-final-score"></p>
+                    </div>
+                    <div class="score-display">
+                        <h3 id="player2-final"></h3>
+                        <p class="final-score" id="player2-final-score"></p>
+                    </div>
+                </div>
+                <p id="trivia-winner" class="winner-text"></p>
+                <button id="continue-from-trivia-complete-btn" class="play-btn">Continue to Next Round</button>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase -->
@@ -181,6 +235,7 @@
     <script src="config.js"></script>
     <script src="questions.js"></script>
     <script src="guessing-questions.js"></script> 
+    <script src="trivia-questions.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
