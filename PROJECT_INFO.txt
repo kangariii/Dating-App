@@ -1,8 +1,8 @@
-# DEEPER GAME - PROJECT DOCUMENTATION
-Last Updated: [Today's Date]
+# NICE TO MEET YOU - PROJECT DOCUMENTATION
+Last Updated: January 2025
 
 ## 🚀 QUICK START FOR NEW CHAT
-"I have a couples game app at github.com/kangariii/Dating-App. It's a 3-round real-time multiplayer game using Firebase with glassmorphism design. [Paste your specific request]"
+"I have a couples game app at github.com/kangariii/Dating-App. It's a 9-round multiplayer game (guessing, trivia, questions) using Firebase. Currently working on [specific issue/feature]"
 
 ## 📍 PROJECT LINKS
 - GitHub Repo: https://github.com/kangariii/Dating-App
@@ -10,125 +10,151 @@ Last Updated: [Today's Date]
 - Firebase Console: https://console.firebase.google.com/project/dating-app-5f815
 
 ## 🏗️ TECH STACK
-- Frontend: Vanilla HTML/CSS/JavaScript
+- Frontend: Vanilla HTML/CSS/JavaScript (no frameworks)
 - Backend: Firebase Realtime Database
 - Hosting: GitHub Pages
 - Design: Glassmorphism with animated gradient background
+- Font: Poppins (Google Fonts)
 
-## 📁 FILE STRUCTURE
-deeper-game/
-├── index.html      # Main HTML structure
-├── config.js       # Firebase configuration
-├── styles.css      # All styling (glassmorphism, animations)
-├── script.js       # Game logic and Firebase integration
-├── questions.js    # Question database (6 per category)
-└── README.md       # Basic documentation
+## 🎮 GAME STRUCTURE
+### 9 Rounds Total (54 interactions)
+1. **Round 1**: Guessing Game #1 (6 questions)
+2. **Round 2**: Trivia Challenge #1 (6 questions)
+3. **Round 3**: Getting to Know You (6 deep questions)
+4. **Round 4**: Guessing Game #2 (6 questions)
+5. **Round 5**: Trivia Challenge #2 (6 questions)
+6. **Round 6**: Going Deeper (6 deep questions)
+7. **Round 7**: Guessing Game #3 (6 questions)
+8. **Round 8**: Trivia Challenge #3 (6 questions)
+9. **Round 9**: Final Round - Soul Connection OR Heating Up 🔥 (randomly chosen)
 
-## 🎮 CURRENT FEATURES
-1. **3-Round Progressive Structure**
-   - Round 1: Getting to Know You (first-date)
-   - Round 2: Going Deeper (getting-closer)
-   - Round 3: Soul Connection OR Heating Up (random)
+### Game Types Explained:
+- **Guessing Game**: One player answers a question, partner guesses from 4 options
+- **Trivia**: Both answer same question simultaneously, scores tracked per round
+- **Questions**: Turn-based deep conversation starters (3 each)
 
-2. **Multiplayer System**
-   - 4-character room codes
-   - Real-time sync via Firebase
-   - Turn-based questions (3 per player per round)
+## 📁 COMPLETE FILE STRUCTURE
+```
+Dating-App/
+├── index.html          # All game screens (start, create, join, game, guessing, trivia)
+├── script.js           # Core game logic, Firebase handlers, round management
+├── styles.css          # Glassmorphism, animations, responsive design
+├── questions.js        # Deep questions for rounds 3, 6, 9 (~100+ per category)
+├── guessing-questions.js # Guessing game questions with fake options
+├── trivia-questions.js # Trivia questions (round2, round5, round8 arrays)
+├── config.js           # Firebase configuration
+├── readme.md          # Basic GitHub readme
+├── PROJECT_INFO.txt   # This file
+└── QUICK_HELP.txt    # Quick reference commands
+```
 
-3. **Design Features**
-   - Animated gradient background
-   - Glassmorphism (frosted glass) effects
-   - Poppins font family
-   - Smooth screen transitions
-   - Floating animations
+## 🔧 KEY FUNCTIONS & FLOW
 
-4. **Game Flow**
-   - No mode selection (auto-starts)
-   - 18 total questions (6 per round)
-   - Skip feature (3 skips per game)
-   - Progress bar tracking
+### Game Flow:
+1. `createRoom()` / `joinRoom()` - Room management
+2. `startNewRound()` - Determines game type, initializes round
+3. `handleGameUpdate()` - Firebase listener, routes to appropriate handler
+4. Round-specific handlers:
+   - `handleGuessingGameUpdate()` - Manages guessing game phases
+   - `handleTriviaGameUpdate()` - Manages trivia phases
+   - `updateQuestionGame()` - Manages turn-based questions
 
-## 🔧 HOW TO UPDATE
+### Firebase Structure:
+```
+games/
+  [roomCode]/
+    host: playerId
+    players/
+      [playerId]/
+        name: string
+        connected: boolean
+        ready: boolean
+    currentRound: 1-9
+    gameStarted: boolean
+    // Round-specific data...
+```
 
-### Adding Questions:
-1. Open questions.js
-2. Add to the appropriate category array
-3. Keep to 6 questions per category
+### Key State Variables:
+- `roomCode` - 4-letter room identifier
+- `playerId` - Unique player ID
+- `isHost` - Boolean for host privileges
+- `currentGame` - Current Firebase game state
+- Round-specific counters (guessingQuestionsAsked, triviaQuestionsAsked, etc.)
 
-### Changing Colors:
-1. Open styles.css
-2. Main gradient is in body selector
-3. Button colors use rgba(255,255,255,0.X)
+## 🎯 CURRENT FEATURES
+- Real-time multiplayer synchronization
+- No login required - just room codes
+- Progress bar tracking all 54 questions
+- Skip feature (3 per game) for regular questions
+- Animated gradient background
+- Glassmorphism UI elements
+- Mobile responsive
+- Round intro animations
+- Score tracking for trivia rounds
 
-### Common GitHub Desktop Workflow:
-1. Edit files locally
-2. Open GitHub Desktop
-3. Write commit message
-4. Click "Commit to main"
-5. Click "Push origin"
-6. Wait 2-3 minutes for deployment
+## 🐛 KNOWN ISSUES & QUIRKS
+- Firebase test rules need periodic renewal
+- Players must join in order (host first)
+- No reconnection handling if someone refreshes
+- No spectator mode
+- Questions are randomly selected (may repeat across games)
 
-## 🎯 FEATURES TO ADD NEXT
-- [ ] Sound effects (join, next question, complete)
-- [ ] Confetti animation on round completion
-- [ ] PWA manifest for app installation
-- [ ] Dark/light mode toggle
-- [ ] Swipe gestures for mobile
-- [ ] Score tracking across rounds
-- [ ] More question categories
-- [ ] Timer option for questions
-- [ ] Custom question packs
-- [ ] Player avatars
+## 💡 COMMON MODIFICATIONS
 
-## 🔥 FIREBASE RULES STATUS
-Currently using test rules (read/write: true)
-Expires: [Check Firebase Console]
-TODO: Implement proper authentication before expiry
+### Add New Questions:
+```javascript
+// In appropriate file (questions.js, guessing-questions.js, trivia-questions.js)
+// Add to the relevant array following existing format
+```
 
-## 💡 COMMON REQUESTS
+### Change Round Structure:
+```javascript
+// In script.js, modify GAME_STRUCTURE object
+const GAME_STRUCTURE = {
+    1: { type: 'guessing', name: 'Your Custom Name' },
+    // etc...
+};
+```
 
-### "Add new questions"
-Edit questions.js - each category has 6 questions
+### Adjust Styling:
+```css
+/* Main gradient in styles.css body selector */
+/* Glass effect: rgba(255, 255, 255, 0.1) with backdrop-filter */
+/* Animations: @keyframes sections */
+```
 
-### "Change background colors"
-Edit styles.css - look for the gradient animation
-
-### "Make text bigger"
-Edit styles.css - search for font-size
-
-### "Add a new round"
-Would need to modify startNewRound() in script.js
-
-### "Change animation speed"
-Edit styles.css - look for animation durations
-
-## 🐛 KNOWN ISSUES
-- None currently reported
-
-## 📝 CONVERSATION STARTERS FOR NEXT CHAT
-
-Efficient: "I need help adding [feature] to my couples game at github.com/kangariii/Dating-App"
-
-Detailed: "I have a Firebase multiplayer couples game with glassmorphism design. Current structure: 3 rounds, 6 questions each. I want to [specific request]"
-
-With context: "Continuing work on my Deeper game - it's the couples connection game with animated gradients. File structure: index.html, styles.css, script.js, questions.js, config.js. I need to [request]"
-
-## 🔑 KEY CODE PATTERNS
-
-### Screen Navigation:
-showScreen('screen-id')
-
-### Firebase Updates:
-gameRef.update({ key: value })
-
-### Adding New Features:
-1. UI goes in index.html
-2. Styles go in styles.css  
-3. Logic goes in script.js
-4. Content goes in questions.js
-
-## 🚨 REMEMBER
-- Always hard refresh after deployment (Ctrl+F5)
+## 🚀 DEPLOYMENT NOTES
+- Automatic via GitHub Pages on push to main
+- Takes 2-3 minutes to propagate
 - Check Actions tab for deployment status
-- Firebase config is in config.js (don't share publicly)
-- Test with 2 browser tabs for multiplayer
+- Hard refresh (Ctrl+F5) to see changes
+
+## 🔮 POTENTIAL ENHANCEMENTS
+- [ ] Sound effects (join, correct guess, round complete)
+- [ ] Persistent scores across all rounds
+- [ ] Reconnection handling
+- [ ] Custom question packs
+- [ ] Time limits on questions
+- [ ] More visual feedback (confetti, animations)
+- [ ] Save/export game results
+- [ ] Voice/video integration
+- [ ] AI-generated personalized questions
+- [ ] Tournament mode for multiple couples
+
+## 🤝 CONVERSATION STARTERS FOR AI HELP
+
+**Quick Fix**: "In my couples game (9 rounds, guessing/trivia/questions), I need to fix [specific issue]"
+
+**New Feature**: "I want to add [feature] to my Dating-App game. It currently has guessing games, trivia, and deep questions across 9 rounds."
+
+**Debugging**: "My Firebase multiplayer game isn't [specific behavior]. Here's what happens: [description]"
+
+**Styling**: "I want to change the [specific element] in my glassmorphism-styled couples game"
+
+## 📝 RECENT CHANGES
+- Expanded from 3 to 9 rounds
+- Added guessing game mechanics
+- Added trivia with scoring
+- Increased questions per round from 3 to 6
+- Enhanced mobile responsiveness
+- Improved phase transition handling

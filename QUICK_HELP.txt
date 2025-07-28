@@ -1,25 +1,64 @@
-# QUICK COMMANDS
+# QUICK COMMANDS - Nice to Meet You Game
 
-## See Changes Locally
+## 🎮 GAME STRUCTURE
+- 9 rounds total, 6 questions each = 54 total interactions
+- Round 1, 4, 7: Guessing Games
+- Round 2, 5, 8: Trivia Challenges  
+- Round 3, 6, 9: Deep Questions
+
+## 👀 See Changes Locally
 1. Open index.html in browser
+2. Use two browser tabs to test multiplayer
 
-## Deploy Changes
+## 🚀 Deploy Changes
 1. GitHub Desktop → Commit → Push origin
 2. Wait 2-3 minutes
 3. Visit: https://kangariii.github.io/Dating-App/
 
-## Test Multiplayer
-1. Open site in two different browsers
+## 🎯 Test Multiplayer
+1. Open site in two different browsers (or incognito)
 2. Create room in one
-3. Join with code in other
+3. Join with 4-letter code in other
 
-## Emergency Rollback
+## 🔄 Emergency Rollback
 1. GitHub Desktop → History
 2. Right-click previous commit
 3. "Revert this commit"
 
-## File Locations
-- Questions: questions.js
-- Colors/Design: styles.css
-- Game Logic: script.js
-- Structure: index.html
+## 📁 File Locations
+### Content Files:
+- **questions.js** - Deep conversation questions (6 per category)
+- **guessing-questions.js** - Guessing game questions with fake options
+- **trivia-questions.js** - Trivia questions with 4 choices each
+
+### Core Files:
+- **script.js** - Game logic, Firebase integration, round management
+- **styles.css** - Glassmorphism design, animations, responsive
+- **index.html** - All game screens and structure
+- **config.js** - Firebase configuration (keep private!)
+
+## 🎨 Quick Style Changes
+- Background gradient: body selector in styles.css
+- Button glass effect: .btn classes
+- Animations: @keyframes sections
+- Font sizes: Search "font-size" in styles.css
+
+## 🔧 Common Tasks
+### Add Questions:
+1. Open appropriate questions file
+2. Add to the relevant array/round
+3. Follow existing format
+
+### Change Round Structure:
+1. Edit GAME_STRUCTURE in script.js
+2. Update round types/names as needed
+
+### Debug Issues:
+1. Open browser console (F12)
+2. Check for red errors
+3. Look for Firebase connection issues
+
+## 🔥 Firebase Notes
+- Test rules expire periodically
+- Check Firebase Console for usage
+- Database path: games/{roomCode}/...
