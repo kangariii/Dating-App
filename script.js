@@ -38,6 +38,9 @@ let myTriviaAnswer = null;
 let partnerTriviaAnswer = null;
 let triviaRoundScores = { player1: 0, player2: 0 };
 
+// Overall game scores
+let overallScores = { player1: 0, player2: 0 };
+
 // Helper Functions
 function generateRoomCode() {
     return Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -555,6 +558,22 @@ function showGuessingResult(isCorrect, correctAnswer, playerGuess) {
     const resultTitle = document.getElementById('guess-result-title');
     resultTitle.textContent = isCorrect ? '🎉 Correct! 🎉' : '❌ Not quite!';
     resultTitle.style.color = isCorrect ? '#4CAF50' : '#f44336';
+    
+    // Award point for correct guess
+    if (isCorrect && isHost) {
+        // Figure out who was guessing
+        const playerIds = Object.keys(currentGame.players);
+        const guesserIndex = currentGame.hostIsAnswerer ? 1 : 0;
+        
+        if (guesserIndex === 0) {
+            overallScores.player1++;
+        } else {
+            overallScores.player2++;
+        }
+        
+        // Save to Firebase
+        gameRef.child('overallScores').set(overallScores);
+    }
     
     document.querySelector('.result-question').textContent = currentGame.guessingQuestion.question;
     document.getElementById('actual-answer').textContent = correctAnswer;
