@@ -236,6 +236,13 @@ function handleGameUpdate(gameData) {
         guessingQuestionsAsked = gameData.guessingQuestionsAsked;
     }
     
+    // Sync overall scores
+    if (gameData.overallScores) {
+        overallScores = gameData.overallScores;
+        document.getElementById('score-player1').textContent = `(${overallScores.player1})`;
+        document.getElementById('score-player2').textContent = `(${overallScores.player2})`;
+    }
+    
     const playerCount = Object.keys(gameData.players).length;
     
     const playerIds = Object.keys(gameData.players);

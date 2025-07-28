@@ -80,19 +80,22 @@
         </div>
 
         <!-- Game Screen -->
-        <div id="game-screen" class="screen">
-            <button class="btn btn-danger" onclick="leaveGame()">Leave Game</button>
-            
-            <div class="player-status">
-                <div class="player-badge">
-                    <span class="status-dot"></span>
-                    <span id="game-player1">Waiting...</span>
-                </div>
-                <div class="player-badge">
-                    <span class="status-dot"></span>
-                    <span id="game-player2">Waiting...</span>
-                </div>
-            </div>
+        <<!-- Game Screen -->
+<div id="game-screen" class="screen">
+    <button class="btn btn-danger" onclick="leaveGame()">Leave Game</button>
+    
+    <div class="player-status">
+        <div class="player-badge">
+            <span class="status-dot"></span>
+            <span id="game-player1">Waiting...</span>
+            <span id="score-player1" style="margin-left: 10px; font-weight: bold;">(0)</span>
+        </div>
+        <div class="player-badge">
+            <span class="status-dot"></span>
+            <span id="game-player2">Waiting...</span>
+            <span id="score-player2" style="margin-left: 10px; font-weight: bold;">(0)</span>
+        </div>
+    </div>
             
             <div class="game-screen">
                 <div id="round-indicator" class="round-indicator" style="display: none;">
