@@ -713,7 +713,16 @@ function skipQuestion() {
 }
 
 function endGame() {
-    alert(`Amazing connection! You've completed all 9 rounds - sharing 54 meaningful moments together (18 guessing games, 18 trivia questions, and 18 deep questions)! 💕`);
+    const playerIds = Object.keys(currentGame.players);
+    const player1Name = currentGame.players[playerIds[0]].name;
+    const player2Name = currentGame.players[playerIds[1]].name;
+    
+    alert(`Amazing connection! You've completed all 9 rounds!\n\n` +
+          `FINAL SCORES:\n` +
+          `${player1Name}: ${overallScores.player1} points\n` +
+          `${player2Name}: ${overallScores.player2} points\n\n` +
+          `You shared 54 meaningful moments together! 💕`);
+    
     leaveGame();
 }
 
@@ -1055,17 +1064,22 @@ function showTriviaResults(gameData) {
         gameData.player2Answer !== null ? gameData.triviaQuestion.options[gameData.player2Answer] : 'No answer';
     document.getElementById('player2-answer').style.color = player2Correct ? '#4CAF50' : '#f44336';
     
-    // Update scores if host
-    if (isHost) {
-        const newScores = {
-            player1: triviaRoundScores.player1 + (player1Correct ? 1 : 0),
-            player2: triviaRoundScores.player2 + (player2Correct ? 1 : 0)
-        };
-        
-        gameRef.update({
-            triviaRoundScores: newScores
-        });
-    }
+  // Update scores if host
+  if (isHost) {
+    const newScores = {
+        player1: triviaRoundScores.player1 + (player1Correct ? 1 : 0),
+        player2: triviaRoundScores.player2 + (player2Correct ? 1 : 0)
+    };
+    
+    // Also update overall scores
+    if (player1Correct) overallScores.player1++;
+    if (player2Correct) overallScores.player2++;
+    
+    gameRef.update({
+        triviaRoundScores: newScores,
+        overallScores: overallScores
+    });
+}
 }
 
 function showTriviaRoundComplete(gameData) {
