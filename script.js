@@ -126,7 +126,8 @@ function setupRoom() {
         gameStarted: false,
         skipsLeft: 3,
         currentRound: 0,
-        questionsAskedThisRound: 0
+        questionsAskedThisRound: 0,
+        overallScores: { player1: 0, player2: 0 }
     };
     
     gameRef.set(gameData)
