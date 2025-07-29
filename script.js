@@ -41,6 +41,11 @@ let triviaRoundScores = { player1: 0, player2: 0 };
 // Overall game scores
 let overallScores = { player1: 0, player2: 0 };
 
+// Scoring tracking to prevent duplicates
+let lastScoredGuessQuestion = null;
+let lastScoredTriviaQuestion = null;
+let scoringInProgress = false;
+
 // Helper Functions
 function generateRoomCode() {
     return Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -232,16 +237,23 @@ function handleGameUpdate(gameData) {
     // Always update currentGame first
     currentGame = gameData;
     
+    // Initialize scores if they don't exist
+    if (!gameData.overallScores) {
+        overallScores = { player1: 0, player2: 0 };
+        if (isHost) {
+            gameRef.child('overallScores').set(overallScores);
+        }
+    } else {
+        overallScores = gameData.overallScores;
+    }
+    
+    // Update score display
+    document.getElementById('score-player1').textContent = `(${overallScores.player1 || 0})`;
+    document.getElementById('score-player2').textContent = `(${overallScores.player2 || 0})`;
+    
     // Sync guessing questions counter
     if (gameData.guessingQuestionsAsked !== undefined) {
         guessingQuestionsAsked = gameData.guessingQuestionsAsked;
-    }
-    
-    // Sync overall scores
-    if (gameData.overallScores) {
-        overallScores = gameData.overallScores;
-        document.getElementById('score-player1').textContent = `(${overallScores.player1})`;
-        document.getElementById('score-player2').textContent = `(${overallScores.player2})`;
     }
     
     const playerCount = Object.keys(gameData.players).length;
@@ -356,7 +368,7 @@ function startGuessingGame(roundNumber) {
     
     // Get appropriate questions for this round
     const questionBank = roundNumber === 1 ? guessingQuestions.round1 :
-                        roundNumber === 3 ? guessingQuestions.round3 :
+                        roundNumber === 4 ? guessingQuestions.round3 :
                         guessingQuestions.round5;
     
     // If starting a new guessing round, reset counter
@@ -567,20 +579,39 @@ function showGuessingResult(isCorrect, correctAnswer, playerGuess) {
     resultTitle.textContent = isCorrect ? '🎉 Correct! 🎉' : '❌ Not quite!';
     resultTitle.style.color = isCorrect ? '#4CAF50' : '#f44336';
     
-    // Award point for correct guess
-    if (isCorrect && isHost) {
+    // Award point for correct guess - with duplicate prevention
+    const currentQuestionId = `${currentGame.currentRound}-${currentGame.guessingQuestionsAsked}`;
+    
+    if (isCorrect && isHost && !scoringInProgress && lastScoredGuessQuestion !== currentQuestionId) {
+        scoringInProgress = true;
+        lastScoredGuessQuestion = currentQuestionId;
+        
         // Figure out who was guessing
         const playerIds = Object.keys(currentGame.players);
         const guesserIndex = currentGame.hostIsAnswerer ? 1 : 0;
         
+        // Create a copy of scores to ensure we're working with current values
+        const updatedScores = {
+            player1: overallScores.player1 || 0,
+            player2: overallScores.player2 || 0
+        };
+        
         if (guesserIndex === 0) {
-            overallScores.player1++;
+            updatedScores.player1 += 1;
         } else {
-            overallScores.player2++;
+            updatedScores.player2 += 1;
         }
         
+        // Update local copy first
+        overallScores = updatedScores;
+        
         // Save to Firebase
-        gameRef.child('overallScores').set(overallScores);
+        gameRef.child('overallScores').set(updatedScores).then(() => {
+            scoringInProgress = false;
+        }).catch((error) => {
+            console.error('Error updating scores:', error);
+            scoringInProgress = false;
+        });
     }
     
     document.querySelector('.result-question').textContent = currentGame.guessingQuestion.question;
@@ -589,7 +620,7 @@ function showGuessingResult(isCorrect, correctAnswer, playerGuess) {
     
     // Update continue button text to show progress
     const continueBtn = document.getElementById('continue-from-guess-btn');
-    continueBtn.disabled = false; // Re-enable button
+    continueBtn.disabled = false;
     const questionsLeft = 6 - (currentGame.guessingQuestionsAsked + 1);
     if (questionsLeft > 0) {
         continueBtn.textContent = `Continue (${questionsLeft} questions left)`;
@@ -812,7 +843,7 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
     } else {
         // Get appropriate questions for this round
         const questionBank = currentGame.currentRound === 1 ? guessingQuestions.round1 :
-                            currentGame.currentRound === 3 ? guessingQuestions.round3 :
+                            currentGame.currentRound === 4 ? guessingQuestions.round3 :
                             guessingQuestions.round5;
         
         // Select a new random question
@@ -1009,15 +1040,62 @@ function handleTriviaAnswer(answerIndex) {
     
     if (myIndex === 0) {
         gameRef.update({
-            player1Answer: answerIndex,
-            triviaPhase: currentGame.player2Answer !== null ? 'results' : 'waiting'
+            player1Answer: answerIndex
+        }).then(() => {
+            // Check if both players have answered
+            gameRef.once('value').then((snapshot) => {
+                const data = snapshot.val();
+                if (data.player2Answer !== null && isHost && !data.scoringComplete) {
+                    calculateAndSaveTriviaScores(data);
+                } else if (data.player2Answer === null) {
+                    gameRef.update({ triviaPhase: 'waiting' });
+                }
+            });
         });
     } else {
         gameRef.update({
-            player2Answer: answerIndex,
-            triviaPhase: currentGame.player1Answer !== null ? 'results' : 'waiting'
+            player2Answer: answerIndex
+        }).then(() => {
+            // Check if both players have answered
+            gameRef.once('value').then((snapshot) => {
+                const data = snapshot.val();
+                if (data.player1Answer !== null && isHost && !data.scoringComplete) {
+                    calculateAndSaveTriviaScores(data);
+                } else if (data.player1Answer === null) {
+                    gameRef.update({ triviaPhase: 'waiting' });
+                }
+            });
         });
     }
+}
+
+function calculateAndSaveTriviaScores(gameData) {
+    const correctAnswer = gameData.triviaQuestion.correct;
+    const player1Correct = gameData.player1Answer === correctAnswer;
+    const player2Correct = gameData.player2Answer === correctAnswer;
+    
+    // Get current scores from Firebase to ensure accuracy
+    const currentRoundScores = gameData.triviaRoundScores || { player1: 0, player2: 0 };
+    const currentOverallScores = gameData.overallScores || { player1: 0, player2: 0 };
+    
+    // Calculate new scores (adding only 1 point)
+    const newRoundScores = {
+        player1: currentRoundScores.player1 + (player1Correct ? 1 : 0),
+        player2: currentRoundScores.player2 + (player2Correct ? 1 : 0)
+    };
+    
+    const newOverallScores = {
+        player1: currentOverallScores.player1 + (player1Correct ? 1 : 0),
+        player2: currentOverallScores.player2 + (player2Correct ? 1 : 0)
+    };
+    
+    // Update Firebase once with scores and phase change
+    gameRef.update({
+        triviaRoundScores: newRoundScores,
+        overallScores: newOverallScores,
+        triviaPhase: 'results',
+        scoringComplete: true
+    });
 }
 
 function showTriviaWaiting(gameData) {
@@ -1065,22 +1143,13 @@ function showTriviaResults(gameData) {
         gameData.player2Answer !== null ? gameData.triviaQuestion.options[gameData.player2Answer] : 'No answer';
     document.getElementById('player2-answer').style.color = player2Correct ? '#4CAF50' : '#f44336';
     
-  // Update scores if host
-  if (isHost) {
-    const newScores = {
-        player1: triviaRoundScores.player1 + (player1Correct ? 1 : 0),
-        player2: triviaRoundScores.player2 + (player2Correct ? 1 : 0)
-    };
-    
-    // Also update overall scores
-    if (player1Correct) overallScores.player1++;
-    if (player2Correct) overallScores.player2++;
-    
-    gameRef.update({
-        triviaRoundScores: newScores,
-        overallScores: overallScores
-    });
-}
+    // Just sync local scores from Firebase
+    if (gameData.triviaRoundScores) {
+        triviaRoundScores = gameData.triviaRoundScores;
+    }
+    if (gameData.overallScores) {
+        overallScores = gameData.overallScores;
+    }
 }
 
 function showTriviaRoundComplete(gameData) {
