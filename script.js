@@ -24,6 +24,69 @@ const GAME_STRUCTURE = {
     9: { type: 'questions', category: null, name: 'Final Round' } // 6 regular questions (randomly chosen)
 };
 
+// Confetti animation functions
+function triggerConfetti(type = 'default') {
+    switch(type) {
+        case 'round-complete':
+            // Burst from center
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+            break;
+            
+        case 'game-complete':
+            // Epic finale with multiple bursts
+            const duration = 3 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                const particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                }));
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                }));
+            }, 250);
+            break;
+            
+        case 'correct':
+            // Small burst for correct answers
+            confetti({
+                particleCount: 50,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 }
+            });
+            confetti({
+                particleCount: 50,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 }
+            });
+            break;
+            
+        default:
+            // Standard confetti
+            confetti();
+    }
+}
+
 // Guessing game state
 let currentGuessingQuestion = null;
 let guessingRole = null; // 'answerer' or 'guesser'
@@ -320,6 +383,10 @@ function startNewRound(roundNumber = null) {
         roundNumber = (currentGame.currentRound || 0) + 1;
     }
     
+    // Add confetti for completing previous round (except at start)
+if (currentGame.currentRound && currentGame.currentRound > 0) {
+    triggerConfetti('round-complete');
+}
     if (roundNumber > 9) {
         endGame();
         return;
@@ -576,6 +643,11 @@ function handleGuessSelection(guess, correctAnswer) {
 function showGuessingResult(isCorrect, correctAnswer, playerGuess) {
     showScreen('guessing-result-screen');
     
+// Add confetti for correct guesses
+if (isCorrect) {
+    triggerConfetti('correct');
+}
+
     const resultTitle = document.getElementById('guess-result-title');
     resultTitle.textContent = isCorrect ? '🎉 Correct! 🎉' : '❌ Not quite!';
     resultTitle.style.color = isCorrect ? '#4CAF50' : '#f44336';
@@ -746,6 +818,7 @@ function skipQuestion() {
 }
 
 function endGame() {
+    triggerConfetti('game-complete');
     const playerIds = Object.keys(currentGame.players);
     const player1Name = currentGame.players[playerIds[0]].name;
     const player2Name = currentGame.players[playerIds[1]].name;
@@ -1174,6 +1247,10 @@ function showTriviaResults(gameData) {
     const player1Correct = gameData.player1Answer === correctAnswer;
     const player2Correct = gameData.player2Answer === correctAnswer;
     
+    // Add confetti if anyone got it right
+if (player1Correct || player2Correct) {
+    triggerConfetti('correct');
+}
     // Update title
     let title = '';
     if (player1Correct && player2Correct) {
@@ -1222,7 +1299,7 @@ function showTriviaResults(gameData) {
 
 function showTriviaRoundComplete(gameData) {
     showScreen('trivia-complete-screen');
-    
+    triggerConfetti('round-complete');
     const playerIds = Object.keys(gameData.players);
     const scores = gameData.triviaRoundScores;
     
@@ -1274,3 +1351,9 @@ document.getElementById('continue-from-trivia-btn').addEventListener('click', ()
     }
 });
 
+// Test confetti with Ctrl+C (remove this later if you want)
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'c' && e.ctrlKey) {
+        triggerConfetti('game-complete');
+    }
+});
