@@ -538,7 +538,7 @@ function showGuessScreen(question, realAnswer) {
     document.getElementById('guess-waiting').style.display = 'none';
     
     // Get 3 fake options and mix with real answer
-    const fakeOptions = getRandomFakeOptions(question.fakeOptions, 3);
+    const fakeOptions = getRandomFakeOptions(question.fakeOptions, 3, realAnswer);
     const allOptions = shuffleArray([...fakeOptions, realAnswer]);
     
     // Create option buttons
@@ -889,9 +889,19 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
 });
 
 // Helper functions for guessing game
-function getRandomFakeOptions(fakeOptions, count = 3) {
-    const shuffled = [...fakeOptions].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
+function getRandomFakeOptions(fakeOptions, count = 3, realAnswer = null) {
+    // Filter out the real answer from fake options to prevent duplicates
+    let availableFakes = fakeOptions;
+    if (realAnswer) {
+        availableFakes = fakeOptions.filter(option => 
+            option.toLowerCase().trim() !== realAnswer.toLowerCase().trim()
+        );
+    }
+    
+    // If we don't have enough unique fake options after filtering, 
+    // use what we have
+    const shuffled = [...availableFakes].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, Math.min(count, shuffled.length));
 }
 
 function shuffleArray(array) {

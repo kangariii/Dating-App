@@ -1236,18 +1236,3 @@ const guessingQuestions = {
   ]
 };
 
-// Function to get random fake options (returns 3 options)
-function getRandomFakeOptions(fakeOptions, count = 3) {
-  const shuffled = [...fakeOptions].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
-}
-
-// Function to shuffle array (for mixing real answer with fakes)
-function shuffleArray(array) {
-  const newArray = [...array];
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-  }
-  return newArray;
-}
