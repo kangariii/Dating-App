@@ -537,9 +537,10 @@ function showGuessScreen(question, realAnswer) {
     document.getElementById('guess-question').textContent = question.question;
     document.getElementById('guess-waiting').style.display = 'none';
     
-    // Get 3 fake options and mix with real answer
-    const fakeOptions = getRandomFakeOptions(question.fakeOptions, 3, realAnswer);
-    const allOptions = shuffleArray([...fakeOptions, realAnswer]);
+  // Get 3 fake options and format real answer to match their style
+const fakeOptions = getRandomFakeOptions(question.fakeOptions, 3, realAnswer);
+const formattedRealAnswer = formatAnswerToMatchOptions(realAnswer, fakeOptions);
+const allOptions = shuffleArray([...fakeOptions, formattedRealAnswer]);
     
     // Create option buttons
     const optionsContainer = document.getElementById('guess-options');
@@ -549,7 +550,7 @@ function showGuessScreen(question, realAnswer) {
         const button = document.createElement('button');
         button.className = 'guess-option';
         button.textContent = option;
-        button.addEventListener('click', () => handleGuessSelection(option, realAnswer));
+        button.addEventListener('click', () => handleGuessSelection(option, formattedRealAnswer));
         optionsContainer.appendChild(button);
     });
 }
@@ -913,6 +914,53 @@ function shuffleArray(array) {
     return newArray;
 }
 
+// Function to format the real answer to match the style of fake options
+function formatAnswerToMatchOptions(realAnswer, fakeOptions) {
+    if (!realAnswer || !fakeOptions || fakeOptions.length === 0) {
+        return realAnswer;
+    }
+    
+    // Analyze the formatting pattern of fake options
+    const sampleOption = fakeOptions[0];
+    
+    // Check if most options are ALL CAPS
+    const allCapsCount = fakeOptions.filter(option => 
+        option === option.toUpperCase() && option !== option.toLowerCase()
+    ).length;
+    
+    // Check if most options are Title Case (first letter of each word capitalized)
+    const titleCaseCount = fakeOptions.filter(option => {
+        return option.split(' ').every(word => 
+            word.charAt(0) === word.charAt(0).toUpperCase() && 
+            word.slice(1) === word.slice(1).toLowerCase()
+        );
+    }).length;
+    
+    // Check if most options start with capital letter
+    const capitalizedCount = fakeOptions.filter(option => 
+        option.charAt(0) === option.charAt(0).toUpperCase()
+    ).length;
+    
+    const majority = Math.ceil(fakeOptions.length / 2);
+    
+    // Apply formatting based on the majority pattern
+    if (allCapsCount >= majority) {
+        // ALL CAPS
+        return realAnswer.toUpperCase();
+    } else if (titleCaseCount >= majority) {
+        // Title Case
+        return realAnswer.split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    } else if (capitalizedCount >= majority) {
+        // First letter capitalized
+        return realAnswer.charAt(0).toUpperCase() + realAnswer.slice(1).toLowerCase();
+    } else {
+        // Keep as lowercase if that's the pattern
+        return realAnswer.toLowerCase();
+    }
+}
+
 // Auto-format room code input
 document.getElementById('join-code').addEventListener('input', function(e) {
     e.target.value = e.target.value.toUpperCase();
@@ -1225,3 +1273,4 @@ document.getElementById('continue-from-trivia-btn').addEventListener('click', ()
         });
     }
 });
+
