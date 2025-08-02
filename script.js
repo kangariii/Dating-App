@@ -1150,6 +1150,16 @@ function showTriviaResults(gameData) {
     if (gameData.overallScores) {
         overallScores = gameData.overallScores;
     }
+
+     // Update continue button text to indicate who should click
+     const continueBtn = document.getElementById('continue-from-trivia-btn');
+     if (isHost) {
+         continueBtn.textContent = 'Continue';
+         continueBtn.disabled = false;
+     } else {
+         continueBtn.textContent = 'Waiting for host...';
+         continueBtn.disabled = true;
+     }
 }
 
 function showTriviaRoundComplete(gameData) {
@@ -1179,12 +1189,17 @@ function showTriviaRoundComplete(gameData) {
 
 // Add event listeners for trivia buttons
 document.getElementById('continue-from-trivia-btn').addEventListener('click', () => {
-    triviaQuestionsAsked++;
+    // Only let the host control progression to avoid conflicts
+    if (!isHost) return;
     
-    if (triviaQuestionsAsked >= 6) {
+    // Use the Firebase value, not local variable
+    const nextQuestionNumber = (currentGame.triviaQuestionsAsked || 0) + 1;
+    
+    if (nextQuestionNumber >= 6) {
         // Show round complete screen
         gameRef.update({
-            triviaPhase: 'complete'
+            triviaPhase: 'complete',
+            triviaQuestionsAsked: nextQuestionNumber
         });
     } else {
         // Next question
@@ -1196,18 +1211,7 @@ document.getElementById('continue-from-trivia-btn').addEventListener('click', ()
             triviaPhase: 'questioning',
             player1Answer: null,
             player2Answer: null,
-            triviaQuestionsAsked: triviaQuestionsAsked
+            triviaQuestionsAsked: nextQuestionNumber
         });
-    }
-});
-
-document.getElementById('continue-from-trivia-complete-btn').addEventListener('click', () => {
-    startNewRound();
-});
-
-// Allow Enter key to submit guessing answer
-document.getElementById('guessing-answer-input').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter' && document.getElementById('submit-answer-btn').style.display !== 'none') {
-        document.getElementById('submit-answer-btn').click();
     }
 });
