@@ -384,9 +384,10 @@ function startNewRound(roundNumber = null) {
     }
     
     // Add confetti for completing previous round (except at start)
-if (currentGame.currentRound && currentGame.currentRound > 0) {
-    triggerConfetti('round-complete');
-}
+    if (currentGame.currentRound && currentGame.currentRound > 0) {
+        triggerConfetti('round-complete');
+    }
+    
     if (roundNumber > 9) {
         endGame();
         return;
@@ -604,10 +605,10 @@ function showGuessScreen(question, realAnswer) {
     document.getElementById('guess-question').textContent = question.question;
     document.getElementById('guess-waiting').style.display = 'none';
     
-  // Get 3 fake options and format real answer to match their style
-const fakeOptions = getRandomFakeOptions(question.fakeOptions, 3, realAnswer);
-const formattedRealAnswer = formatAnswerToMatchOptions(realAnswer, fakeOptions);
-const allOptions = shuffleArray([...fakeOptions, formattedRealAnswer]);
+    // Get 3 fake options and format real answer to match their style
+    const fakeOptions = getRandomFakeOptions(question.fakeOptions, 3, realAnswer);
+    const formattedRealAnswer = formatAnswerToMatchOptions(realAnswer, fakeOptions);
+    const allOptions = shuffleArray([...fakeOptions, formattedRealAnswer]);
     
     // Create option buttons
     const optionsContainer = document.getElementById('guess-options');
@@ -643,10 +644,10 @@ function handleGuessSelection(guess, correctAnswer) {
 function showGuessingResult(isCorrect, correctAnswer, playerGuess) {
     showScreen('guessing-result-screen');
     
-// Add confetti for correct guesses
-if (isCorrect) {
-    triggerConfetti('correct');
-}
+    // Add confetti for correct guesses
+    if (isCorrect) {
+        triggerConfetti('correct');
+    }
 
     const resultTitle = document.getElementById('guess-result-title');
     resultTitle.textContent = isCorrect ? '🎉 Correct! 🎉' : '❌ Not quite!';
@@ -1093,7 +1094,9 @@ function handleTriviaGameUpdate(gameData) {
     console.log('Trivia update:', {
         phase: gameData.triviaPhase,
         questionsAsked: triviaQuestionsAsked,
-        scores: triviaRoundScores
+        scores: triviaRoundScores,
+        player1Answer: gameData.player1Answer,
+        player2Answer: gameData.player2Answer
     });
     
     switch(gameData.triviaPhase) {
@@ -1105,20 +1108,21 @@ function handleTriviaGameUpdate(gameData) {
             showTriviaQuestion(gameData);
             break;
             
-            case 'waiting':
-                // Check if both players have answered
-                if (gameData.player1Answer !== null && gameData.player2Answer !== null) {
-                    // Both have answered, move to results
-                    if (isHost) {
-                        gameRef.update({
-                            triviaPhase: 'results'
-                        });
-                    }
-                } else {
-                    // Keep showing the question screen with waiting message
-                    showTriviaWaiting(gameData);
+        case 'waiting':
+            // Check if both players have answered
+            if (gameData.player1Answer !== null && 
+                gameData.player2Answer !== null && 
+                gameData.player1Answer !== undefined && 
+                gameData.player2Answer !== undefined) {
+                // Both have answered, host calculates scores and moves to results
+                if (isHost && !gameData.scoringComplete) {
+                    calculateAndSaveTriviaScores(gameData);
                 }
-                break;
+            } else {
+                // Still waiting for other player
+                showTriviaWaiting(gameData);
+            }
+            break;
             
         case 'results':
             showTriviaResults(gameData);
@@ -1132,10 +1136,6 @@ function handleTriviaGameUpdate(gameData) {
 
 function showTriviaQuestion(gameData) {
     showScreen('trivia-question-screen');
-    
-    // Reset any previous answer selections
-    myTriviaAnswer = null;
-    partnerTriviaAnswer = null;
     
     const questionNum = triviaQuestionsAsked + 1;
     document.getElementById('trivia-question-number').textContent = 
@@ -1155,15 +1155,35 @@ function showTriviaQuestion(gameData) {
     const optionsContainer = document.getElementById('trivia-options');
     optionsContainer.innerHTML = '';
     
-    gameData.triviaQuestion.options.forEach((option, index) => {
-        const button = document.createElement('button');
-        button.className = 'trivia-option';
-        button.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
-        button.addEventListener('click', () => handleTriviaAnswer(index));
-        optionsContainer.appendChild(button);
-    });
+    // Check if current player already answered
+    const myIndex = playerIds.indexOf(playerId);
+    const myAnswer = myIndex === 0 ? gameData.player1Answer : gameData.player2Answer;
     
-    document.getElementById('trivia-waiting').style.display = 'none';
+    if (myAnswer !== null && myAnswer !== undefined) {
+        // Player already answered, show disabled state
+        gameData.triviaQuestion.options.forEach((option, index) => {
+            const button = document.createElement('button');
+            button.className = 'trivia-option disabled';
+            button.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
+            button.disabled = true;
+            if (index === myAnswer) {
+                button.classList.add('selected');
+            }
+            optionsContainer.appendChild(button);
+        });
+        document.getElementById('trivia-waiting').style.display = 'block';
+        document.getElementById('trivia-waiting').textContent = 'Waiting for your partner to answer...';
+    } else {
+        // Player hasn't answered yet
+        gameData.triviaQuestion.options.forEach((option, index) => {
+            const button = document.createElement('button');
+            button.className = 'trivia-option';
+            button.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
+            button.addEventListener('click', () => handleTriviaAnswer(index));
+            optionsContainer.appendChild(button);
+        });
+        document.getElementById('trivia-waiting').style.display = 'none';
+    }
 }
 
 function handleTriviaAnswer(answerIndex) {
@@ -1185,13 +1205,13 @@ function handleTriviaAnswer(answerIndex) {
     const myIndex = playerIds.indexOf(playerId);
     
     if (myIndex === 0) {
-        // Always go to waiting phase first, let Firebase update handler determine next phase
+        // Always go to waiting phase first
         gameRef.update({
             player1Answer: answerIndex,
             triviaPhase: 'waiting'
         });
     } else {
-        // Always go to waiting phase first, let Firebase update handler determine next phase
+        // Always go to waiting phase first
         gameRef.update({
             player2Answer: answerIndex,
             triviaPhase: 'waiting'
@@ -1229,11 +1249,11 @@ function calculateAndSaveTriviaScores(gameData) {
 }
 
 function showTriviaWaiting(gameData) {
-    // Keep showing the question screen with waiting message
-    if (document.getElementById('trivia-question-screen').classList.contains('active')) {
-        return; // Already showing waiting
+    // Just show the current question screen with waiting message
+    // Don't call showTriviaQuestion again if already on that screen
+    if (!document.getElementById('trivia-question-screen').classList.contains('active')) {
+        showTriviaQuestion(gameData);
     }
-    showTriviaQuestion(gameData);
 }
 
 function showTriviaResults(gameData) {
@@ -1247,9 +1267,10 @@ function showTriviaResults(gameData) {
     const player2Correct = gameData.player2Answer === correctAnswer;
     
     // Add confetti if anyone got it right
-if (player1Correct || player2Correct) {
-    triggerConfetti('correct');
-}
+    if (player1Correct || player2Correct) {
+        triggerConfetti('correct');
+    }
+    
     // Update title
     let title = '';
     if (player1Correct && player2Correct) {
@@ -1285,20 +1306,21 @@ if (player1Correct || player2Correct) {
         overallScores = gameData.overallScores;
     }
 
-     // Update continue button text to indicate who should click
-     const continueBtn = document.getElementById('continue-from-trivia-btn');
-     if (isHost) {
-         continueBtn.textContent = 'Continue';
-         continueBtn.disabled = false;
-     } else {
-         continueBtn.textContent = 'Waiting for host...';
-         continueBtn.disabled = true;
-     }
+    // Update continue button text to indicate who should click
+    const continueBtn = document.getElementById('continue-from-trivia-btn');
+    if (isHost) {
+        continueBtn.textContent = 'Continue';
+        continueBtn.disabled = false;
+    } else {
+        continueBtn.textContent = 'Waiting for host...';
+        continueBtn.disabled = true;
+    }
 }
 
 function showTriviaRoundComplete(gameData) {
     showScreen('trivia-complete-screen');
     triggerConfetti('round-complete');
+    
     const playerIds = Object.keys(gameData.players);
     const scores = gameData.triviaRoundScores;
     
@@ -1319,6 +1341,18 @@ function showTriviaRoundComplete(gameData) {
         winnerText = "It's a tie! Great minds think alike!";
     }
     document.getElementById('trivia-winner').textContent = winnerText;
+    
+    // Make sure button is visible and only host can click
+    const continueBtn = document.getElementById('continue-from-trivia-complete-btn');
+    if (continueBtn) {
+        continueBtn.style.display = 'block';
+        continueBtn.disabled = !isHost;
+        if (!isHost) {
+            continueBtn.textContent = 'Waiting for host...';
+        } else {
+            continueBtn.textContent = 'Continue to Next Round';
+        }
+    }
 }
 
 // Add event listeners for trivia buttons
@@ -1333,7 +1367,8 @@ document.getElementById('continue-from-trivia-btn').addEventListener('click', ()
         // Show round complete screen
         gameRef.update({
             triviaPhase: 'complete',
-            triviaQuestionsAsked: nextQuestionNumber
+            triviaQuestionsAsked: nextQuestionNumber,
+            scoringComplete: false  // Reset for next question
         });
     } else {
         // Next question
@@ -1345,8 +1380,30 @@ document.getElementById('continue-from-trivia-btn').addEventListener('click', ()
             triviaPhase: 'questioning',
             player1Answer: null,
             player2Answer: null,
-            triviaQuestionsAsked: nextQuestionNumber
+            triviaQuestionsAsked: nextQuestionNumber,
+            scoringComplete: false  // Reset for next question
         });
+    }
+});
+
+// ADD THIS EVENT LISTENER - THIS WAS MISSING!
+document.getElementById('continue-from-trivia-complete-btn').addEventListener('click', () => {
+    if (!isHost) return; // Only host can continue
+    
+    console.log('Trivia complete button clicked, starting new round...');
+    
+    // Reset trivia counters for next time
+    triviaQuestionsAsked = 0;
+    triviaRoundScores = { player1: 0, player2: 0 };
+    
+    // Start the next round
+    startNewRound();
+});
+
+// Allow Enter key to submit guessing answer
+document.getElementById('guessing-answer-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && document.getElementById('submit-answer-btn').style.display !== 'none') {
+        document.getElementById('submit-answer-btn').click();
     }
 });
 
