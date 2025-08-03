@@ -1539,9 +1539,10 @@ const triviaQuestions = {
 
 // Function to get a random trivia question
 function getRandomTriviaQuestion(round) {
-  const questions = triviaQuestions[`round${round}`];
-  const randomIndex = Math.floor(Math.random() * questions.length);
-  return questions[randomIndex];
+    // Always use round2 questions since we only have one trivia round
+    const questions = triviaQuestions.round2;
+    const randomIndex = Math.floor(Math.random() * questions.length);
+    return questions[randomIndex];
 }
 
 // Function to shuffle options while keeping track of correct answer

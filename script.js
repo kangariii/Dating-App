@@ -10,18 +10,12 @@ let isHost = false;
 let gameRef = null;
 let currentGame = null;
 
-// New game structure - 9 rounds alternating between guessing, trivia, and questions
-// Each round now has 6 questions total
+
+// New game structure - 3 rounds with progressive depth
 const GAME_STRUCTURE = {
-    1: { type: 'guessing', name: 'Guessing Game #1' },          // 6 guessing questions
-    2: { type: 'trivia', name: 'Trivia Challenge #1' },         // 6 trivia questions
-    3: { type: 'questions', category: 'first-date', name: 'Getting to Know You' }, // 6 regular questions
-    4: { type: 'guessing', name: 'Guessing Game #2' },          // 6 guessing questions
-    5: { type: 'trivia', name: 'Trivia Challenge #2' },         // 6 trivia questions
-    6: { type: 'questions', category: 'getting-closer', name: 'Going Deeper' },     // 6 regular questions
-    7: { type: 'guessing', name: 'Guessing Game #3' },          // 6 guessing questions
-    8: { type: 'trivia', name: 'Trivia Challenge #3' },         // 6 trivia questions
-    9: { type: 'questions', category: null, name: 'Final Round' } // 6 regular questions (randomly chosen)
+    1: { type: 'guessing', name: 'Guessing Game' },
+    2: { type: 'trivia', name: 'Trivia Challenge' },
+    3: { type: 'questions', category: 'progressive', name: 'Connection Questions' }
 };
 
 // Confetti animation functions
@@ -383,12 +377,7 @@ function startNewRound(roundNumber = null) {
         roundNumber = (currentGame.currentRound || 0) + 1;
     }
     
-    // Add confetti for completing previous round (except at start)
-    if (currentGame.currentRound && currentGame.currentRound > 0) {
-        triggerConfetti('round-complete');
-    }
-    
-    if (roundNumber > 9) {
+    if (roundNumber > 3) {
         endGame();
         return;
     }
@@ -405,17 +394,9 @@ function startNewRound(roundNumber = null) {
         triviaRoundScores = { player1: 0, player2: 0 };
         startTriviaGame(roundNumber);
     } else {
-        // Question round
-        let mode = roundInfo.category;
-        
-        // For round 9, randomly choose between soul-connection and heating-up
-        if (roundNumber === 9) {
-            mode = Math.random() > 0.5 ? 'long-term' : 'spicy';
-            roundInfo.name = mode === 'spicy' ? 'Heating Up 🔥' : 'Soul Connection';
-        }
-        
+        // Question round with progressive depth
         gameRef.update({
-            mode: mode,
+            mode: 'progressive',
             gameStarted: true,
             currentQuestion: 0,
             currentTurn: Math.floor(Math.random() * 2),
@@ -424,7 +405,7 @@ function startNewRound(roundNumber = null) {
             questionsAskedThisRound: 0,
             showingRoundIntro: true,
             guessingPhase: null,
-            guessingQuestionsAsked: 0, // Reset for clean state
+            guessingQuestionsAsked: 0,
             triviaPhase: null,
             triviaQuestionsAsked: 0
         });
@@ -434,10 +415,8 @@ function startNewRound(roundNumber = null) {
 function startGuessingGame(roundNumber) {
     console.log('Starting guessing game for round:', roundNumber);
     
-    // Get appropriate questions for this round
-    const questionBank = roundNumber === 1 ? guessingQuestions.round1 :
-                        roundNumber === 4 ? guessingQuestions.round3 :
-                        guessingQuestions.round5;
+    // Always use round1 questions since we only have one guessing round
+    const questionBank = guessingQuestions.round1;
     
     // If starting a new guessing round, reset counter
     if (!currentGame.guessingQuestionsAsked || currentGame.guessingQuestionsAsked === 0) {
@@ -723,6 +702,28 @@ function updateGameScreen(gameData) {
     }
 }
 
+function getProgressiveQuestion(questionNumber) {
+    // Questions 1-2: Getting to Know You
+    if (questionNumber <= 2) {
+        const firstDateQuestions = questions['first-date'];
+        const index = Math.floor(Math.random() * firstDateQuestions.length);
+        return firstDateQuestions[index];
+    }
+    // Questions 3-4: Going Deeper
+    else if (questionNumber <= 4) {
+        const deeperQuestions = questions['getting-closer'];
+        const index = Math.floor(Math.random() * deeperQuestions.length);
+        return deeperQuestions[index];
+    }
+    // Questions 5-6: Soul Connection (randomly choose between long-term and spicy)
+    else {
+        const category = Math.random() > 0.5 ? 'long-term' : 'spicy';
+        const soulQuestions = questions[category];
+        const index = Math.floor(Math.random() * soulQuestions.length);
+        return soulQuestions[index];
+    }
+}
+
 function showRoundIntro(roundName) {
     // Always show game screen first
     showScreen('game-screen');
@@ -741,8 +742,15 @@ function updateQuestionGame(gameData) {
     const myTurnIndex = playerIds.indexOf(playerId);
     const isMyTurn = gameData.currentTurn === myTurnIndex;
     
-    const questionList = questions[gameData.mode];
-    const currentQuestion = questionList[gameData.currentQuestion];
+    // Handle progressive questions for round 3
+    let currentQuestion;
+    if (gameData.mode === 'progressive') {
+        const questionNumber = (gameData.questionsAskedThisRound || 0) + 1;
+        currentQuestion = getProgressiveQuestion(questionNumber);
+    } else {
+        const questionList = questions[gameData.mode];
+        currentQuestion = questionList[gameData.currentQuestion];
+    }
     
     const turnIndicator = document.getElementById('turn-indicator');
     const currentPlayerName = gameData.players[playerIds[gameData.currentTurn]].name;
@@ -762,15 +770,22 @@ function updateQuestionGame(gameData) {
     }
     
     const questionsAsked = gameData.questionsAskedThisRound || 0;
-    const roundsCompleted = Math.floor((gameData.currentRound - 1) / 2);
-    const questionRoundNumber = roundsCompleted + 1;
+    
+    // Show question depth indicator for round 3
+    let depthIndicator = '';
+    if (gameData.mode === 'progressive') {
+        const questionNum = questionsAsked + 1;
+        if (questionNum <= 2) depthIndicator = ' (Getting to Know You)';
+        else if (questionNum <= 4) depthIndicator = ' (Going Deeper)';
+        else depthIndicator = ' (Soul Connection)';
+    }
     
     document.getElementById('question-number').textContent = 
-        `Round ${gameData.currentRound}/9 • Question ${questionsAsked + 1} of 6`;
+        `Round ${gameData.currentRound}/3 • Question ${questionsAsked + 1} of 6${depthIndicator}`;
     document.getElementById('question-text').textContent = currentQuestion;
     
-    // Update progress bar to reflect total questions (6 per round, 54 total)
-    const totalQuestionsInGame = 54; // 9 rounds × 6 questions each
+    // Update progress bar to reflect total questions (18 total: 3 rounds × 6 questions each)
+    const totalQuestionsInGame = 18;
     let totalQuestionsCompleted = 0;
     
     // Calculate questions completed based on rounds
@@ -819,17 +834,7 @@ function skipQuestion() {
 }
 
 function endGame() {
-    triggerConfetti('game-complete');
-    const playerIds = Object.keys(currentGame.players);
-    const player1Name = currentGame.players[playerIds[0]].name;
-    const player2Name = currentGame.players[playerIds[1]].name;
-    
-    alert(`Amazing connection! You've completed all 9 rounds!\n\n` +
-          `FINAL SCORES:\n` +
-          `${player1Name}: ${overallScores.player1} points\n` +
-          `${player2Name}: ${overallScores.player2} points\n\n` +
-          `You shared 54 meaningful moments together! 💕`);
-    
+    alert(`Amazing connection! You've completed all 3 rounds - sharing 18 meaningful moments together! 💕`);
     leaveGame();
 }
 
