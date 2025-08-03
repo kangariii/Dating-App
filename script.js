@@ -584,10 +584,10 @@ function showGuessScreen(question, realAnswer) {
     document.getElementById('guess-question').textContent = question.question;
     document.getElementById('guess-waiting').style.display = 'none';
     
-    // Get 3 fake options and format real answer to match their style
-    const fakeOptions = getRandomFakeOptions(question.fakeOptions, 3, realAnswer);
-    const formattedRealAnswer = formatAnswerToMatchOptions(realAnswer, fakeOptions);
-    const allOptions = shuffleArray([...fakeOptions, formattedRealAnswer]);
+    // Get 3 fake options and format them to match real answer's style
+    const originalFakeOptions = getRandomFakeOptions(question.fakeOptions, 3, realAnswer);
+    const formattedFakeOptions = formatFakeOptionsToMatchAnswer(realAnswer, originalFakeOptions);
+    const allOptions = shuffleArray([...formattedFakeOptions, realAnswer]);
     
     // Create option buttons
     const optionsContainer = document.getElementById('guess-options');
@@ -597,8 +597,55 @@ function showGuessScreen(question, realAnswer) {
         const button = document.createElement('button');
         button.className = 'guess-option';
         button.textContent = option;
-        button.addEventListener('click', () => handleGuessSelection(option, formattedRealAnswer));
+        button.addEventListener('click', () => handleGuessSelection(option, realAnswer));
         optionsContainer.appendChild(button);
+    });
+}
+
+// Function to format fake options to match the real answer's style
+function formatFakeOptionsToMatchAnswer(realAnswer, fakeOptions) {
+    if (!realAnswer || !fakeOptions || fakeOptions.length === 0) {
+        return fakeOptions;
+    }
+    
+    // Analyze the real answer's formatting
+    const isAllCaps = realAnswer === realAnswer.toUpperCase() && realAnswer !== realAnswer.toLowerCase();
+    const isAllLowercase = realAnswer === realAnswer.toLowerCase() && realAnswer !== realAnswer.toUpperCase();
+    const isFirstCapOnly = realAnswer.charAt(0) === realAnswer.charAt(0).toUpperCase() && 
+                           realAnswer.slice(1) === realAnswer.slice(1).toLowerCase();
+    const isTitleCase = realAnswer.split(' ').every(word => 
+        word.charAt(0) === word.charAt(0).toUpperCase() && 
+        word.slice(1) === word.slice(1).toLowerCase()
+    );
+    
+    // Check for abbreviations/acronyms (mix of caps and periods)
+    const hasAbbreviation = /[A-Z]{2,}/.test(realAnswer) || /\./.test(realAnswer);
+    
+    // Format fake options to match the real answer's style
+    return fakeOptions.map(option => {
+        if (isAllCaps) {
+            return option.toUpperCase();
+        } else if (isAllLowercase) {
+            return option.toLowerCase();
+        } else if (isTitleCase && realAnswer.includes(' ')) {
+            // Title case for multi-word answers
+            return option.split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+        } else if (isFirstCapOnly) {
+            // First letter only capitalized
+            return option.charAt(0).toUpperCase() + option.slice(1).toLowerCase();
+        } else if (hasAbbreviation) {
+            // Keep abbreviations as they are, but match general case
+            return option; // Keep original formatting for complex cases
+        } else {
+            // Default to matching first character case
+            if (realAnswer.charAt(0) === realAnswer.charAt(0).toLowerCase()) {
+                return option.toLowerCase();
+            } else {
+                return option.charAt(0).toUpperCase() + option.slice(1).toLowerCase();
+            }
+        }
     });
 }
 
@@ -994,50 +1041,51 @@ function shuffleArray(array) {
 }
 
 // Function to format the real answer to match the style of fake options
-function formatAnswerToMatchOptions(realAnswer, fakeOptions) {
+// Function to format fake options to match the real answer's style
+function formatFakeOptionsToMatchAnswer(realAnswer, fakeOptions) {
     if (!realAnswer || !fakeOptions || fakeOptions.length === 0) {
-        return realAnswer;
+        return fakeOptions;
     }
     
-    // Analyze the formatting pattern of fake options
-    const sampleOption = fakeOptions[0];
+    // Analyze the real answer's formatting
+    const isAllCaps = realAnswer === realAnswer.toUpperCase() && realAnswer !== realAnswer.toLowerCase();
+    const isAllLowercase = realAnswer === realAnswer.toLowerCase() && realAnswer !== realAnswer.toUpperCase();
+    const isFirstCapOnly = realAnswer.charAt(0) === realAnswer.charAt(0).toUpperCase() && 
+                           realAnswer.slice(1) === realAnswer.slice(1).toLowerCase();
+    const isTitleCase = realAnswer.split(' ').every(word => 
+        word.charAt(0) === word.charAt(0).toUpperCase() && 
+        word.slice(1) === word.slice(1).toLowerCase()
+    );
     
-    // Check if most options are ALL CAPS
-    const allCapsCount = fakeOptions.filter(option => 
-        option === option.toUpperCase() && option !== option.toLowerCase()
-    ).length;
+    // Check for abbreviations/acronyms (mix of caps and periods)
+    const hasAbbreviation = /[A-Z]{2,}/.test(realAnswer) || /\./.test(realAnswer);
     
-    // Check if most options are Title Case (first letter of each word capitalized)
-    const titleCaseCount = fakeOptions.filter(option => {
-        return option.split(' ').every(word => 
-            word.charAt(0) === word.charAt(0).toUpperCase() && 
-            word.slice(1) === word.slice(1).toLowerCase()
-        );
-    }).length;
-    
-    // Check if most options start with capital letter
-    const capitalizedCount = fakeOptions.filter(option => 
-        option.charAt(0) === option.charAt(0).toUpperCase()
-    ).length;
-    
-    const majority = Math.ceil(fakeOptions.length / 2);
-    
-    // Apply formatting based on the majority pattern
-    if (allCapsCount >= majority) {
-        // ALL CAPS
-        return realAnswer.toUpperCase();
-    } else if (titleCaseCount >= majority) {
-        // Title Case
-        return realAnswer.split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
-    } else if (capitalizedCount >= majority) {
-        // First letter capitalized
-        return realAnswer.charAt(0).toUpperCase() + realAnswer.slice(1).toLowerCase();
-    } else {
-        // Keep as lowercase if that's the pattern
-        return realAnswer.toLowerCase();
-    }
+    // Format fake options to match the real answer's style
+    return fakeOptions.map(option => {
+        if (isAllCaps) {
+            return option.toUpperCase();
+        } else if (isAllLowercase) {
+            return option.toLowerCase();
+        } else if (isTitleCase && realAnswer.includes(' ')) {
+            // Title case for multi-word answers
+            return option.split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+        } else if (isFirstCapOnly) {
+            // First letter only capitalized
+            return option.charAt(0).toUpperCase() + option.slice(1).toLowerCase();
+        } else if (hasAbbreviation) {
+            // Keep abbreviations as they are, but match general case
+            return option; // Keep original formatting for complex cases
+        } else {
+            // Default to matching first character case
+            if (realAnswer.charAt(0) === realAnswer.charAt(0).toLowerCase()) {
+                return option.toLowerCase();
+            } else {
+                return option.charAt(0).toUpperCase() + option.slice(1).toLowerCase();
+            }
+        }
+    });
 }
 
 // Auto-format room code input
