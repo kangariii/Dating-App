@@ -1132,14 +1132,10 @@ function handleTriviaGameUpdate(gameData) {
 
 function showTriviaQuestion(gameData) {
     showScreen('trivia-question-screen');
-    function showTriviaQuestion(gameData) {
-        showScreen('trivia-question-screen');
-        
-        // Reset any previous answer selections
-        myTriviaAnswer = null;
-        partnerTriviaAnswer = null;
-        
-        // ... rest of the function remains the same
+    
+    // Reset any previous answer selections
+    myTriviaAnswer = null;
+    partnerTriviaAnswer = null;
     
     const questionNum = triviaQuestionsAsked + 1;
     document.getElementById('trivia-question-number').textContent = 
