@@ -587,7 +587,11 @@ function showGuessScreen(question, realAnswer) {
     // Get 3 fake options and format them to match real answer's style
     const originalFakeOptions = getRandomFakeOptions(question.fakeOptions, 3, realAnswer);
     const formattedFakeOptions = formatFakeOptionsToMatchAnswer(realAnswer, originalFakeOptions);
-    const allOptions = shuffleArray([...formattedFakeOptions, realAnswer]);
+    
+    // Format the real answer to match the same style (for consistent comparison)
+    const formattedRealAnswer = formatFakeOptionsToMatchAnswer(realAnswer, [realAnswer])[0];
+    
+    const allOptions = shuffleArray([...formattedFakeOptions, formattedRealAnswer]);
     
     // Create option buttons
     const optionsContainer = document.getElementById('guess-options');
@@ -597,7 +601,8 @@ function showGuessScreen(question, realAnswer) {
         const button = document.createElement('button');
         button.className = 'guess-option';
         button.textContent = option;
-        button.addEventListener('click', () => handleGuessSelection(option, realAnswer));
+        // Use the formatted real answer for comparison so capitalization matches
+        button.addEventListener('click', () => handleGuessSelection(option, formattedRealAnswer));
         optionsContainer.appendChild(button);
     });
 }
