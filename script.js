@@ -1105,9 +1105,20 @@ function handleTriviaGameUpdate(gameData) {
             showTriviaQuestion(gameData);
             break;
             
-        case 'waiting':
-            showTriviaWaiting(gameData);
-            break;
+            case 'waiting':
+                // Check if both players have answered
+                if (gameData.player1Answer !== null && gameData.player2Answer !== null) {
+                    // Both have answered, move to results
+                    if (isHost) {
+                        gameRef.update({
+                            triviaPhase: 'results'
+                        });
+                    }
+                } else {
+                    // Keep showing the question screen with waiting message
+                    showTriviaWaiting(gameData);
+                }
+                break;
             
         case 'results':
             showTriviaResults(gameData);
@@ -1121,6 +1132,14 @@ function handleTriviaGameUpdate(gameData) {
 
 function showTriviaQuestion(gameData) {
     showScreen('trivia-question-screen');
+    function showTriviaQuestion(gameData) {
+        showScreen('trivia-question-screen');
+        
+        // Reset any previous answer selections
+        myTriviaAnswer = null;
+        partnerTriviaAnswer = null;
+        
+        // ... rest of the function remains the same
     
     const questionNum = triviaQuestionsAsked + 1;
     document.getElementById('trivia-question-number').textContent = 
@@ -1170,32 +1189,16 @@ function handleTriviaAnswer(answerIndex) {
     const myIndex = playerIds.indexOf(playerId);
     
     if (myIndex === 0) {
+        // Always go to waiting phase first, let Firebase update handler determine next phase
         gameRef.update({
-            player1Answer: answerIndex
-        }).then(() => {
-            // Check if both players have answered
-            gameRef.once('value').then((snapshot) => {
-                const data = snapshot.val();
-                if (data.player2Answer !== null && isHost && !data.scoringComplete) {
-                    calculateAndSaveTriviaScores(data);
-                } else if (data.player2Answer === null) {
-                    gameRef.update({ triviaPhase: 'waiting' });
-                }
-            });
+            player1Answer: answerIndex,
+            triviaPhase: 'waiting'
         });
     } else {
+        // Always go to waiting phase first, let Firebase update handler determine next phase
         gameRef.update({
-            player2Answer: answerIndex
-        }).then(() => {
-            // Check if both players have answered
-            gameRef.once('value').then((snapshot) => {
-                const data = snapshot.val();
-                if (data.player1Answer !== null && isHost && !data.scoringComplete) {
-                    calculateAndSaveTriviaScores(data);
-                } else if (data.player1Answer === null) {
-                    gameRef.update({ triviaPhase: 'waiting' });
-                }
-            });
+            player2Answer: answerIndex,
+            triviaPhase: 'waiting'
         });
     }
 }
