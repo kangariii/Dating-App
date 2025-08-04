@@ -878,6 +878,9 @@ function showSpeedCategoriesScreen(gameData) {
     // Reset local state
     speedMyAnswers = [];
     speedGameActive = true;
+
+    // Reset score display
+document.getElementById('speed-current-score').textContent = '0';
     
     // Focus on input
     setTimeout(() => {
@@ -947,6 +950,9 @@ function handleSpeedAnswer() {
         if (isValid) {
             speedMyAnswers.push(answer);
             
+            // Update score display immediately
+            document.getElementById('speed-current-score').textContent = speedMyAnswers.length;
+            
             // Add to display list
             const listItem = document.createElement('div');
             listItem.className = 'speed-answer-item valid';
@@ -976,6 +982,8 @@ function handleSpeedAnswer() {
 function endSpeedGame() {
     if (!speedGameActive) return;
     
+    console.log('Ending speed game for player:', playerId);
+    
     speedGameActive = false;
     
     // Clear the timer
@@ -997,41 +1005,59 @@ function endSpeedGame() {
     const playerIds = Object.keys(currentGame.players);
     const myIndex = playerIds.indexOf(playerId);
     
+    console.log('Submitting answers:', speedMyAnswers, 'for player index:', myIndex);
+    
     if (myIndex === 0) {
         gameRef.update({
-            player1Answers: speedMyAnswers
+            player1Answers: speedMyAnswers || []
+        }).then(() => {
+            console.log('Player 1 answers submitted successfully');
+            checkSpeedGameComplete();
         });
     } else {
         gameRef.update({
-            player2Answers: speedMyAnswers
+            player2Answers: speedMyAnswers || []
+        }).then(() => {
+            console.log('Player 2 answers submitted successfully');
+            checkSpeedGameComplete();
         });
     }
-    
-    // Check if both players have submitted
-    checkSpeedGameComplete();
 }
 
 function checkSpeedGameComplete() {
     // Wait a moment for Firebase to update, then check completion
     setTimeout(() => {
-        if (currentGame.player1Answers && currentGame.player2Answers && 
-            currentGame.player1Answers.length >= 0 && currentGame.player2Answers.length >= 0) {
-            if (isHost) {
-                // Calculate scores and move to results
-                const player1Score = currentGame.player1Answers.length;
-                const player2Score = currentGame.player2Answers.length;
-                
-                // Update overall scores
-                const updatedScores = {
-                    player1: (overallScores.player1 || 0) + player1Score,
-                    player2: (overallScores.player2 || 0) + player2Score
-                };
-                
-                gameRef.update({
-                    speedPhase: 'complete',
-                    overallScores: updatedScores
-                });
-            }
+        console.log('Checking speed game completion:', {
+            player1Answers: currentGame.player1Answers,
+            player2Answers: currentGame.player2Answers,
+            isHost: isHost
+        });
+        
+        // Check if both players have submitted answers (even if empty arrays)
+        if (currentGame.player1Answers !== undefined && 
+            currentGame.player2Answers !== undefined && 
+            isHost) {
+            
+            console.log('Both players have submitted, transitioning to results...');
+            
+            // Calculate scores and move to results
+            const player1Score = currentGame.player1Answers.length;
+            const player2Score = currentGame.player2Answers.length;
+            
+            // Update overall scores
+            const updatedScores = {
+                player1: (overallScores.player1 || 0) + player1Score,
+                player2: (overallScores.player2 || 0) + player2Score
+            };
+            
+            gameRef.update({
+                speedPhase: 'complete',
+                overallScores: updatedScores
+            }).then(() => {
+                console.log('Successfully moved to results phase');
+            }).catch((error) => {
+                console.error('Error moving to results:', error);
+            });
         }
     }, 1000);
 }
