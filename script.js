@@ -95,6 +95,16 @@ class SoundSystem {
         setTimeout(() => this.playTone(659, 0.2), 200);
     }
 
+    playSpeedTimer() {
+        // Urgent countdown tick
+        this.playTone(440, 0.1, 'square', 0.08);
+    }
+
+    playSpeedComplete() {
+        // Time's up sound
+        this.playTone(220, 0.5, 'sawtooth', 0.12);
+    }
+
     toggle() {
         this.enabled = !this.enabled;
         console.log('Sound:', this.enabled ? 'ON' : 'OFF');
@@ -105,6 +115,215 @@ class SoundSystem {
 // Create global sound instance
 const soundSystem = new SoundSystem();
 
+// Speed Categories with Complete Answer Banks
+const speedCategoriesWithAnswers = {
+  "US States": [
+    "alabama", "alaska", "arizona", "arkansas", "california", "colorado", "connecticut", "delaware", 
+    "florida", "georgia", "hawaii", "idaho", "illinois", "indiana", "iowa", "kansas", "kentucky", 
+    "louisiana", "maine", "maryland", "massachusetts", "michigan", "minnesota", "mississippi", 
+    "missouri", "montana", "nebraska", "nevada", "new hampshire", "new jersey", "new mexico", 
+    "new york", "north carolina", "north dakota", "ohio", "oklahoma", "oregon", "pennsylvania", 
+    "rhode island", "south carolina", "south dakota", "tennessee", "texas", "utah", "vermont", 
+    "virginia", "washington", "west virginia", "wisconsin", "wyoming"
+  ],
+
+  "Countries": [
+    "afghanistan", "albania", "algeria", "argentina", "armenia", "australia", "austria", "azerbaijan",
+    "bahrain", "bangladesh", "belarus", "belgium", "bolivia", "brazil", "bulgaria", "cambodia",
+    "cameroon", "canada", "chile", "china", "colombia", "croatia", "cuba", "cyprus", "denmark",
+    "ecuador", "egypt", "estonia", "ethiopia", "finland", "france", "georgia", "germany", "ghana",
+    "greece", "guatemala", "hungary", "iceland", "india", "indonesia", "iran", "iraq", "ireland",
+    "israel", "italy", "jamaica", "japan", "jordan", "kazakhstan", "kenya", "kuwait", "latvia",
+    "lebanon", "libya", "lithuania", "luxembourg", "malaysia", "mexico", "morocco", "netherlands",
+    "new zealand", "nigeria", "norway", "pakistan", "panama", "peru", "philippines", "poland",
+    "portugal", "qatar", "romania", "russia", "saudi arabia", "singapore", "slovakia", "slovenia",
+    "south africa", "south korea", "spain", "sri lanka", "sweden", "switzerland", "thailand",
+    "turkey", "ukraine", "united kingdom", "united states", "uruguay", "venezuela", "vietnam"
+  ],
+
+  "Animals": [
+    "lion", "tiger", "elephant", "giraffe", "zebra", "hippo", "rhinoceros", "cheetah", "leopard",
+    "bear", "wolf", "fox", "deer", "rabbit", "squirrel", "mouse", "rat", "cat", "dog", "horse",
+    "cow", "pig", "sheep", "goat", "chicken", "duck", "goose", "turkey", "eagle", "hawk", "owl",
+    "parrot", "penguin", "flamingo", "ostrich", "kangaroo", "koala", "panda", "monkey", "gorilla",
+    "chimpanzee", "orangutan", "whale", "dolphin", "shark", "octopus", "jellyfish", "starfish",
+    "crab", "lobster", "shrimp", "fish", "salmon", "tuna", "goldfish", "frog", "turtle", "snake",
+    "lizard", "crocodile", "alligator", "spider", "butterfly", "bee", "ant", "fly", "mosquito",
+    "beetle", "cricket", "grasshopper", "dragonfly", "ladybug", "caterpillar", "worm", "snail",
+    "bat", "hedgehog", "raccoon", "skunk", "beaver", "otter", "seal", "walrus", "polar bear",
+    "camel", "llama", "alpaca", "donkey", "mule", "buffalo", "bison", "moose", "elk"
+  ],
+
+  "Fruits": [
+    "apple", "banana", "orange", "grape", "strawberry", "blueberry", "raspberry", "blackberry",
+    "cherry", "peach", "plum", "pear", "pineapple", "mango", "papaya", "kiwi", "watermelon",
+    "cantaloupe", "honeydew", "lemon", "lime", "grapefruit", "coconut", "avocado", "tomato",
+    "apricot", "fig", "date", "pomegranate", "cranberry", "gooseberry", "elderberry", "mulberry",
+    "tangerine", "mandarin", "clementine", "nectarine", "persimmon", "guava", "passion fruit",
+    "dragon fruit", "star fruit", "lychee", "rambutan", "durian", "jackfruit", "plantain"
+  ],
+
+  "Vegetables": [
+    "carrot", "broccoli", "spinach", "lettuce", "cabbage", "cauliflower", "celery", "onion",
+    "garlic", "potato", "sweet potato", "tomato", "cucumber", "bell pepper", "jalapeño", "corn",
+    "peas", "green beans", "asparagus", "artichoke", "brussels sprouts", "kale", "arugula",
+    "radish", "turnip", "beet", "parsnip", "leek", "chives", "scallion", "mushroom", "zucchini",
+    "squash", "pumpkin", "eggplant", "okra", "swiss chard", "collard greens", "bok choy",
+    "watercress", "endive", "fennel", "ginger", "horseradish", "rhubarb", "bamboo shoots"
+  ],
+
+  "Car Brands": [
+    "toyota", "honda", "ford", "chevrolet", "nissan", "bmw", "mercedes", "audi", "volkswagen",
+    "hyundai", "kia", "mazda", "subaru", "lexus", "acura", "infiniti", "cadillac", "lincoln",
+    "buick", "gmc", "jeep", "dodge", "chrysler", "ram", "tesla", "volvo", "jaguar", "land rover",
+    "porsche", "ferrari", "lamborghini", "maserati", "bentley", "rolls royce", "aston martin",
+    "mclaren", "bugatti", "lotus", "mini", "fiat", "alfa romeo", "peugeot", "renault", "citroën",
+    "saab", "mitsubishi", "isuzu", "suzuki", "daihatsu", "genesis"
+  ],
+
+  "Disney Movies": [
+    "snow white", "pinocchio", "fantasia", "dumbo", "bambi", "cinderella", "alice in wonderland",
+    "peter pan", "lady and the tramp", "sleeping beauty", "101 dalmatians", "the jungle book",
+    "the aristocats", "robin hood", "the rescuers", "the fox and the hound", "the black cauldron",
+    "the great mouse detective", "oliver and company", "the little mermaid", "beauty and the beast",
+    "aladdin", "the lion king", "pocahontas", "the hunchback of notre dame", "hercules", "mulan",
+    "tarzan", "fantasia 2000", "dinosaur", "the emperor's new groove", "atlantis", "lilo and stitch",
+    "treasure planet", "brother bear", "home on the range", "chicken little", "meet the robinsons",
+    "bolt", "the princess and the frog", "tangled", "winnie the pooh", "wreck it ralph", "frozen",
+    "big hero 6", "zootopia", "moana", "coco", "incredibles", "finding nemo", "monsters inc",
+    "cars", "ratatouille", "wall-e", "up", "toy story", "bugs life", "monsters university",
+    "inside out", "the good dinosaur", "finding dory", "cars 3", "incredibles 2", "ralph breaks the internet",
+    "toy story 4", "onward", "soul", "luca", "encanto", "turning red", "lightyear", "strange world"
+  ],
+
+  "Colors": [
+    "red", "blue", "green", "yellow", "orange", "purple", "pink", "brown", "black", "white",
+    "gray", "grey", "silver", "gold", "beige", "tan", "navy", "turquoise", "teal", "cyan",
+    "magenta", "maroon", "crimson", "scarlet", "coral", "salmon", "peach", "khaki", "olive",
+    "lime", "mint", "emerald", "forest", "jade", "sage", "lavender", "violet", "indigo", "royal",
+    "sky", "powder", "baby", "hot", "rose", "burgundy", "wine", "plum", "mauve", "fuchsia"
+  ],
+
+  "Fast Food Chains": [
+    "mcdonalds", "burger king", "wendys", "taco bell", "kfc", "pizza hut", "dominos", "subway",
+    "starbucks", "dunkin", "chipotle", "panera", "chick fil a", "in n out", "five guys",
+    "sonic", "dairy queen", "arbys", "popeyes", "papa johns", "little caesars", "white castle",
+    "jack in the box", "del taco", "qdoba", "panda express", "pei wei", "noodles and company",
+    "jimmy johns", "papa murphys", "blaze pizza", "mod pizza", "shake shack", "whataburger",
+    "culvers", "bojangles", "zaxbys", "raising canes", "el pollo loco", "boston market",
+    "long john silvers", "auntie annes", "orange julius", "sbarro", "pretzelmaker", "hot dog on a stick"
+  ],
+
+  "Sports": [
+    "football", "basketball", "baseball", "soccer", "tennis", "golf", "hockey", "volleyball",
+    "swimming", "track", "boxing", "wrestling", "gymnastics", "skiing", "snowboarding", "surfing",
+    "skateboarding", "cycling", "running", "marathon", "triathlon", "badminton", "ping pong",
+    "table tennis", "bowling", "pool", "billiards", "darts", "archery", "fencing", "martial arts",
+    "karate", "judo", "taekwondo", "rugby", "cricket", "lacrosse", "field hockey", "water polo",
+    "diving", "figure skating", "speed skating", "curling", "bobsled", "luge", "skeleton",
+    "biathlon", "cross country", "downhill", "slalom", "pole vault", "high jump", "long jump",
+    "shot put", "discus", "hammer throw", "javelin", "decathlon", "heptathlon", "hurdles"
+  ],
+
+  "Body Parts": [
+    "head", "hair", "forehead", "eyebrow", "eye", "eyelid", "eyelash", "nose", "nostril", "cheek",
+    "mouth", "lip", "tooth", "teeth", "tongue", "chin", "jaw", "ear", "neck", "throat", "shoulder",
+    "arm", "elbow", "forearm", "wrist", "hand", "finger", "thumb", "nail", "chest", "breast",
+    "back", "spine", "waist", "hip", "stomach", "belly", "abdomen", "leg", "thigh", "knee",
+    "shin", "calf", "ankle", "foot", "heel", "toe", "brain", "heart", "lung", "liver", "kidney",
+    "muscle", "bone", "skin", "blood", "nerve", "tendon", "ligament", "joint", "skull", "rib"
+  ],
+
+  "Ice Cream Flavors": [
+    "vanilla", "chocolate", "strawberry", "neapolitan", "mint chocolate chip", "cookies and cream",
+    "cookie dough", "rocky road", "butter pecan", "pistachio", "rum raisin", "coffee", "caramel",
+    "banana", "cherry", "peach", "coconut", "peanut butter", "fudge", "marshmallow", "sherbet",
+    "sorbet", "gelato", "frozen yogurt", "soft serve", "birthday cake", "cotton candy",
+    "bubblegum", "superman", "tiger tail", "blue moon", "green tea", "red bean", "taro",
+    "black sesame", "lavender", "rose", "honey", "maple", "cinnamon", "cardamom"
+  ],
+
+  "Pizza Toppings": [
+    "pepperoni", "sausage", "mushrooms", "peppers", "onions", "olives", "cheese", "ham",
+    "bacon", "pineapple", "tomatoes", "spinach", "broccoli", "chicken", "beef", "anchovies",
+    "jalapeños", "garlic", "basil", "oregano", "arugula", "sun dried tomatoes", "artichokes",
+    "eggplant", "zucchini", "corn", "feta", "goat cheese", "ricotta", "mozzarella", "parmesan",
+    "cheddar", "provolone", "blue cheese", "ranch", "bbq sauce", "pesto", "white sauce",
+    "olive oil", "balsamic", "hot sauce", "red pepper flakes", "capers", "prosciutto", "salami"
+  ],
+
+  "Breakfast Foods": [
+    "eggs", "bacon", "sausage", "ham", "toast", "bagel", "muffin", "pancakes", "waffles",
+    "french toast", "cereal", "oatmeal", "yogurt", "fruit", "juice", "coffee", "tea", "milk",
+    "butter", "jam", "jelly", "honey", "syrup", "cream cheese", "peanut butter", "granola",
+    "smoothie", "hash browns", "home fries", "grits", "biscuits", "croissant", "danish",
+    "donut", "scone", "english muffin", "avocado toast", "omelet", "quiche", "breakfast burrito",
+    "breakfast sandwich", "protein bar", "breakfast shake", "cottage cheese", "greek yogurt"
+  ],
+
+  "Things in Your Kitchen": [
+    "refrigerator", "stove", "oven", "microwave", "dishwasher", "sink", "faucet", "counter",
+    "cabinet", "drawer", "pantry", "table", "chair", "plate", "bowl", "cup", "glass", "mug",
+    "fork", "knife", "spoon", "spatula", "whisk", "tongs", "ladle", "cutting board", "pot",
+    "pan", "skillet", "baking sheet", "mixing bowl", "measuring cup", "blender", "toaster",
+    "coffee maker", "can opener", "corkscrew", "peeler", "grater", "colander", "strainer",
+    "timer", "scale", "apron", "oven mitt", "dish towel", "sponge", "soap", "trash can",
+    "paper towel", "aluminum foil", "plastic wrap", "tupperware", "jar", "bottle"
+  ],
+
+  "TV Shows": [
+    "friends", "seinfeld", "the office", "game of thrones", "breaking bad", "stranger things",
+    "the simpsons", "south park", "family guy", "big bang theory", "how i met your mother",
+    "greys anatomy", "the walking dead", "lost", "house", "er", "cheers", "frasier", "jeopardy",
+    "wheel of fortune", "saturday night live", "the tonight show", "good morning america",
+    "the view", "ellen", "oprah", "dr phil", "judge judy", "cops", "america's got talent",
+    "the voice", "american idol", "dancing with the stars", "survivor", "big brother",
+    "the bachelor", "the bachelorette", "jersey shore", "keeping up with the kardashians",
+    "real housewives", "top chef", "chopped", "jeopardy", "family feud", "price is right"
+  ],
+
+  "Jobs/Careers": [
+    "doctor", "nurse", "teacher", "lawyer", "engineer", "accountant", "manager", "salesperson",
+    "chef", "waiter", "cashier", "mechanic", "electrician", "plumber", "carpenter", "painter",
+    "police officer", "firefighter", "paramedic", "pilot", "flight attendant", "driver",
+    "construction worker", "farmer", "veterinarian", "dentist", "pharmacist", "therapist",
+    "counselor", "social worker", "librarian", "secretary", "receptionist", "janitor",
+    "security guard", "barber", "hairdresser", "photographer", "artist", "musician", "actor",
+    "writer", "journalist", "editor", "programmer", "designer", "architect", "scientist",
+    "researcher", "professor", "principal", "coach", "trainer", "real estate agent"
+  ],
+
+  "Movie Genres": [
+    "action", "adventure", "comedy", "drama", "horror", "thriller", "romance", "sci-fi",
+    "fantasy", "mystery", "crime", "documentary", "animation", "musical", "western",
+    "war", "biography", "history", "family", "kids", "teen", "adult", "foreign",
+    "independent", "art house", "black and white", "silent", "short", "feature",
+    "blockbuster", "cult", "classic", "modern", "contemporary", "period", "futuristic",
+    "dystopian", "utopian", "post-apocalyptic", "superhero", "martial arts", "sports",
+    "dance", "cooking", "travel", "nature", "wildlife", "true crime", "mockumentary"
+  ],
+
+  "Things That Are Round": [
+    "ball", "circle", "wheel", "coin", "plate", "clock", "globe", "orange", "apple", "pizza",
+    "donut", "bagel", "tire", "button", "marble", "pearl", "bubble", "balloon", "moon",
+    "sun", "earth", "planet", "ring", "bracelet", "hoop", "frisbee", "record", "cd",
+    "dvd", "lens", "magnifying glass", "mirror", "pot", "pan", "bowl", "cup", "mug",
+    "cookie", "cake", "pie", "wreath", "steering wheel", "life preserver", "dartboard",
+    "compass", "manhole cover", "drum", "tambourine", "cymbal", "gong", "eye", "pupil"
+  ],
+
+  "Dog Breeds": [
+    "labrador", "golden retriever", "german shepherd", "bulldog", "poodle", "beagle", "rottweiler",
+    "yorkshire terrier", "dachshund", "siberian husky", "boxer", "great dane", "chihuahua",
+    "shih tzu", "boston terrier", "pomeranian", "australian shepherd", "cocker spaniel",
+    "border collie", "mastiff", "basset hound", "saint bernard", "bloodhound", "greyhound",
+    "whippet", "dalmatian", "weimaraner", "doberman", "pit bull", "bull terrier", "collie",
+    "afghan hound", "irish setter", "english setter", "pointer", "springer spaniel", "brittany",
+    "vizsla", "rhodesian ridgeback", "akita", "chow chow", "shar pei", "shiba inu", "corgi",
+    "jack russell", "fox terrier", "scottish terrier", "west highland terrier", "cairn terrier"
+  ]
+};
+
 // Game state
 let roomCode = '';
 let playerId = '';
@@ -113,12 +332,12 @@ let isHost = false;
 let gameRef = null;
 let currentGame = null;
 
-
-// New game structure - 3 rounds with progressive depth
+// Updated game structure - 4 rounds with progressive depth
 const GAME_STRUCTURE = {
     1: { type: 'guessing', name: 'Guessing Game' },
     2: { type: 'trivia', name: 'Trivia Challenge' },
-    3: { type: 'questions', category: 'progressive', name: 'Connection Questions' }
+    3: { type: 'speed', name: 'Speed Categories' }, // NEW ROUND
+    4: { type: 'questions', category: 'progressive', name: 'Connection Questions' }
 };
 
 // Confetti animation functions
@@ -198,6 +417,12 @@ let myTriviaAnswer = null;
 let partnerTriviaAnswer = null;
 let triviaRoundScores = { player1: 0, player2: 0 };
 
+// Speed Categories game state
+let speedTimer = null;
+let speedTimeLeft = 45;
+let speedMyAnswers = [];
+let speedGameActive = false;
+
 // Overall game scores
 let overallScores = { player1: 0, player2: 0 };
 
@@ -228,6 +453,47 @@ function showScreen(screenId) {
         targetScreen.classList.add('active');
         targetScreen.style.opacity = '1';
     }
+}
+
+// Speed Categories Helper Functions
+function getRandomSpeedCategory() {
+  const categories = Object.keys(speedCategoriesWithAnswers);
+  const randomIndex = Math.floor(Math.random() * categories.length);
+  return categories[randomIndex];
+}
+
+function validateSpeedAnswer(userAnswer, category) {
+  const validAnswers = speedCategoriesWithAnswers[category];
+  const cleanAnswer = userAnswer.toLowerCase().trim();
+  
+  // Exact match first
+  if (validAnswers.includes(cleanAnswer)) {
+    return true;
+  }
+  
+  // Handle common variations
+  const variations = {
+    'us': 'united states',
+    'uk': 'united kingdom',
+    'usa': 'united states',
+    'ny': 'new york',
+    'ca': 'california',
+    'tx': 'texas',
+    'fl': 'florida',
+    'mcdonald\'s': 'mcdonalds',
+    'dunkin\'': 'dunkin',
+    'chick-fil-a': 'chick fil a'
+  };
+  
+  if (variations[cleanAnswer] && validAnswers.includes(variations[cleanAnswer])) {
+    return true;
+  }
+  
+  return false;
+}
+
+function getCategoryMaxScore(category) {
+  return speedCategoriesWithAnswers[category].length;
 }
 
 // Room Management
@@ -440,7 +706,7 @@ function handleGameUpdate(gameData) {
             startNewRound(1);
         }
     } else if (gameData.gameStarted) {
-        // Check if we're in a guessing round
+        // Check game type and handle accordingly
         if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'guessing') {
             // Handle round intro for guessing games
             if (gameData.showingRoundIntro && gameData.guessingQuestionsAsked === 0) {
@@ -472,6 +738,27 @@ function handleGameUpdate(gameData) {
             } else {
                 handleTriviaGameUpdate(gameData);
             }
+        } else if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'speed') {
+            // Handle speed categories round
+            if (gameData.showingRoundIntro && !gameData.speedStarted) {
+                showRoundIntro(gameData.roundName);
+                setTimeout(() => {
+                    if (isHost && gameRef) {
+                        const category = getRandomSpeedCategory();
+                        gameRef.update({
+                            showingRoundIntro: false,
+                            speedCategory: category,
+                            speedPhase: 'playing',
+                            speedStarted: true,
+                            speedStartTime: Date.now(),
+                            player1Answers: [],
+                            player2Answers: []
+                        });
+                    }
+                }, 3000);
+            } else {
+                handleSpeedCategoriesUpdate(gameData);
+            }
         } else {
             // Handle question rounds
             showScreen('game-screen');
@@ -485,7 +772,7 @@ function startNewRound(roundNumber = null) {
         roundNumber = (currentGame.currentRound || 0) + 1;
     }
     
-    if (roundNumber > 3) {
+    if (roundNumber > 4) { // Updated to 4 rounds
         soundSystem.playGameComplete();
         endGame();
         return;
@@ -505,6 +792,9 @@ function startNewRound(roundNumber = null) {
         triviaQuestionsAsked = 0;
         triviaRoundScores = { player1: 0, player2: 0 };
         startTriviaGame(roundNumber);
+    } else if (roundInfo.type === 'speed') {
+        // Start speed categories round
+        startSpeedCategoriesGame(roundNumber);
     } else {
         // Question round with progressive depth
         gameRef.update({
@@ -519,8 +809,232 @@ function startNewRound(roundNumber = null) {
             guessingPhase: null,
             guessingQuestionsAsked: 0,
             triviaPhase: null,
-            triviaQuestionsAsked: 0
+            triviaQuestionsAsked: 0,
+            speedPhase: null,
+            speedStarted: false
         });
+    }
+}
+
+// Speed Categories Game Functions
+function startSpeedCategoriesGame(roundNumber) {
+    console.log('Starting speed categories game for round:', roundNumber);
+    
+    gameRef.update({
+        gameStarted: true,
+        currentRound: roundNumber,
+        roundName: `Round ${roundNumber} - ${GAME_STRUCTURE[roundNumber].name}`,
+        speedPhase: 'intro',
+        speedStarted: false,
+        showingRoundIntro: true,
+        player1Answers: [],
+        player2Answers: [],
+        speedCategory: null,
+        speedStartTime: null
+    });
+}
+
+function handleSpeedCategoriesUpdate(gameData) {
+    if (!gameData.speedCategory) return;
+    
+    console.log('Speed categories update:', {
+        phase: gameData.speedPhase,
+        category: gameData.speedCategory,
+        startTime: gameData.speedStartTime
+    });
+    
+    switch(gameData.speedPhase) {
+        case 'intro':
+            // Handled by showRoundIntro
+            break;
+            
+        case 'playing':
+            showSpeedCategoriesScreen(gameData);
+            break;
+            
+        case 'complete':
+            showSpeedCategoriesResults(gameData);
+            break;
+    }
+}
+
+function showSpeedCategoriesScreen(gameData) {
+    showScreen('speed-categories-screen');
+    
+    document.getElementById('speed-category').textContent = gameData.speedCategory;
+    document.getElementById('speed-timer').textContent = '45';
+    document.getElementById('speed-input').value = '';
+    document.getElementById('speed-answers-list').innerHTML = '';
+    document.getElementById('speed-input').disabled = false;
+    
+    // Reset local state
+    speedMyAnswers = [];
+    speedGameActive = true;
+    speedTimeLeft = 45;
+    
+    // Focus on input
+    setTimeout(() => {
+        document.getElementById('speed-input').focus();
+    }, 100);
+    
+    // Start countdown timer
+    speedTimer = setInterval(() => {
+        speedTimeLeft--;
+        document.getElementById('speed-timer').textContent = speedTimeLeft;
+        
+        // Play tick sound for last 10 seconds
+        if (speedTimeLeft <= 10 && speedTimeLeft > 0) {
+            soundSystem.playSpeedTimer();
+        }
+        
+        if (speedTimeLeft <= 0) {
+            endSpeedGame();
+        }
+    }, 1000);
+    
+    // Auto-submit current word when time is up
+    setTimeout(() => {
+        if (speedGameActive) {
+            endSpeedGame();
+        }
+    }, 45000);
+}
+
+function handleSpeedAnswer() {
+    if (!speedGameActive) return;
+    
+    const input = document.getElementById('speed-input');
+    const answer = input.value.trim();
+    
+    if (answer && !speedMyAnswers.some(a => a.toLowerCase() === answer.toLowerCase())) {
+        const isValid = validateSpeedAnswer(answer, currentGame.speedCategory);
+        
+        if (isValid) {
+            speedMyAnswers.push(answer);
+            
+            // Add to display list
+            const listItem = document.createElement('div');
+            listItem.className = 'speed-answer-item valid';
+            listItem.textContent = answer;
+            document.getElementById('speed-answers-list').appendChild(listItem);
+            
+            // Play success sound
+            soundSystem.playClick();
+        } else {
+            // Show invalid answer briefly
+            const listItem = document.createElement('div');
+            listItem.className = 'speed-answer-item invalid';
+            listItem.textContent = answer + ' (invalid)';
+            document.getElementById('speed-answers-list').appendChild(listItem);
+            
+            // Remove invalid item after 1 second
+            setTimeout(() => {
+                listItem.remove();
+            }, 1000);
+        }
+        
+        // Clear input
+        input.value = '';
+    }
+}
+
+function endSpeedGame() {
+    if (!speedGameActive) return;
+    
+    speedGameActive = false;
+    clearInterval(speedTimer);
+    
+    // Play time's up sound
+    soundSystem.playSpeedComplete();
+    
+    // Disable input
+    document.getElementById('speed-input').disabled = true;
+    
+    // Submit final answers to Firebase
+    const playerIds = Object.keys(currentGame.players);
+    const myIndex = playerIds.indexOf(playerId);
+    
+    if (myIndex === 0) {
+        gameRef.update({
+            player1Answers: speedMyAnswers
+        });
+    } else {
+        gameRef.update({
+            player2Answers: speedMyAnswers
+        });
+    }
+    
+    // Check if both players have submitted
+    checkSpeedGameComplete();
+}
+
+function checkSpeedGameComplete() {
+    // Wait a moment for Firebase to update, then check completion
+    setTimeout(() => {
+        if (currentGame.player1Answers && currentGame.player2Answers && 
+            currentGame.player1Answers.length >= 0 && currentGame.player2Answers.length >= 0) {
+            if (isHost) {
+                // Calculate scores and move to results
+                const player1Score = currentGame.player1Answers.length;
+                const player2Score = currentGame.player2Answers.length;
+                
+                // Update overall scores
+                const updatedScores = {
+                    player1: (overallScores.player1 || 0) + player1Score,
+                    player2: (overallScores.player2 || 0) + player2Score
+                };
+                
+                gameRef.update({
+                    speedPhase: 'complete',
+                    overallScores: updatedScores
+                });
+            }
+        }
+    }, 1000);
+}
+
+function showSpeedCategoriesResults(gameData) {
+    showScreen('speed-categories-results');
+    
+    const playerIds = Object.keys(gameData.players);
+    const player1Answers = gameData.player1Answers || [];
+    const player2Answers = gameData.player2Answers || [];
+    
+    // Show category
+    document.getElementById('speed-result-category').textContent = gameData.speedCategory;
+    
+    // Show scores
+    document.getElementById('speed-result-player1-name').textContent = gameData.players[playerIds[0]].name;
+    document.getElementById('speed-result-player1-score').textContent = player1Answers.length;
+    
+    document.getElementById('speed-result-player2-name').textContent = gameData.players[playerIds[1]].name;
+    document.getElementById('speed-result-player2-score').textContent = player2Answers.length;
+    
+    // Show winner
+    let winnerText = '';
+    if (player1Answers.length > player2Answers.length) {
+        winnerText = `${gameData.players[playerIds[0]].name} wins!`;
+        triggerConfetti('correct');
+    } else if (player2Answers.length > player1Answers.length) {
+        winnerText = `${gameData.players[playerIds[1]].name} wins!`;
+        triggerConfetti('correct');
+    } else {
+        winnerText = "It's a tie!";
+    }
+    document.getElementById('speed-winner').textContent = winnerText;
+    
+    // Show answers
+    document.getElementById('speed-result-player1-answers').textContent = player1Answers.join(', ');
+    document.getElementById('speed-result-player2-answers').textContent = player2Answers.join(', ');
+    
+    // Continue button (only host can click)
+    const continueBtn = document.getElementById('continue-from-speed-btn');
+    if (isHost) {
+        continueBtn.textContent = 'Continue to Final Round';
+        continueBtn.disabled = false;
+    } else {
+        continueBtn.textContent = 'Waiting for host...';
+        continueBtn.disabled = true;
     }
 }
 
@@ -913,7 +1427,7 @@ function updateQuestionGame(gameData) {
     const myTurnIndex = playerIds.indexOf(playerId);
     const isMyTurn = gameData.currentTurn === myTurnIndex;
     
-    // Handle progressive questions for round 3
+    // Handle progressive questions for round 4 (was round 3)
     let currentQuestion;
     if (gameData.mode === 'progressive') {
         const questionNumber = (gameData.questionsAskedThisRound || 0) + 1;
@@ -942,7 +1456,7 @@ function updateQuestionGame(gameData) {
     
     const questionsAsked = gameData.questionsAskedThisRound || 0;
     
-    // Show question depth indicator for round 3
+    // Show question depth indicator for round 4 (was round 3)
     let depthIndicator = '';
     if (gameData.mode === 'progressive') {
         const questionNum = questionsAsked + 1;
@@ -952,16 +1466,22 @@ function updateQuestionGame(gameData) {
     }
     
     document.getElementById('question-number').textContent = 
-        `Round ${gameData.currentRound}/3 • Question ${questionsAsked + 1} of 6${depthIndicator}`;
+        `Round ${gameData.currentRound}/4 • Question ${questionsAsked + 1} of 6${depthIndicator}`;
     document.getElementById('question-text').textContent = currentQuestion;
     
-    // Update progress bar to reflect total questions (18 total: 3 rounds × 6 questions each)
-    const totalQuestionsInGame = 18;
+    // Update progress bar to reflect total questions (19 total: 6+6+1+6 questions)
+    const totalQuestionsInGame = 19;
     let totalQuestionsCompleted = 0;
     
     // Calculate questions completed based on rounds
     if (gameData.currentRound > 1) {
-        totalQuestionsCompleted = (gameData.currentRound - 1) * 6;
+        if (gameData.currentRound === 2) {
+            totalQuestionsCompleted = 6; // Round 1 complete
+        } else if (gameData.currentRound === 3) {
+            totalQuestionsCompleted = 12; // Rounds 1&2 complete
+        } else if (gameData.currentRound === 4) {
+            totalQuestionsCompleted = 13; // Rounds 1,2,3 complete (3 was speed with 1 interaction)
+        }
     }
     
     // Add current round progress
@@ -971,6 +1491,8 @@ function updateQuestionGame(gameData) {
         totalQuestionsCompleted += gameData.guessingQuestionsAsked || 0;
     } else if (GAME_STRUCTURE[gameData.currentRound]?.type === 'trivia') {
         totalQuestionsCompleted += gameData.triviaQuestionsAsked || 0;
+    } else if (GAME_STRUCTURE[gameData.currentRound]?.type === 'speed') {
+        totalQuestionsCompleted += gameData.speedStarted ? 1 : 0;
     }
     
     const progress = (totalQuestionsCompleted / totalQuestionsInGame) * 100;
@@ -1005,7 +1527,7 @@ function skipQuestion() {
 }
 
 function endGame() {
-    alert(`Amazing connection! You've completed all 3 rounds - sharing 18 meaningful moments together! 💕`);
+    alert(`Amazing connection! You've completed all 4 rounds - sharing 19 meaningful moments together! 💕`);
     leaveGame();
 }
 
@@ -1496,7 +2018,6 @@ document.getElementById('continue-from-trivia-btn').addEventListener('click', ()
     }
 });
 
-// ADD THIS EVENT LISTENER - THIS WAS MISSING!
 document.getElementById('continue-from-trivia-complete-btn').addEventListener('click', () => {
     if (!isHost) return; // Only host can continue
     
@@ -1507,6 +2028,20 @@ document.getElementById('continue-from-trivia-complete-btn').addEventListener('c
     triviaRoundScores = { player1: 0, player2: 0 };
     
     // Start the next round
+    startNewRound();
+});
+
+// Event listeners for Speed Categories
+document.getElementById('speed-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        handleSpeedAnswer();
+    }
+});
+
+document.getElementById('continue-from-speed-btn').addEventListener('click', () => {
+    if (!isHost) return; // Only host can continue
+    
+    console.log('Speed categories complete, starting next round...');
     startNewRound();
 });
 
