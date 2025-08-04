@@ -2,6 +2,109 @@
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
+// Sound System
+class SoundSystem {
+    constructor() {
+        this.audioContext = null;
+        this.enabled = true;
+        this.initialized = false;
+    }
+
+    // Initialize audio context (must be called after user interaction)
+    async init() {
+        if (this.initialized) return;
+        
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.initialized = true;
+            console.log('Sound system initialized');
+        } catch (error) {
+            console.log('Sound system not available:', error);
+            this.enabled = false;
+        }
+    }
+
+    // Generate and play a tone
+    playTone(frequency, duration, type = 'sine', volume = 0.1) {
+        if (!this.enabled || !this.initialized || !this.audioContext) return;
+
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+        oscillator.type = type;
+        
+        // Envelope for smooth sound
+        gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration);
+        
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + duration);
+    }
+
+    // Specific sound effects
+    playCorrect() {
+        // Pleasant ascending chime
+        this.playTone(523, 0.15); // C5
+        setTimeout(() => this.playTone(659, 0.15), 100); // E5
+        setTimeout(() => this.playTone(784, 0.2), 200); // G5
+    }
+
+    playIncorrect() {
+        // Descending buzz
+        this.playTone(200, 0.3, 'sawtooth', 0.15);
+        setTimeout(() => this.playTone(150, 0.3, 'sawtooth', 0.15), 100);
+    }
+
+    playClick() {
+        // Subtle click
+        this.playTone(800, 0.1, 'square', 0.05);
+    }
+
+    playRoundComplete() {
+        // Celebration sequence
+        const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
+        notes.forEach((note, i) => {
+            setTimeout(() => this.playTone(note, 0.2), i * 150);
+        });
+    }
+
+    playGameComplete() {
+        // Victory fanfare
+        const melody = [523, 523, 523, 415, 523, 659, 784];
+        const durations = [0.15, 0.15, 0.15, 0.4, 0.15, 0.15, 0.4];
+        
+        melody.forEach((note, i) => {
+            setTimeout(() => this.playTone(note, durations[i]), i * 200);
+        });
+    }
+
+    playNewRound() {
+        // Gentle ascending tone
+        this.playTone(392, 0.2); // G4
+        setTimeout(() => this.playTone(523, 0.3), 150); // C5
+    }
+
+    playJoin() {
+        // Two-note welcome
+        this.playTone(523, 0.2);
+        setTimeout(() => this.playTone(659, 0.2), 200);
+    }
+
+    toggle() {
+        this.enabled = !this.enabled;
+        console.log('Sound:', this.enabled ? 'ON' : 'OFF');
+        return this.enabled;
+    }
+}
+
+// Create global sound instance
+const soundSystem = new SoundSystem();
+
 // Game state
 let roomCode = '';
 let playerId = '';
@@ -154,6 +257,9 @@ function submitCreatorName() {
         return;
     }
     
+    // Initialize sound system on user interaction
+    soundSystem.init();
+    
     // Update name in Firebase
     if (gameRef && playerId) {
         gameRef.child(`players/${playerId}`).update({
@@ -250,6 +356,8 @@ function joinRoom() {
             })
             .then(() => {
                 console.log('Successfully joined room!');
+                soundSystem.init(); // Initialize sound
+                soundSystem.playJoin(); // Play join sound
                 
                 gameRef.on('value', (snapshot) => {
                     const data = snapshot.val();
@@ -378,9 +486,13 @@ function startNewRound(roundNumber = null) {
     }
     
     if (roundNumber > 3) {
+        soundSystem.playGameComplete();
         endGame();
         return;
     }
+    
+    // Play new round sound
+    soundSystem.playNewRound();
     
     const roundInfo = GAME_STRUCTURE[roundNumber];
     
@@ -665,6 +777,13 @@ function handleGuessSelection(guess, correctAnswer) {
             btn.classList.add('incorrect');
         }
     });
+    
+    // Play sound effect
+    if (guess === correctAnswer) {
+        soundSystem.playCorrect();
+    } else {
+        soundSystem.playIncorrect();
+    }
     
     gameRef.update({
         playerGuess: guess,
@@ -1045,80 +1164,6 @@ function shuffleArray(array) {
     return newArray;
 }
 
-// Function to format the real answer to match the style of fake options
-// Function to format fake options to match the real answer's style
-function formatFakeOptionsToMatchAnswer(realAnswer, fakeOptions) {
-    if (!realAnswer || !fakeOptions || fakeOptions.length === 0) {
-        return fakeOptions;
-    }
-    
-    // Analyze the real answer's formatting
-    const isAllCaps = realAnswer === realAnswer.toUpperCase() && realAnswer !== realAnswer.toLowerCase();
-    const isAllLowercase = realAnswer === realAnswer.toLowerCase() && realAnswer !== realAnswer.toUpperCase();
-    const isFirstCapOnly = realAnswer.charAt(0) === realAnswer.charAt(0).toUpperCase() && 
-                           realAnswer.slice(1) === realAnswer.slice(1).toLowerCase();
-    const isTitleCase = realAnswer.split(' ').every(word => 
-        word.charAt(0) === word.charAt(0).toUpperCase() && 
-        word.slice(1) === word.slice(1).toLowerCase()
-    );
-    
-    // Check for abbreviations/acronyms (mix of caps and periods)
-    const hasAbbreviation = /[A-Z]{2,}/.test(realAnswer) || /\./.test(realAnswer);
-    
-    // Format fake options to match the real answer's style
-    return fakeOptions.map(option => {
-        if (isAllCaps) {
-            return option.toUpperCase();
-        } else if (isAllLowercase) {
-            return option.toLowerCase();
-        } else if (isTitleCase && realAnswer.includes(' ')) {
-            // Title case for multi-word answers
-            return option.split(' ')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                .join(' ');
-        } else if (isFirstCapOnly) {
-            // First letter only capitalized
-            return option.charAt(0).toUpperCase() + option.slice(1).toLowerCase();
-        } else if (hasAbbreviation) {
-            // Keep abbreviations as they are, but match general case
-            return option; // Keep original formatting for complex cases
-        } else {
-            // Default to matching first character case
-            if (realAnswer.charAt(0) === realAnswer.charAt(0).toLowerCase()) {
-                return option.toLowerCase();
-            } else {
-                return option.charAt(0).toUpperCase() + option.slice(1).toLowerCase();
-            }
-        }
-    });
-}
-
-// Auto-format room code input
-document.getElementById('join-code').addEventListener('input', function(e) {
-    e.target.value = e.target.value.toUpperCase();
-});
-
-// Allow Enter key to submit creator name
-document.getElementById('creator-name').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        submitCreatorName();
-    }
-});
-
-// Allow Enter key to join room from code input
-document.getElementById('join-code').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        joinRoom();
-    }
-});
-
-// Allow Enter key to join room
-document.getElementById('joiner-name').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        joinRoom();
-    }
-});
-
 // Trivia game functions
 function startTriviaGame(roundNumber) {
     console.log('Starting trivia game for round:', roundNumber);
@@ -1245,6 +1290,9 @@ function showTriviaQuestion(gameData) {
 }
 
 function handleTriviaAnswer(answerIndex) {
+    // Play click sound for selection
+    soundSystem.playClick();
+    
     // Disable all buttons
     const buttons = document.querySelectorAll('.trivia-option');
     buttons.forEach((btn, index) => {
@@ -1327,6 +1375,9 @@ function showTriviaResults(gameData) {
     // Add confetti if anyone got it right
     if (player1Correct || player2Correct) {
         triggerConfetti('correct');
+        soundSystem.playCorrect();
+    } else {
+        soundSystem.playIncorrect();
     }
     
     // Update title
@@ -1378,6 +1429,7 @@ function showTriviaResults(gameData) {
 function showTriviaRoundComplete(gameData) {
     showScreen('trivia-complete-screen');
     triggerConfetti('round-complete');
+    soundSystem.playRoundComplete();
     
     const playerIds = Object.keys(gameData.players);
     const scores = gameData.triviaRoundScores;
@@ -1462,6 +1514,32 @@ document.getElementById('continue-from-trivia-complete-btn').addEventListener('c
 document.getElementById('guessing-answer-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter' && document.getElementById('submit-answer-btn').style.display !== 'none') {
         document.getElementById('submit-answer-btn').click();
+    }
+});
+
+// Auto-format room code input
+document.getElementById('join-code').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
+
+// Allow Enter key to submit creator name
+document.getElementById('creator-name').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        submitCreatorName();
+    }
+});
+
+// Allow Enter key to join room from code input
+document.getElementById('join-code').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        joinRoom();
+    }
+});
+
+// Allow Enter key to join room
+document.getElementById('joiner-name').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        joinRoom();
     }
 });
 
