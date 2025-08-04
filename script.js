@@ -831,8 +831,10 @@ function startSpeedCategoriesGame(roundNumber) {
         player2Answers: [],
         speedCategory: null,
         speedStartTime: null,
-        speedTimerStarted: false,  
-        speedEndTime: null         
+        speedTimerStarted: false,
+        speedEndTime: null,
+        player1Done: false,    // Add this
+        player2Done: false     // Add this
     });
 }
 
@@ -843,7 +845,10 @@ function handleSpeedCategoriesUpdate(gameData) {
     console.log('Speed categories update:', {
         phase: gameData.speedPhase,
         category: gameData.speedCategory,
-        startTime: gameData.speedStartTime
+        player1Done: gameData.player1Done,
+        player2Done: gameData.player2Done,
+        player1Answers: gameData.player1Answers ? gameData.player1Answers.length : 'undefined',
+        player2Answers: gameData.player2Answers ? gameData.player2Answers.length : 'undefined'
     });
     
     switch(gameData.speedPhase) {
@@ -858,6 +863,29 @@ function handleSpeedCategoriesUpdate(gameData) {
         case 'complete':
             showSpeedCategoriesResults(gameData);
             break;
+    }
+    
+    // Check if both players are done and transition to results (host only)
+    if (gameData.speedPhase === 'playing' && 
+        gameData.player1Done && 
+        gameData.player2Done && 
+        isHost) {
+        
+        console.log('Both players done, transitioning to results...');
+        
+        // Calculate scores
+        const player1Score = (gameData.player1Answers || []).length;
+        const player2Score = (gameData.player2Answers || []).length;
+        
+        const updatedScores = {
+            player1: (overallScores.player1 || 0) + player1Score,
+            player2: (overallScores.player2 || 0) + player2Score
+        };
+        
+        gameRef.update({
+            speedPhase: 'complete',
+            overallScores: updatedScores
+        });
     }
 }
 
@@ -905,37 +933,40 @@ document.getElementById('speed-current-score').textContent = '0';
 function startSpeedTimer(gameData) {
     if (!gameData.speedEndTime) return;
     
-    // Calculate remaining time based on server timestamp
+    // Clear any existing timer
+    if (speedTimer) {
+        clearInterval(speedTimer);
+        speedTimer = null;
+    }
+    
     const updateTimer = () => {
         const now = Date.now();
         const timeLeft = Math.max(0, Math.ceil((gameData.speedEndTime - now) / 1000));
         
+        console.log('Timer update - Time left:', timeLeft, 'Game active:', speedGameActive);
+        
         // Update display
         document.getElementById('speed-timer').textContent = timeLeft;
         
-        // Play tick sound for last 10 seconds (only once per second)
+        // Play tick sound for last 10 seconds
         if (timeLeft <= 10 && timeLeft > 0) {
             soundSystem.playSpeedTimer();
         }
         
         // End game when time is up
-        if (timeLeft <= 0) {
+        if (timeLeft <= 0 && speedGameActive) {
+            console.log('Timer reached 0, ending game...');
+            clearInterval(speedTimer);
+            speedTimer = null;
             endSpeedGame();
-            return;
         }
     };
     
     // Update immediately
     updateTimer();
     
-    // Start interval for updates (clear any existing first)
-    if (speedTimer) {
-        clearInterval(speedTimer);
-    }
-    
-    speedTimer = setInterval(() => {
-        updateTimer();
-    }, 1000);
+    // Start interval for updates
+    speedTimer = setInterval(updateTimer, 1000);
 }
 
 function handleSpeedAnswer() {
@@ -980,9 +1011,9 @@ function handleSpeedAnswer() {
 }
 
 function endSpeedGame() {
-    if (!speedGameActive) return;
+    console.log('endSpeedGame called, gameActive:', speedGameActive);
     
-    console.log('Ending speed game for player:', playerId);
+    if (!speedGameActive) return;
     
     speedGameActive = false;
     
@@ -997,70 +1028,31 @@ function endSpeedGame() {
     
     // Disable input
     document.getElementById('speed-input').disabled = true;
-    
-    // Update timer display to show 0
     document.getElementById('speed-timer').textContent = '0';
     
-    // Submit final answers to Firebase
+    console.log('Submitting final answers:', speedMyAnswers);
+    
+    // Submit answers immediately without waiting
     const playerIds = Object.keys(currentGame.players);
     const myIndex = playerIds.indexOf(playerId);
     
-    console.log('Submitting answers:', speedMyAnswers, 'for player index:', myIndex);
-    
+    const updateData = {};
     if (myIndex === 0) {
-        gameRef.update({
-            player1Answers: speedMyAnswers || []
-        }).then(() => {
-            console.log('Player 1 answers submitted successfully');
-            checkSpeedGameComplete();
-        });
+        updateData.player1Answers = speedMyAnswers || [];
+        updateData.player1Done = true;
     } else {
-        gameRef.update({
-            player2Answers: speedMyAnswers || []
-        }).then(() => {
-            console.log('Player 2 answers submitted successfully');
-            checkSpeedGameComplete();
-        });
+        updateData.player2Answers = speedMyAnswers || [];
+        updateData.player2Done = true;
     }
+    
+    gameRef.update(updateData).then(() => {
+        console.log('Answers submitted successfully');
+    }).catch((error) => {
+        console.error('Error submitting answers:', error);
+    });
 }
 
-function checkSpeedGameComplete() {
-    // Wait a moment for Firebase to update, then check completion
-    setTimeout(() => {
-        console.log('Checking speed game completion:', {
-            player1Answers: currentGame.player1Answers,
-            player2Answers: currentGame.player2Answers,
-            isHost: isHost
-        });
-        
-        // Check if both players have submitted answers (even if empty arrays)
-        if (currentGame.player1Answers !== undefined && 
-            currentGame.player2Answers !== undefined && 
-            isHost) {
-            
-            console.log('Both players have submitted, transitioning to results...');
-            
-            // Calculate scores and move to results
-            const player1Score = currentGame.player1Answers.length;
-            const player2Score = currentGame.player2Answers.length;
-            
-            // Update overall scores
-            const updatedScores = {
-                player1: (overallScores.player1 || 0) + player1Score,
-                player2: (overallScores.player2 || 0) + player2Score
-            };
-            
-            gameRef.update({
-                speedPhase: 'complete',
-                overallScores: updatedScores
-            }).then(() => {
-                console.log('Successfully moved to results phase');
-            }).catch((error) => {
-                console.error('Error moving to results:', error);
-            });
-        }
-    }, 1000);
-}
+
 
 function showSpeedCategoriesResults(gameData) {
     showScreen('speed-categories-results');
