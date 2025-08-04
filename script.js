@@ -830,9 +830,12 @@ function startSpeedCategoriesGame(roundNumber) {
         player1Answers: [],
         player2Answers: [],
         speedCategory: null,
-        speedStartTime: null
+        speedStartTime: null,
+        speedTimerStarted: false,  
+        speedEndTime: null         
     });
 }
+
 
 function handleSpeedCategoriesUpdate(gameData) {
     if (!gameData.speedCategory) return;
@@ -862,42 +865,74 @@ function showSpeedCategoriesScreen(gameData) {
     showScreen('speed-categories-screen');
     
     document.getElementById('speed-category').textContent = gameData.speedCategory;
-    document.getElementById('speed-timer').textContent = '45';
     document.getElementById('speed-input').value = '';
     document.getElementById('speed-answers-list').innerHTML = '';
     document.getElementById('speed-input').disabled = false;
     
+    // Clear any existing timer to prevent duplicates
+    if (speedTimer) {
+        clearInterval(speedTimer);
+        speedTimer = null;
+    }
+    
     // Reset local state
     speedMyAnswers = [];
     speedGameActive = true;
-    speedTimeLeft = 45;
     
     // Focus on input
     setTimeout(() => {
         document.getElementById('speed-input').focus();
     }, 100);
     
-    // Start countdown timer
-    speedTimer = setInterval(() => {
-        speedTimeLeft--;
-        document.getElementById('speed-timer').textContent = speedTimeLeft;
+    // Only the host manages the timer through Firebase
+    if (isHost && !gameData.speedTimerStarted) {
+        // Start the centralized timer
+        gameRef.update({
+            speedTimerStarted: true,
+            speedEndTime: Date.now() + 45000
+        });
         
-        // Play tick sound for last 10 seconds
-        if (speedTimeLeft <= 10 && speedTimeLeft > 0) {
+        startSpeedTimer(gameData);
+    } else if (gameData.speedTimerStarted) {
+        // Non-host or rejoining host - sync with existing timer
+        startSpeedTimer(gameData);
+    }
+}
+
+function startSpeedTimer(gameData) {
+    if (!gameData.speedEndTime) return;
+    
+    // Calculate remaining time based on server timestamp
+    const updateTimer = () => {
+        const now = Date.now();
+        const timeLeft = Math.max(0, Math.ceil((gameData.speedEndTime - now) / 1000));
+        
+        // Update display
+        document.getElementById('speed-timer').textContent = timeLeft;
+        
+        // Play tick sound for last 10 seconds (only once per second)
+        if (timeLeft <= 10 && timeLeft > 0) {
             soundSystem.playSpeedTimer();
         }
         
-        if (speedTimeLeft <= 0) {
+        // End game when time is up
+        if (timeLeft <= 0) {
             endSpeedGame();
+            return;
         }
-    }, 1000);
+    };
     
-    // Auto-submit current word when time is up
-    setTimeout(() => {
-        if (speedGameActive) {
-            endSpeedGame();
-        }
-    }, 45000);
+    // Update immediately
+    updateTimer();
+    
+    // Start interval for updates (clear any existing first)
+    if (speedTimer) {
+        clearInterval(speedTimer);
+    }
+    
+    speedTimer = setInterval(() => {
+        updateTimer();
+    }, 1000);
 }
 
 function handleSpeedAnswer() {
@@ -942,13 +977,21 @@ function endSpeedGame() {
     if (!speedGameActive) return;
     
     speedGameActive = false;
-    clearInterval(speedTimer);
+    
+    // Clear the timer
+    if (speedTimer) {
+        clearInterval(speedTimer);
+        speedTimer = null;
+    }
     
     // Play time's up sound
     soundSystem.playSpeedComplete();
     
     // Disable input
     document.getElementById('speed-input').disabled = true;
+    
+    // Update timer display to show 0
+    document.getElementById('speed-timer').textContent = '0';
     
     // Submit final answers to Firebase
     const playerIds = Object.keys(currentGame.players);
