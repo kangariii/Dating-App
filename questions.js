@@ -490,12 +490,224 @@ const questions = {
       "How do you want to celebrate our desire?",
       "What fire between us needs more fuel?",
       "When do you feel most sexually confident?"
+    ],
+
+    // NEW CATEGORIES for winner-chooses-question flow
+    
+    // Round 1 Categories (Lighter) - after Guessing Game
+    'personal-preferences': [
+        "What's your favorite season and why?",
+        "What's your ideal way to spend a Sunday morning?", 
+        "What's your go-to comfort food when you're stressed?",
+        "What's your favorite way to relax after a long day?",
+        "What's your preferred way to stay active (or not)?",
+        "What's your favorite type of weather?",
+        "What's your ideal vacation style - adventure or relaxation?",
+        "What's your favorite time of day and why?",
+        "What's your go-to outfit style when you want to feel confident?",
+        "What's your favorite way to celebrate good news?",
+        "What's your preferred way to spend money on yourself?",
+        "What's your ideal work environment?",
+        "What's your favorite type of music for different moods?",
+        "What's your preferred sleeping setup (pillows, temperature, etc)?",
+        "What's your favorite holiday tradition?",
+        "What's your ideal date night activity?",
+        "What's your preferred communication style when upset?",
+        "What's your favorite way to show affection?",
+        "What's your ideal morning routine?",
+        "What's your favorite simple pleasure in life?"
+    ],
+    
+    'fun-personality': [
+        "What's your most unusual talent or party trick?",
+        "What's the weirdest food combination you actually enjoy?",
+        "What's your most irrational fear?",
+        "What's your guilty pleasure TV show or movie?", 
+        "What conspiracy theory do you secretly hope is true?",
+        "What's the most embarrassing song you love?",
+        "What's your weirdest habit that you don't think others know about?",
+        "What's the strangest dream you remember having?",
+        "What's your most controversial food opinion?",
+        "What would your warning label say?",
+        "What's your secret superpower in social situations?",
+        "What's the most random fact you know?",
+        "What's your weirdest childhood belief?",
+        "What's your most unpopular opinion about movies/TV?",
+        "What's your strangest pet peeve?",
+        "What would you do if you were invisible for a day?",
+        "What's your most embarrassing autocorrect fail?",
+        "What's the weirdest compliment you've ever received?",
+        "What's your most irrational competitive streak?",
+        "What fictional character do you relate to most and why?"
+    ],
+    
+    'background-stories': [
+        "What's the best advice you've ever received and who gave it to you?",
+        "Tell me about a time you surprised yourself with your own courage.",
+        "What's a tradition from your childhood you want to continue?",
+        "What's the most spontaneous thing you've ever done?",
+        "Tell me about your first best friend - what made them special?",
+        "What's a moment that completely changed your perspective on life?",
+        "What's the kindest thing a stranger has ever done for you?",
+        "What's a mistake that turned out to be a blessing in disguise?",
+        "What's the bravest thing you've ever done for love?",
+        "What's a compliment you received that you'll never forget?",
+        "Tell me about a teacher who made a real difference in your life.",
+        "What's your most cherished childhood memory?",
+        "What's a time you stood up for something you believed in?",
+        "What's the most important lesson you learned from failure?",
+        "Tell me about a moment when you felt truly proud of yourself.",
+        "What's a family story that always makes you laugh?",
+        "What's the most meaningful gift you've ever received?",
+        "Tell me about a time you felt completely understood by someone.",
+        "What's a fear you've successfully overcome?",
+        "What's your favorite memory of feeling completely carefree?"
+    ],
+    
+    // Round 2 Categories (Medium) - after Trivia  
+    'values-beliefs': [
+        "What values are absolutely non-negotiable for you in life?",
+        "What does success truly mean to you beyond money or status?",
+        "How do you define a life well-lived?",
+        "What role does spirituality or faith play in your daily life?",
+        "What cause or injustice do you feel most passionate about?",
+        "How do you decide what's worth your time and energy?",
+        "What's your philosophy on forgiveness?",
+        "How important is honesty vs. kindness when they conflict?",
+        "What do you believe happens after we die?",
+        "How do you find meaning during difficult times?",
+        "What's your biggest priority in life right now?",
+        "How do you define true friendship?",
+        "What role should money play in major life decisions?",
+        "How do you handle moral dilemmas?",
+        "What legacy do you want to leave behind?",
+        "What's your philosophy on work-life balance?",
+        "How important is personal growth vs. stability to you?",
+        "What do you believe about destiny vs. free will?",
+        "How do you determine right from wrong?",
+        "What brings you the deepest sense of joy and fulfillment?"
+    ],
+    
+    'relationships-love': [
+        "What does a truly healthy relationship look like to you?",
+        "How do you prefer to show love to people you care about?",
+        "What makes you feel most connected and understood by someone?",
+        "How do you handle conflict in close relationships?",
+        "What do you need most from a romantic partner to feel secure?",
+        "How do you maintain your sense of self in relationships?",
+        "What are your most important boundaries in relationships?",
+        "How do you know when you can truly trust someone?",
+        "What relationship pattern are you working to change?",
+        "How do you keep romance and passion alive long-term?",
+        "What's your biggest fear about love and relationships?",
+        "How do you balance independence with partnership?",
+        "What's the most important thing you've learned about love?",
+        "How do you handle jealousy when it comes up?",
+        "What does emotional intimacy mean to you?",
+        "How do you want to grow together as a couple?",
+        "What makes a relationship feel like 'home' to you?",
+        "How do you support a partner through difficult times?",
+        "What's your definition of unconditional love?",
+        "How has your understanding of love evolved over time?"
+    ],
+    
+    'dreams-goals': [
+        "What's a dream you've carried since childhood that still excites you?",
+        "If money wasn't a factor, how would you spend your time?",
+        "What's one adventure you absolutely want to have in the next year?",
+        "What accomplishment from this past year are you most proud of?",
+        "Where do you see yourself in 5 years - realistically and idealistically?",
+        "What skill do you most want to master and why?",
+        "What's currently on your bucket list that feels most important?",
+        "What would you attempt if you knew you couldn't fail?",
+        "What's your biggest goal that might sound crazy to others?",
+        "What legacy do you want to create through your life's work?",
+        "What fear is currently holding you back from a dream?",
+        "How do you want to challenge yourself in the coming year?",
+        "What does your ideal life look like 10 years from now?",
+        "What's a goal you've achieved that once felt impossible?",
+        "What dreams have you outgrown and what new ones have emerged?",
+        "How do you want our relationship to support each other's dreams?",
+        "What's something you want to learn or experience together?",
+        "What impact do you want to have on the world?",
+        "What's a risk you want to take for your personal growth?",
+        "What dreams are you willing to sacrifice for, and which aren't worth it?"
+    ],
+    
+    // Round 3 Categories (Deepest) - after Speed Categories
+    'soul-connection': [
+        "What do you believe your soul came here to learn in this lifetime?",
+        "When do you feel most connected to something greater than yourself?",
+        "What spiritual practice or belief system grounds you most?",
+        "How has your capacity to love and be loved evolved over time?",
+        "What does unconditional love mean to you in practice?",
+        "When do you feel most aligned with your true purpose?",
+        "What synchronicities or 'signs' have guided your path in life?",
+        "How do you connect with your intuition and inner wisdom?",
+        "What does soul-level intimacy feel like to you?",
+        "How do you honor both your individual growth and our connection?",
+        "What sacred rituals or practices do you want to cultivate?",
+        "When do you feel most expansive and connected to life?",
+        "What spiritual truth resonates most deeply with your heart?",
+        "How do you find meaning and purpose in everyday moments?",
+        "What does it mean to you to 'love someone's soul'?",
+        "How do you want to continue growing spiritually together?",
+        "What healing or transformation is your soul calling for now?",
+        "When have you felt the presence of something divine or magical?",
+        "What wisdom would your highest self share with others?",
+        "How do you stay connected to love during difficult times?"
+    ],
+    
+    'intimacy-passion': [
+        "What makes you feel most desired and beautiful/handsome?",
+        "How do you like to build anticipation and romantic tension?",
+        "What kind of intimacy - physical, emotional, spiritual - do you crave most?",
+        "When do you feel most vulnerable yet completely safe with someone?",
+        "What's the difference between having sex and making love to you?",
+        "How do you express desire and need without using words?",
+        "What intimate moment between us has felt most sacred or transformative?",
+        "When does time seem to stop during our intimate moments?",
+        "What makes you feel most cherished and adored?",
+        "How has physical intimacy healed or opened your heart?",
+        "What fantasy or desire have you been curious about exploring?",
+        "How do you want to keep discovering each other's bodies and desires?",
+        "What boundary would you be interested in exploring together?",
+        "When do you feel most powerful and confident in your sexuality?",
+        "How do you want intimacy to evolve and deepen between us?",
+        "What turns you on beyond the physical - intellectually, emotionally?",
+        "How do you like to be touched when you're feeling emotional?",
+        "What intimate ritual would you like to create together?",
+        "How does emotional connection affect your physical desire?",
+        "What makes you feel most sexually alive and awakened?"
+    ],
+    
+    'lifes-big-questions': [
+        "What life lesson took you the longest to learn and accept?",
+        "How do you find meaning and purpose during your darkest times?",
+        "What truth about life do you wish you had known much sooner?",
+        "What wisdom would you want to pass on to future generations?",
+        "How do you want to be remembered after you're gone?",
+        "What questions about existence and meaning keep you awake at night?",
+        "How do you make peace with life's uncertainty and impermanence?",
+        "What gives your life the deepest sense of meaning and purpose?",
+        "What would you tell your younger self about navigating life's challenges?",
+        "How do you stay hopeful and positive during really difficult times?",
+        "What do you think is the point of human suffering and struggle?",
+        "How has your understanding of happiness and fulfillment evolved?",
+        "What do you believe about fate, destiny, and free will?",
+        "What fear about life or death do you still carry?",
+        "How do you define what makes a life truly worth living?",
+        "What illusion about life have you had to let go of?",
+        "How do you cultivate gratitude when life feels overwhelming?",
+        "What truth do you hold onto even when others disagree?",
+        "How do you find beauty and joy in the midst of life's messiness?",
+        "What questions about love, loss, and meaning matter most to you?"
     ]
-  };
-  
-  // Function to get random questions from a category
-  function getRandomQuestions(category, count) {
+};
+
+// Function to get random questions from a category
+function getRandomQuestions(category, count) {
     const categoryQuestions = questions[category];
     const shuffled = [...categoryQuestions].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, count);
-  }
+}
