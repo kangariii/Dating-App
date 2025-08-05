@@ -334,7 +334,7 @@ let currentGame = null;
 
 // Updated game structure - 3 competitive rounds only
 const GAME_STRUCTURE = {
-    1: { type: 'guessing', name: 'Guessing Game' },
+    1: { type: 'this-or-that', name: 'This or That' },
     2: { type: 'trivia', name: 'Trivia Challenge' },
     3: { type: 'speed', name: 'Speed Categories' }
 };
@@ -409,10 +409,10 @@ function triggerConfetti(type = 'default') {
     }
 }
 
-// Guessing game state
-let currentGuessingQuestion = null;
-let guessingRole = null; // 'answerer' or 'guesser'
-let guessingQuestionsAsked = 0; // Track how many guessing questions have been asked this round
+// This or That game state
+let currentThisOrThatQuestion = null;
+let thisOrThatRole = null; // 'chooser' or 'guesser'
+let thisOrThatQuestionsAsked = 0; // Track how many this-or-that questions have been asked this round
 let processingContinue = false; // Prevent double-clicking continue button
 
 // Trivia game state
@@ -433,7 +433,7 @@ let speedGameActive = false;
 let overallScores = { player1: 0, player2: 0 };
 
 // Scoring tracking to prevent duplicates
-let lastScoredGuessQuestion = null;
+let lastScoredThisOrThatQuestion = null;
 let lastScoredTriviaQuestion = null;
 let scoringInProgress = false;
 
@@ -458,6 +458,24 @@ function showScreen(screenId) {
         targetScreen.style.display = 'block';
         targetScreen.classList.add('active');
         targetScreen.style.opacity = '1';
+    }
+}
+
+// Update scoreboard function
+function updateScoreboard() {
+    // Update player names and scores in the scoreboard
+    if (currentGame && currentGame.players) {
+        const playerIds = Object.keys(currentGame.players);
+        if (playerIds.length >= 1) {
+            const p1Name = currentGame.players[playerIds[0]].name;
+            document.getElementById('game-player1').textContent = p1Name;
+            document.getElementById('score-player1').textContent = `(${overallScores.player1 || 0})`;
+        }
+        if (playerIds.length >= 2) {
+            const p2Name = currentGame.players[playerIds[1]].name;
+            document.getElementById('game-player2').textContent = p2Name;
+            document.getElementById('score-player2').textContent = `(${overallScores.player2 || 0})`;
+        }
     }
 }
 
@@ -581,18 +599,18 @@ function setupRoom() {
         const data = snapshot.val();
         if (data) {
             // Force update even if data appears same
-            const previousPhase = currentGame?.guessingPhase;
-            const previousAnswer = currentGame?.playerAnswer;
+            const previousPhase = currentGame?.thisOrThatPhase;
+            const previousAnswer = currentGame?.playerChoice;
             
             currentGame = data;
             
             console.log('Firebase update received:', {
                 round: data.currentRound,
-                phase: data.guessingPhase,
-                hasAnswer: !!data.playerAnswer,
+                phase: data.thisOrThatPhase,
+                hasChoice: !!data.playerChoice,
                 roundType: GAME_STRUCTURE[data.currentRound]?.type,
-                phaseChanged: previousPhase !== data.guessingPhase,
-                answerChanged: previousAnswer !== data.playerAnswer,
+                phaseChanged: previousPhase !== data.thisOrThatPhase,
+                choiceChanged: previousAnswer !== data.playerChoice,
                 gamePhase: data.gamePhase
             });
             
@@ -636,18 +654,18 @@ function joinRoom() {
                     const data = snapshot.val();
                     if (data) {
                         // Force update even if data appears same
-                        const previousPhase = currentGame?.guessingPhase;
-                        const previousAnswer = currentGame?.playerAnswer;
+                        const previousPhase = currentGame?.thisOrThatPhase;
+                        const previousAnswer = currentGame?.playerChoice;
                         
                         currentGame = data;
                         
                         console.log('Firebase update received (joiner):', {
                             round: data.currentRound,
-                            phase: data.guessingPhase,
-                            hasAnswer: !!data.playerAnswer,
+                            phase: data.thisOrThatPhase,
+                            hasChoice: !!data.playerChoice,
                             roundType: GAME_STRUCTURE[data.currentRound]?.type,
-                            phaseChanged: previousPhase !== data.guessingPhase,
-                            answerChanged: previousAnswer !== data.playerAnswer,
+                            phaseChanged: previousPhase !== data.thisOrThatPhase,
+                            choiceChanged: previousAnswer !== data.playerChoice,
                             gamePhase: data.gamePhase
                         });
                         
@@ -672,26 +690,23 @@ function joinRoom() {
 }
 
 // NEW: Winner determination and question flow functions
-function determineGuessingWinner() {
-    console.log('Determining guessing game winner...');
+function determineThisOrThatWinner() {
+    console.log('Determining this or that game winner...');
     
+    // Calculate scores for the this-or-that round
     const playerIds = Object.keys(currentGame.players);
-    const player1Score = overallScores.player1 || 0;
-    const player2Score = overallScores.player2 || 0;
+    let player1Score = 0;
+    let player2Score = 0;
     
-    // Subtract the starting scores to get just the guessing game scores
-    const guessingStartScores = currentGame.guessingStartScores || { player1: 0, player2: 0 };
-    const guessingPlayer1Score = player1Score - guessingStartScores.player1;
-    const guessingPlayer2Score = player2Score - guessingStartScores.player2;
-    
-    if (guessingPlayer1Score > guessingPlayer2Score) {
-        startQuestionPhase(playerIds[0], 'guessing');
-    } else if (guessingPlayer2Score > guessingPlayer1Score) {
-        startQuestionPhase(playerIds[1], 'guessing');
+    // We need to track scores from the this-or-that game somehow
+    // For now, let's use the overall scores difference
+    if (overallScores.player1 > overallScores.player2) {
+        startQuestionPhase(playerIds[0], 'this-or-that');
+    } else if (overallScores.player2 > overallScores.player1) {
+        startQuestionPhase(playerIds[1], 'this-or-that');
     } else {
-        // Tie - randomly pick someone
-        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
-        startQuestionPhase(randomWinner, 'guessing');
+        // Tie - show spin wheel
+        showSpinWheel('this-or-that');
     }
 }
 
@@ -706,9 +721,8 @@ function determineTriviaWinner() {
     } else if (scores.player2 > scores.player1) {
         startQuestionPhase(playerIds[1], 'trivia');
     } else {
-        // Tie - randomly pick someone
-        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
-        startQuestionPhase(randomWinner, 'trivia');
+        // Tie - show spin wheel
+        showSpinWheel('trivia');
     }
 }
 
@@ -724,9 +738,20 @@ function determineSpeedWinner() {
     } else if (player2Answers.length > player1Answers.length) {
         startQuestionPhase(playerIds[1], 'speed');
     } else {
-        // Tie - randomly pick someone
-        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
-        startQuestionPhase(randomWinner, 'speed');
+        // Tie - show spin wheel
+        showSpinWheel('speed');
+    }
+}
+
+function showSpinWheel(gameType) {
+    console.log('Showing spin wheel for tie in:', gameType);
+    
+    if (isHost) {
+        gameRef.update({
+            gamePhase: 'spin-wheel',
+            spinWheelType: gameType,
+            spinResult: null
+        });
     }
 }
 
@@ -734,27 +759,12 @@ function startQuestionPhase(winnerId, gameType) {
     console.log('Starting question phase, winner:', winnerId, 'game type:', gameType);
     
     if (isHost) {
-        // Get the appropriate category for this round
-        const currentRound = currentGame.currentRound;
-        const categories = QUESTION_CATEGORIES[currentRound];
-        
-        // For now, just pick the first category (we can make this random or let winner choose later)
-        const selectedCategory = categories[0];
-        
-        // Get a random question from the selected category
-        const categoryQuestions = questions[selectedCategory];
-        const randomIndex = Math.floor(Math.random() * categoryQuestions.length);
-        const selectedQuestion = categoryQuestions[randomIndex];
-        
         gameRef.update({
-            gamePhase: 'question-answering',
-            questionWinner: winnerId, // Winner reads the question
-            questionLoser: winnerId === Object.keys(currentGame.players)[0] ? 
-                           Object.keys(currentGame.players)[1] : 
-                           Object.keys(currentGame.players)[0], // Loser answers
-            selectedCategory: selectedCategory,
-            questionToAnswer: selectedQuestion,
-            questionAnswered: false
+            gamePhase: 'category-selection',
+            questionWinner: winnerId,
+            questionGameType: gameType,
+            selectedCategory: null,
+            questionToAnswer: null
         });
     }
 }
@@ -774,15 +784,12 @@ function handleGameUpdate(gameData) {
         overallScores = gameData.overallScores;
     }
     
-    // Update score display whenever we're in game screen
-    const gameScreen = document.getElementById('game-screen');
-    if (gameScreen && gameScreen.classList.contains('active')) {
-        updateScoreboard(gameData);
-    }
+    // Update scoreboard
+    updateScoreboard();
     
-    // Sync guessing questions counter
-    if (gameData.guessingQuestionsAsked !== undefined) {
-        guessingQuestionsAsked = gameData.guessingQuestionsAsked;
+    // Sync this-or-that questions counter
+    if (gameData.thisOrThatQuestionsAsked !== undefined) {
+        thisOrThatQuestionsAsked = gameData.thisOrThatQuestionsAsked;
     }
     
     const playerCount = Object.keys(gameData.players).length;
@@ -795,25 +802,29 @@ function handleGameUpdate(gameData) {
         }
     } else if (gameData.gameStarted) {
         // Handle different game phases
-        if (gameData.gamePhase === 'question-answering') {
+        if (gameData.gamePhase === 'spin-wheel') {
+            handleSpinWheelPhase(gameData);
+        } else if (gameData.gamePhase === 'category-selection') {
+            handleCategorySelectionPhase(gameData);
+        } else if (gameData.gamePhase === 'question-answering') {
             handleQuestionAnsweringPhase(gameData);
         } else {
             // Regular competitive game phases
-            if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'guessing') {
-                // Handle round intro for guessing games
-                if (gameData.showingRoundIntro && gameData.guessingQuestionsAsked === 0) {
+            if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'this-or-that') {
+                // Handle round intro for this-or-that games
+                if (gameData.showingRoundIntro && gameData.thisOrThatQuestionsAsked === 0) {
                     showRoundIntro(gameData.roundName);
                     setTimeout(() => {
                         if (isHost && gameRef) {
                             gameRef.update({
                                 showingRoundIntro: false,
-                                guessingPhase: 'answering'
+                                thisOrThatPhase: 'choosing'
                             });
                         }
                     }, 3000);
                 } else {
-                    // After intro or between questions, handle the guessing game
-                    handleGuessingGameUpdate(gameData);
+                    // After intro or between questions, handle the this-or-that game
+                    handleThisOrThatGameUpdate(gameData);
                 }
             } else if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'trivia') {
                 // Handle trivia rounds
@@ -860,110 +871,138 @@ function handleGameUpdate(gameData) {
     }
 }
 
-// Function to update scoreboard
-function updateScoreboard(gameData) {
-    const playerIds = Object.keys(gameData.players);
+// NEW: Handle different question flow phases
+function handleSpinWheelPhase(gameData) {
+    // TODO: Show spin wheel screen
+    console.log('Spin wheel phase - not implemented yet');
     
-    // Update player names and scores
-    if (playerIds.length >= 1) {
-        const p1Name = gameData.players[playerIds[0]].name;
-        document.getElementById('game-player1').textContent = p1Name;
-        document.getElementById('score-player1').textContent = `(${overallScores.player1 || 0})`;
-    }
-    if (playerIds.length >= 2) {
-        const p2Name = gameData.players[playerIds[1]].name;
-        document.getElementById('game-player2').textContent = p2Name;
-        document.getElementById('score-player2').textContent = `(${overallScores.player2 || 0})`;
+    // For now, just randomly pick someone
+    if (isHost && !gameData.spinResult) {
+        const playerIds = Object.keys(gameData.players);
+        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
+        
+        gameRef.update({
+            spinResult: randomWinner,
+            gamePhase: 'category-selection',
+            questionWinner: randomWinner
+        });
     }
 }
 
-// FIXED: Properly implement question answering phase
-function handleQuestionAnsweringPhase(gameData) {
-    console.log('Question answering phase:', {
-        winner: gameData.questionWinner,
-        loser: gameData.questionLoser,
-        question: gameData.questionToAnswer,
-        myId: playerId
-    });
+function handleCategorySelectionPhase(gameData) {
+    // TODO: Show category selection screen
+    console.log('Category selection phase - not implemented yet');
     
-    showScreen('game-screen');
-    
-    // Update scoreboard
-    updateScoreboard(gameData);
-    
-    const isWinner = gameData.questionWinner === playerId; // Winner reads question
-    const isLoser = gameData.questionLoser === playerId;   // Loser answers question
+    // Show category selection for winner
+    const isWinner = gameData.questionWinner === playerId;
     
     if (isWinner) {
-        // Winner sees the question to read out loud
-        document.getElementById('turn-indicator').textContent = 'Read this question out loud to your partner!';
-        document.getElementById('turn-indicator').className = 'turn-indicator my-turn';
-        
-        document.getElementById('question-content').style.display = 'block';
-        document.getElementById('waiting-content').style.display = 'none';
-        
-        document.getElementById('question-number').textContent = 
-            `Round ${gameData.currentRound} Soul Question`;
-        document.getElementById('question-text').textContent = gameData.questionToAnswer;
-        
-        // Show continue button for winner (to indicate they've read it)
-        const nextBtn = document.getElementById('next-btn');
-        nextBtn.textContent = 'Question Read - Continue';
-        nextBtn.disabled = false;
-        nextBtn.onclick = () => markQuestionAsRead();
-        
-        // Hide skip button during soul questions
-        document.getElementById('skip-btn').style.display = 'none';
-        
-    } else if (isLoser) {
-        // Loser waits to hear the question, then discusses/answers
-        if (gameData.questionRead) {
-            // Question has been read, now loser can see it and answer
-            document.getElementById('turn-indicator').textContent = 'Your turn to answer and discuss!';
-            document.getElementById('turn-indicator').className = 'turn-indicator my-turn';
-            
-            document.getElementById('question-content').style.display = 'block';
-            document.getElementById('waiting-content').style.display = 'none';
-            
-            document.getElementById('question-number').textContent = 
-                `Round ${gameData.currentRound} Soul Question`;
-            document.getElementById('question-text').textContent = gameData.questionToAnswer;
-            
-            // Show complete button for loser (when they're done answering)
-            const nextBtn = document.getElementById('next-btn');
-            nextBtn.textContent = 'Done Answering - Continue';
-            nextBtn.disabled = false;
-            nextBtn.onclick = () => completeQuestionAnswer();
-            
-            // Hide skip button
-            document.getElementById('skip-btn').style.display = 'none';
-            
-        } else {
-            // Waiting for winner to read the question
-            document.getElementById('turn-indicator').textContent = 'Listen carefully to the question...';
-            document.getElementById('turn-indicator').className = 'turn-indicator waiting';
-            
-            document.getElementById('question-content').style.display = 'none';
-            document.getElementById('waiting-content').style.display = 'block';
-        }
-        
+        // Show category selection screen
+        showCategorySelection(gameData.currentRound);
     } else {
-        // Neither winner nor loser (shouldn't happen with 2 players)
-        document.getElementById('turn-indicator').textContent = 'Waiting for soul question...';
-        document.getElementById('turn-indicator').className = 'turn-indicator waiting';
-        
+        // Show waiting screen
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Waiting for your partner to choose a question category...';
         document.getElementById('question-content').style.display = 'none';
         document.getElementById('waiting-content').style.display = 'block';
     }
 }
 
-// Function for winner to mark question as read
+function handleQuestionAnsweringPhase(gameData) {
+    // Show the winner reading the question to their partner
+    const isWinner = gameData.questionWinner === playerId;
+    const isLoser = gameData.questionWinner !== playerId;
+    
+    if (isWinner && gameData.questionToAnswer && !gameData.questionRead) {
+        // Winner sees question to read out loud
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Read this question out loud to your partner!';
+        document.getElementById('question-text').textContent = gameData.questionToAnswer;
+        document.getElementById('question-content').style.display = 'block';
+        document.getElementById('waiting-content').style.display = 'none';
+        
+        // Change button to "Question Read - Continue"
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.textContent = 'Question Read - Continue';
+        nextBtn.disabled = false;
+        nextBtn.onclick = () => markQuestionAsRead();
+        
+        // Hide skip button during question reading
+        document.getElementById('skip-btn').style.display = 'none';
+        
+    } else if (isLoser && !gameData.questionRead) {
+        // Loser waits for question to be read
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Listen carefully to the question...';
+        document.getElementById('question-content').style.display = 'none';
+        document.getElementById('waiting-content').style.display = 'block';
+        
+    } else if (isLoser && gameData.questionRead) {
+        // Loser now sees the question and can answer
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Your turn to answer and discuss!';
+        document.getElementById('question-text').textContent = gameData.questionToAnswer;
+        document.getElementById('question-content').style.display = 'block';
+        document.getElementById('waiting-content').style.display = 'none';
+        
+        // Change button to "Discussion Complete"
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.textContent = 'Discussion Complete';
+        nextBtn.disabled = false;
+        nextBtn.onclick = () => completeQuestionAnswer();
+        
+        // Hide skip button during answer discussion
+        document.getElementById('skip-btn').style.display = 'none';
+        
+    } else if (isWinner && gameData.questionRead) {
+        // Winner waits for partner to finish discussing
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Waiting for your partner to finish their answer...';
+        document.getElementById('question-content').style.display = 'none';
+        document.getElementById('waiting-content').style.display = 'block';
+    }
+}
+
 function markQuestionAsRead() {
-    if (isHost) {
+    console.log('Marking question as read');
+    
+    gameRef.update({
+        questionRead: true
+    });
+}
+
+function showCategorySelection(roundNumber) {
+    // TODO: Create category selection screen
+    console.log('Showing category selection for round:', roundNumber);
+    
+    // For now, just auto-select first category and continue
+    const categories = QUESTION_CATEGORIES[roundNumber];
+    if (categories && categories.length > 0) {
+        selectCategory(categories[0]);
+    }
+}
+
+function selectCategory(category) {
+    console.log('Selected category:', category);
+    
+    // Get random question from category
+    const categoryQuestions = questions[category];
+    if (categoryQuestions && categoryQuestions.length > 0) {
+        const randomIndex = Math.floor(Math.random() * categoryQuestions.length);
+        const selectedQuestion = categoryQuestions[randomIndex];
+        
         gameRef.update({
-            questionRead: true
+            selectedCategory: category,
+            questionToAnswer: selectedQuestion,
+            questionRead: false,
+            gamePhase: 'question-answering'
         });
     }
+}
+
+function showQuestionToAnswer(question) {
+    // This is now handled by handleQuestionAnsweringPhase
+    console.log('Question to answer flow handled by handleQuestionAnsweringPhase:', question);
 }
 
 function completeQuestionAnswer() {
@@ -999,14 +1038,10 @@ function startNewRound(roundNumber = null) {
     
     const roundInfo = GAME_STRUCTURE[roundNumber];
     
-    if (roundInfo.type === 'guessing') {
-        // Store starting scores for this round to calculate round-specific scores later
-        if (isHost) {
-            gameRef.child('guessingStartScores').set(overallScores);
-        }
-        // Reset guessing questions counter for new round
-        guessingQuestionsAsked = 0;
-        startGuessingGame(roundNumber);
+    if (roundInfo.type === 'this-or-that') {
+        // Reset this-or-that questions counter for new round
+        thisOrThatQuestionsAsked = 0;
+        startThisOrThatGame(roundNumber);
     } else if (roundInfo.type === 'trivia') {
         // Reset trivia counters for new round
         triviaQuestionsAsked = 0;
@@ -1290,60 +1325,56 @@ function showSpeedCategoriesResults(gameData) {
     }
 }
 
-function startGuessingGame(roundNumber) {
-    console.log('Starting guessing game for round:', roundNumber);
+function startThisOrThatGame(roundNumber) {
+    console.log('Starting this or that game for round:', roundNumber);
     
-    // Always use round1 questions since we only have one guessing round
-    const questionBank = guessingQuestions.round1;
+    // Get a random question from the this-or-that database
+    const thisOrThatQuestion = getRandomThisOrThatQuestion(roundNumber);
     
-    // If starting a new guessing round, reset counter
-    if (!currentGame.guessingQuestionsAsked || currentGame.guessingQuestionsAsked === 0) {
-        guessingQuestionsAsked = 0;
+    // If starting a new this-or-that round, reset counter
+    if (!currentGame.thisOrThatQuestionsAsked || currentGame.thisOrThatQuestionsAsked === 0) {
+        thisOrThatQuestionsAsked = 0;
     } else {
-        guessingQuestionsAsked = currentGame.guessingQuestionsAsked;
+        thisOrThatQuestionsAsked = currentGame.thisOrThatQuestionsAsked;
     }
     
-    // Select a random question (making sure we have enough questions)
-    const randomIndex = Math.floor(Math.random() * questionBank.length);
-    const guessingQuestion = questionBank[randomIndex];
-    
-    // Determine who answers based on question number
-    // Questions 1,2,3: host answers if odd question number
-    // Questions 4,5,6: host answers if even question number
-    const questionNumber = guessingQuestionsAsked + 1;
-    let hostIsAnswerer;
+    // Determine who chooses based on question number
+    // Questions 1,2,3: host chooses if odd question number
+    // Questions 4,5,6: host chooses if even question number
+    const questionNumber = thisOrThatQuestionsAsked + 1;
+    let hostIsChooser;
     
     if (questionNumber <= 3) {
-        hostIsAnswerer = (questionNumber % 2 === 1); // Host answers questions 1 and 3
+        hostIsChooser = (questionNumber % 2 === 1); // Host chooses questions 1 and 3
     } else {
-        hostIsAnswerer = (questionNumber % 2 === 0); // Host answers questions 4 and 6
+        hostIsChooser = (questionNumber % 2 === 0); // Host chooses questions 4 and 6
     }
     
-    console.log('Guessing game setup:', {
+    console.log('This or that game setup:', {
         questionNumber,
-        hostIsAnswerer,
-        guessingQuestionsAsked,
-        showIntro: guessingQuestionsAsked === 0
+        hostIsChooser,
+        thisOrThatQuestionsAsked,
+        showIntro: thisOrThatQuestionsAsked === 0
     });
     
     gameRef.update({
         gameStarted: true,
         currentRound: roundNumber,
         roundName: `Round ${roundNumber} - ${GAME_STRUCTURE[roundNumber].name}`,
-        guessingQuestion: guessingQuestion,
-        hostIsAnswerer: hostIsAnswerer,
-        guessingPhase: guessingQuestionsAsked === 0 ? 'intro' : 'answering', // Go directly to answering for questions 2-6
-        playerAnswer: null,
+        thisOrThatQuestion: thisOrThatQuestion,
+        hostIsChooser: hostIsChooser,
+        thisOrThatPhase: thisOrThatQuestionsAsked === 0 ? 'intro' : 'choosing', // Go directly to choosing for questions 2-6
+        playerChoice: null,
         playerGuess: null,
-        showingRoundIntro: guessingQuestionsAsked === 0, // Only show intro for first question
-        guessingQuestionsAsked: guessingQuestionsAsked,
+        showingRoundIntro: thisOrThatQuestionsAsked === 0, // Only show intro for first question
+        thisOrThatQuestionsAsked: thisOrThatQuestionsAsked,
         gamePhase: null // Reset to competitive phase
     });
 }
 
-function handleGuessingGameUpdate(gameData) {
-    if (!gameData.guessingQuestion || !playerId) {
-        console.log('Missing data:', { hasQuestion: !!gameData.guessingQuestion, hasPlayerId: !!playerId });
+function handleThisOrThatGameUpdate(gameData) {
+    if (!gameData.thisOrThatQuestion || !playerId) {
+        console.log('Missing data:', { hasQuestion: !!gameData.thisOrThatQuestion, hasPlayerId: !!playerId });
         return;
     }
     
@@ -1351,7 +1382,7 @@ function handleGuessingGameUpdate(gameData) {
     processingContinue = false;
     
     // Sync the questions asked counter
-    guessingQuestionsAsked = gameData.guessingQuestionsAsked || 0;
+    thisOrThatQuestionsAsked = gameData.thisOrThatQuestionsAsked || 0;
     
     // Get all player IDs to determine order
     const playerIds = Object.keys(gameData.players);
@@ -1362,46 +1393,46 @@ function handleGuessingGameUpdate(gameData) {
         return;
     }
     
-    // Determine if current player is the answerer based on their position
+    // Determine if current player is the chooser based on their position
     const hostIndex = playerIds.indexOf(gameData.host);
-    const isAnswerer = (gameData.hostIsAnswerer && myPlayerIndex === hostIndex) || 
-                      (!gameData.hostIsAnswerer && myPlayerIndex !== hostIndex);
-    guessingRole = isAnswerer ? 'answerer' : 'guesser';
+    const isChooser = (gameData.hostIsChooser && myPlayerIndex === hostIndex) || 
+                     (!gameData.hostIsChooser && myPlayerIndex !== hostIndex);
+    thisOrThatRole = isChooser ? 'chooser' : 'guesser';
     
-    console.log('Guessing update:', { 
-        phase: gameData.guessingPhase, 
-        role: guessingRole, 
-        hasAnswer: !!gameData.playerAnswer,
+    console.log('This or That update:', { 
+        phase: gameData.thisOrThatPhase, 
+        role: thisOrThatRole, 
+        hasChoice: !!gameData.playerChoice,
         hasGuess: !!gameData.playerGuess,
         playerId: playerId,
         playerIndex: myPlayerIndex,
         hostIndex: hostIndex,
-        hostIsAnswerer: gameData.hostIsAnswerer,
-        questionsAsked: guessingQuestionsAsked
+        hostIsChooser: gameData.hostIsChooser,
+        questionsAsked: thisOrThatQuestionsAsked
     });
     
-    switch(gameData.guessingPhase) {
+    switch(gameData.thisOrThatPhase) {
         case 'intro':
             // This is handled by showRoundIntro, just wait
             break;
             
-        case 'answering':
-            if (guessingRole === 'answerer') {
-                showAnswerScreen(gameData.guessingQuestion);
+        case 'choosing':
+            if (thisOrThatRole === 'chooser') {
+                showChoiceScreen(gameData.thisOrThatQuestion);
             } else {
-                showWaitingForAnswer();
+                showWaitingForChoice();
             }
             break;
             
         case 'guessing':
-            if (gameData.playerAnswer) {
+            if (gameData.playerChoice !== null && gameData.playerChoice !== undefined) {
                 // Add a small delay to ensure UI is ready
                 setTimeout(() => {
-                    if (guessingRole === 'guesser') {
+                    if (thisOrThatRole === 'guesser') {
                         console.log('Attempting to show guess screen...');
-                        showGuessScreen(gameData.guessingQuestion, gameData.playerAnswer);
+                        showGuessScreen(gameData.thisOrThatQuestion);
                     } else {
-                        // Answerer waits while guesser is choosing
+                        // Chooser waits while guesser is choosing
                         showScreen('guessing-answer-screen');
                         document.getElementById('submit-answer-btn').style.display = 'none';
                         document.getElementById('answer-waiting').style.display = 'block';
@@ -1412,158 +1443,150 @@ function handleGuessingGameUpdate(gameData) {
             break;
             
         case 'complete':
-            if (gameData.playerGuess !== null && gameData.playerAnswer !== null) {
-                showGuessingResult(gameData.playerGuess === gameData.playerAnswer, gameData.playerAnswer, gameData.playerGuess);
+            if (gameData.playerGuess !== null && gameData.playerChoice !== null) {
+                showThisOrThatResult(gameData.playerGuess === gameData.playerChoice, gameData.playerChoice, gameData.playerGuess, gameData.thisOrThatQuestion);
             }
             break;
     }
 }
 
-function showAnswerScreen(question) {
-    console.log('Showing answer screen for question:', question.question);
+function showChoiceScreen(question) {
+    console.log('Showing choice screen for question:', question.question);
     showScreen('guessing-answer-screen');
     
     // Show question number
-    const questionNum = (currentGame.guessingQuestionsAsked || 0) + 1;
+    const questionNum = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
     document.querySelector('#guessing-answer-screen .round-title').textContent = 
-        `Question ${questionNum} of 6 - Quick! Answer this:`;
+        `Question ${questionNum} of 6 - Pick your preference:`;
     
     document.getElementById('guessing-question').textContent = question.question;
-    document.getElementById('guessing-answer-input').value = '';
     document.getElementById('answer-waiting').style.display = 'none';
-    document.getElementById('submit-answer-btn').style.display = 'block';
     
-    // Focus on input for better UX
-    setTimeout(() => {
-        document.getElementById('guessing-answer-input').focus();
-    }, 100);
+    // Replace the input with two choice buttons
+    const inputGroup = document.querySelector('.input-group');
+    inputGroup.innerHTML = `
+        <div class="guess-options" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin: 2rem 0;">
+            <button class="guess-option" onclick="handleThisOrThatChoice(0)">
+                ${question.optionA}
+            </button>
+            <button class="guess-option" onclick="handleThisOrThatChoice(1)">
+                ${question.optionB}
+            </button>
+        </div>
+    `;
+    
+    // Hide the submit button since we're using choice buttons
+    document.getElementById('submit-answer-btn').style.display = 'none';
 }
 
-function showWaitingForAnswer() {
+function handleThisOrThatChoice(choiceIndex) {
+    console.log('Player chose option:', choiceIndex);
+    
+    // Play click sound
+    soundSystem.playClick();
+    
+    // Disable all choice buttons
+    const buttons = document.querySelectorAll('.guess-option');
+    buttons.forEach((btn, index) => {
+        btn.disabled = true;
+        if (index === choiceIndex) {
+            btn.classList.add('selected');
+        }
+    });
+    
+    // Update Firebase with the choice and change phase
+    const updates = {
+        playerChoice: choiceIndex,
+        thisOrThatPhase: 'guessing',
+        lastUpdate: Date.now() // Add timestamp to force update
+    };
+    
+    gameRef.update(updates).then(() => {
+        console.log('Choice submitted successfully');
+        // Show waiting message
+        document.getElementById('answer-waiting').style.display = 'block';
+        document.getElementById('answer-waiting').textContent = 'Waiting for your partner to guess...';
+    }).catch((error) => {
+        console.error('Error submitting choice:', error);
+        alert('Error submitting choice. Please try again.');
+        // Reset UI on error
+        buttons.forEach(btn => {
+            btn.disabled = false;
+            btn.classList.remove('selected');
+        });
+    });
+}
+
+function showWaitingForChoice() {
     showScreen('guessing-guess-screen');
-    const question = currentGame?.guessingQuestion?.question || 'Waiting for your partner to answer...';
-    const questionNum = (currentGame?.guessingQuestionsAsked || 0) + 1;
+    const question = currentGame?.thisOrThatQuestion?.question || 'Waiting for your partner to choose...';
+    const questionNum = (currentGame?.thisOrThatQuestionsAsked || 0) + 1;
     
     document.querySelector('#guessing-guess-screen .round-title').textContent = 
         `Question ${questionNum} of 6 - Waiting...`;
     document.getElementById('guess-question').textContent = question;
-    document.getElementById('guess-options').innerHTML = '<p style="color: rgba(255,255,255,0.7); text-align: center;">Waiting for your partner to answer...</p>';
+    document.getElementById('guess-options').innerHTML = '<p style="color: rgba(255,255,255,0.7); text-align: center;">Waiting for your partner to choose...</p>';
     document.getElementById('guess-waiting').style.display = 'none'; // Hide the other waiting text
 }
 
-function showGuessScreen(question, realAnswer) {
-    console.log('Showing guess screen with answer:', realAnswer);
+function showGuessScreen(question) {
+    console.log('Showing guess screen for this or that question');
     showScreen('guessing-guess-screen');
     
     // Show question number
-    const questionNum = (currentGame.guessingQuestionsAsked || 0) + 1;
+    const questionNum = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
     document.querySelector('#guessing-guess-screen .round-title').textContent = 
-        `Question ${questionNum} of 6 - Can you guess their answer?`;
+        `Question ${questionNum} of 6 - What did they choose?`;
     
     document.getElementById('guess-question').textContent = question.question;
     document.getElementById('guess-waiting').style.display = 'none';
     
-    // Get 3 fake options and format them to match real answer's style
-    const originalFakeOptions = getRandomFakeOptions(question.fakeOptions, 3, realAnswer);
-    const formattedFakeOptions = formatFakeOptionsToMatchAnswer(realAnswer, originalFakeOptions);
-    
-    // Format the real answer to match the same style (for consistent comparison)
-    const formattedRealAnswer = formatFakeOptionsToMatchAnswer(realAnswer, [realAnswer])[0];
-    
-    const allOptions = shuffleArray([...formattedFakeOptions, formattedRealAnswer]);
-    
-    // Create option buttons
+    // Create option buttons for the two choices
     const optionsContainer = document.getElementById('guess-options');
     optionsContainer.innerHTML = '';
     
-    allOptions.forEach((option) => {
-        const button = document.createElement('button');
-        button.className = 'guess-option';
-        button.textContent = option;
-        // Use the formatted real answer for comparison so capitalization matches
-        button.addEventListener('click', () => handleGuessSelection(option, formattedRealAnswer));
-        optionsContainer.appendChild(button);
-    });
+    // Create buttons for both options
+    const optionA = document.createElement('button');
+    optionA.className = 'guess-option';
+    optionA.textContent = question.optionA;
+    optionA.addEventListener('click', () => handleThisOrThatGuess(0, question));
+    optionsContainer.appendChild(optionA);
+    
+    const optionB = document.createElement('button');
+    optionB.className = 'guess-option';
+    optionB.textContent = question.optionB;
+    optionB.addEventListener('click', () => handleThisOrThatGuess(1, question));
+    optionsContainer.appendChild(optionB);
 }
 
-// Function to format fake options to match the real answer's style
-function formatFakeOptionsToMatchAnswer(realAnswer, fakeOptions) {
-    if (!realAnswer || !fakeOptions || fakeOptions.length === 0) {
-        return fakeOptions;
-    }
+function handleThisOrThatGuess(guessIndex, question) {
+    // Play sound effect
+    soundSystem.playClick();
     
-    // Analyze the real answer's formatting
-    const isAllCaps = realAnswer === realAnswer.toUpperCase() && realAnswer !== realAnswer.toLowerCase();
-    const isAllLowercase = realAnswer === realAnswer.toLowerCase() && realAnswer !== realAnswer.toUpperCase();
-    const isFirstCapOnly = realAnswer.charAt(0) === realAnswer.charAt(0).toUpperCase() && 
-                           realAnswer.slice(1) === realAnswer.slice(1).toLowerCase();
-    const isTitleCase = realAnswer.split(' ').every(word => 
-        word.charAt(0) === word.charAt(0).toUpperCase() && 
-        word.slice(1) === word.slice(1).toLowerCase()
-    );
-    
-    // Check for abbreviations/acronyms (mix of caps and periods)
-    const hasAbbreviation = /[A-Z]{2,}/.test(realAnswer) || /\./.test(realAnswer);
-    
-    // Format fake options to match the real answer's style
-    return fakeOptions.map(option => {
-        if (isAllCaps) {
-            return option.toUpperCase();
-        } else if (isAllLowercase) {
-            return option.toLowerCase();
-        } else if (isTitleCase && realAnswer.includes(' ')) {
-            // Title case for multi-word answers
-            return option.split(' ')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                .join(' ');
-        } else if (isFirstCapOnly) {
-            // First letter only capitalized
-            return option.charAt(0).toUpperCase() + option.slice(1).toLowerCase();
-        } else if (hasAbbreviation) {
-            // Keep abbreviations as they are, but match general case
-            return option; // Keep original formatting for complex cases
-        } else {
-            // Default to matching first character case
-            if (realAnswer.charAt(0) === realAnswer.charAt(0).toLowerCase()) {
-                return option.toLowerCase();
-            } else {
-                return option.charAt(0).toUpperCase() + option.slice(1).toLowerCase();
-            }
-        }
-    });
-}
-
-function handleGuessSelection(guess, correctAnswer) {
     // Disable all buttons
     const buttons = document.querySelectorAll('.guess-option');
-    buttons.forEach(btn => {
+    buttons.forEach((btn, index) => {
         btn.disabled = true;
-        if (btn.textContent === correctAnswer) {
-            btn.classList.add('correct');
-        } else if (btn.textContent === guess && guess !== correctAnswer) {
-            btn.classList.add('incorrect');
+        if (index === guessIndex) {
+            btn.classList.add('selected');
         }
     });
     
-    // Play sound effect
-    if (guess === correctAnswer) {
-        soundSystem.playCorrect();
-    } else {
-        soundSystem.playIncorrect();
-    }
-    
     gameRef.update({
-        playerGuess: guess,
-        guessingPhase: 'complete'
+        playerGuess: guessIndex,
+        thisOrThatPhase: 'complete'
     });
 }
 
-function showGuessingResult(isCorrect, correctAnswer, playerGuess) {
+function showThisOrThatResult(isCorrect, correctChoice, playerGuess, question) {
     showScreen('guessing-result-screen');
     
     // Add confetti for correct guesses
     if (isCorrect) {
         triggerConfetti('correct');
+        soundSystem.playCorrect();
+    } else {
+        soundSystem.playIncorrect();
     }
 
     const resultTitle = document.getElementById('guess-result-title');
@@ -1571,15 +1594,15 @@ function showGuessingResult(isCorrect, correctAnswer, playerGuess) {
     resultTitle.style.color = isCorrect ? '#4CAF50' : '#f44336';
     
     // Award point for correct guess - with duplicate prevention
-    const currentQuestionId = `${currentGame.currentRound}-${currentGame.guessingQuestionsAsked}`;
+    const currentQuestionId = `${currentGame.currentRound}-${currentGame.thisOrThatQuestionsAsked}`;
     
-    if (isCorrect && isHost && !scoringInProgress && lastScoredGuessQuestion !== currentQuestionId) {
+    if (isCorrect && isHost && !scoringInProgress && lastScoredThisOrThatQuestion !== currentQuestionId) {
         scoringInProgress = true;
-        lastScoredGuessQuestion = currentQuestionId;
+        lastScoredThisOrThatQuestion = currentQuestionId;
         
         // Figure out who was guessing
         const playerIds = Object.keys(currentGame.players);
-        const guesserIndex = currentGame.hostIsAnswerer ? 1 : 0;
+        const guesserIndex = currentGame.hostIsChooser ? 1 : 0;
         
         // Create a copy of scores to ensure we're working with current values
         const updatedScores = {
@@ -1605,14 +1628,14 @@ function showGuessingResult(isCorrect, correctAnswer, playerGuess) {
         });
     }
     
-    document.querySelector('.result-question').textContent = currentGame.guessingQuestion.question;
-    document.getElementById('actual-answer').textContent = correctAnswer;
-    document.getElementById('player-guess').textContent = playerGuess;
+    document.querySelector('.result-question').textContent = question.question;
+    document.getElementById('actual-answer').textContent = correctChoice === 0 ? question.optionA : question.optionB;
+    document.getElementById('player-guess').textContent = playerGuess === 0 ? question.optionA : question.optionB;
     
     // Update continue button text to show progress
     const continueBtn = document.getElementById('continue-from-guess-btn');
     continueBtn.disabled = false;
-    const questionsLeft = 6 - (currentGame.guessingQuestionsAsked + 1);
+    const questionsLeft = 6 - (currentGame.thisOrThatQuestionsAsked + 1);
     if (questionsLeft > 0) {
         continueBtn.textContent = `Continue (${questionsLeft} questions left)`;
     } else {
@@ -1665,9 +1688,6 @@ function getProgressiveQuestion(questionNumber) {
 function showRoundIntro(roundName) {
     // Always show game screen first
     showScreen('game-screen');
-    
-    // Update scoreboard during round intro
-    updateScoreboard(currentGame);
     
     const roundIndicator = document.getElementById('round-indicator');
     roundIndicator.textContent = roundName;
@@ -1736,8 +1756,8 @@ function updateQuestionGame(gameData) {
     }
     
     // Add current round progress
-    if (GAME_STRUCTURE[gameData.currentRound]?.type === 'guessing') {
-        segmentsCompleted += Math.min(1, (gameData.guessingQuestionsAsked || 0) / 6);
+    if (GAME_STRUCTURE[gameData.currentRound]?.type === 'this-or-that') {
+        segmentsCompleted += Math.min(1, (gameData.thisOrThatQuestionsAsked || 0) / 6);
     } else if (GAME_STRUCTURE[gameData.currentRound]?.type === 'trivia') {
         segmentsCompleted += Math.min(1, (gameData.triviaQuestionsAsked || 0) / 6);
     } else if (GAME_STRUCTURE[gameData.currentRound]?.type === 'speed') {
@@ -1806,43 +1826,9 @@ function leaveGame() {
     showScreen('start-screen');
 }
 
-// Event Listeners for Guessing Game
-document.getElementById('submit-answer-btn').addEventListener('click', () => {
-    const answer = document.getElementById('guessing-answer-input').value.trim();
-    
-    if (answer.length === 0) {
-        alert('Please enter an answer!');
-        return;
-    }
-    
-    console.log('Submitting answer:', answer);
-    
-    // Hide submit button and show waiting text
-    document.getElementById('submit-answer-btn').style.display = 'none';
-    document.getElementById('answer-waiting').style.display = 'block';
-    
-    // Update Firebase with the answer and change phase
-    // Force a complete update to ensure all clients get notified
-    const updates = {
-        playerAnswer: answer,
-        guessingPhase: 'guessing',
-        lastUpdate: Date.now() // Add timestamp to force update
-    };
-    
-    gameRef.update(updates).then(() => {
-        console.log('Answer submitted successfully');
-    }).catch((error) => {
-        console.error('Error submitting answer:', error);
-        alert('Error submitting answer. Please try again.');
-        // Reset UI on error
-        document.getElementById('submit-answer-btn').style.display = 'block';
-        document.getElementById('answer-waiting').style.display = 'none';
-    });
-});
-
 // UPDATED: Modified to handle winner determination instead of direct round progression
 document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
-    console.log('Continue button clicked', { isHost, guessingQuestionsAsked, processingContinue });
+    console.log('Continue button clicked', { isHost, thisOrThatQuestionsAsked, processingContinue });
     
     // Prevent multiple simultaneous continues
     if (processingContinue) return;
@@ -1855,40 +1841,37 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
     processingContinue = true;
     continueBtn.textContent = 'Loading next question...';
     
-    const nextQuestionNumber = (currentGame.guessingQuestionsAsked || 0) + 1;
+    const nextQuestionNumber = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
     
     // Check if we've completed 6 questions
     if (nextQuestionNumber >= 6) {
-        // Guessing round complete - determine winner and start question phase
-        guessingQuestionsAsked = 0;
+        // This or That round complete - determine winner and start question phase
+        thisOrThatQuestionsAsked = 0;
         processingContinue = false;
         
         if (isHost) {
-            determineGuessingWinner();
+            determineThisOrThatWinner();
         }
     } else {
-        // Continue with next guessing question (existing logic)
-        const questionBank = guessingQuestions.round1;
-        
-        const randomIndex = Math.floor(Math.random() * questionBank.length);
-        const newQuestion = questionBank[randomIndex];
+        // Continue with next this-or-that question (existing logic)
+        const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
         
         const questionNumber = nextQuestionNumber + 1;
-        let hostIsAnswerer;
+        let hostIsChooser;
         
         if (questionNumber <= 3) {
-            hostIsAnswerer = (questionNumber % 2 === 1);
+            hostIsChooser = (questionNumber % 2 === 1);
         } else {
-            hostIsAnswerer = (questionNumber % 2 === 0);
+            hostIsChooser = (questionNumber % 2 === 0);
         }
         
         gameRef.update({
-            guessingQuestion: newQuestion,
-            hostIsAnswerer: hostIsAnswerer,
-            guessingPhase: 'answering',
-            playerAnswer: null,
+            thisOrThatQuestion: newQuestion,
+            hostIsChooser: hostIsChooser,
+            thisOrThatPhase: 'choosing',
+            playerChoice: null,
             playerGuess: null,
-            guessingQuestionsAsked: nextQuestionNumber,
+            thisOrThatQuestionsAsked: nextQuestionNumber,
             showingRoundIntro: false,
             lastUpdate: Date.now()
         }).then(() => {
@@ -1902,31 +1885,6 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
         });
     }
 });
-
-// Helper functions for guessing game
-function getRandomFakeOptions(fakeOptions, count = 3, realAnswer = null) {
-    // Filter out the real answer from fake options to prevent duplicates
-    let availableFakes = fakeOptions;
-    if (realAnswer) {
-        availableFakes = fakeOptions.filter(option => 
-            option.toLowerCase().trim() !== realAnswer.toLowerCase().trim()
-        );
-    }
-    
-    // If we don't have enough unique fake options after filtering, 
-    // use what we have
-    const shuffled = [...availableFakes].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, Math.min(count, shuffled.length));
-}
-
-function shuffleArray(array) {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
-}
 
 // Trivia game functions
 function startTriviaGame(roundNumber) {
@@ -2286,13 +2244,6 @@ document.getElementById('continue-from-speed-btn').addEventListener('click', () 
     
     console.log('Speed categories complete, determining winner...');
     determineSpeedWinner();
-});
-
-// Allow Enter key to submit guessing answer
-document.getElementById('guessing-answer-input').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter' && document.getElementById('submit-answer-btn').style.display !== 'none') {
-        document.getElementById('submit-answer-btn').click();
-    }
 });
 
 // Auto-format room code input
