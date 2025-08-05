@@ -332,12 +332,18 @@ let isHost = false;
 let gameRef = null;
 let currentGame = null;
 
-// Updated game structure - 4 rounds with progressive depth
+// Updated game structure - 3 competitive rounds only
 const GAME_STRUCTURE = {
     1: { type: 'guessing', name: 'Guessing Game' },
     2: { type: 'trivia', name: 'Trivia Challenge' },
-    3: { type: 'speed', name: 'Speed Categories' }, // NEW ROUND
-    4: { type: 'questions', category: 'progressive', name: 'Connection Questions' }
+    3: { type: 'speed', name: 'Speed Categories' }
+};
+
+// Question category mappings for each round
+const QUESTION_CATEGORIES = {
+    1: ['personal-preferences', 'fun-personality', 'background-stories'],
+    2: ['values-beliefs', 'relationships-love', 'dreams-goals'], 
+    3: ['soul-connection', 'intimacy-passion', 'lifes-big-questions']
 };
 
 // Confetti animation functions
@@ -586,7 +592,8 @@ function setupRoom() {
                 hasAnswer: !!data.playerAnswer,
                 roundType: GAME_STRUCTURE[data.currentRound]?.type,
                 phaseChanged: previousPhase !== data.guessingPhase,
-                answerChanged: previousAnswer !== data.playerAnswer
+                answerChanged: previousAnswer !== data.playerAnswer,
+                gamePhase: data.gamePhase
             });
             
             // Always handle update, don't skip based on previous state
@@ -640,7 +647,8 @@ function joinRoom() {
                             hasAnswer: !!data.playerAnswer,
                             roundType: GAME_STRUCTURE[data.currentRound]?.type,
                             phaseChanged: previousPhase !== data.guessingPhase,
-                            answerChanged: previousAnswer !== data.playerAnswer
+                            answerChanged: previousAnswer !== data.playerAnswer,
+                            gamePhase: data.gamePhase
                         });
                         
                         // Always handle update, don't skip based on previous state
@@ -661,6 +669,86 @@ function joinRoom() {
         console.error('Error checking room:', error);
         alert('Error: ' + error.message);
     });
+}
+
+// NEW: Winner determination and question flow functions
+function determineGuessingWinner() {
+    console.log('Determining guessing game winner...');
+    
+    // Calculate scores for the guessing round
+    const playerIds = Object.keys(currentGame.players);
+    let player1Score = 0;
+    let player2Score = 0;
+    
+    // We need to track scores from the guessing game somehow
+    // For now, let's use the overall scores difference
+    if (overallScores.player1 > overallScores.player2) {
+        startQuestionPhase(playerIds[0], 'guessing');
+    } else if (overallScores.player2 > overallScores.player1) {
+        startQuestionPhase(playerIds[1], 'guessing');
+    } else {
+        // Tie - show spin wheel
+        showSpinWheel('guessing');
+    }
+}
+
+function determineTriviaWinner() {
+    console.log('Determining trivia winner...');
+    
+    const playerIds = Object.keys(currentGame.players);
+    const scores = currentGame.triviaRoundScores || { player1: 0, player2: 0 };
+    
+    if (scores.player1 > scores.player2) {
+        startQuestionPhase(playerIds[0], 'trivia');
+    } else if (scores.player2 > scores.player1) {
+        startQuestionPhase(playerIds[1], 'trivia');
+    } else {
+        // Tie - show spin wheel
+        showSpinWheel('trivia');
+    }
+}
+
+function determineSpeedWinner() {
+    console.log('Determining speed categories winner...');
+    
+    const playerIds = Object.keys(currentGame.players);
+    const player1Answers = currentGame.player1Answers || [];
+    const player2Answers = currentGame.player2Answers || [];
+    
+    if (player1Answers.length > player2Answers.length) {
+        startQuestionPhase(playerIds[0], 'speed');
+    } else if (player2Answers.length > player1Answers.length) {
+        startQuestionPhase(playerIds[1], 'speed');
+    } else {
+        // Tie - show spin wheel
+        showSpinWheel('speed');
+    }
+}
+
+function showSpinWheel(gameType) {
+    console.log('Showing spin wheel for tie in:', gameType);
+    
+    if (isHost) {
+        gameRef.update({
+            gamePhase: 'spin-wheel',
+            spinWheelType: gameType,
+            spinResult: null
+        });
+    }
+}
+
+function startQuestionPhase(winnerId, gameType) {
+    console.log('Starting question phase, winner:', winnerId, 'game type:', gameType);
+    
+    if (isHost) {
+        gameRef.update({
+            gamePhase: 'category-selection',
+            questionWinner: winnerId,
+            questionGameType: gameType,
+            selectedCategory: null,
+            questionToAnswer: null
+        });
+    }
 }
 
 // Game Logic
@@ -706,63 +794,189 @@ function handleGameUpdate(gameData) {
             startNewRound(1);
         }
     } else if (gameData.gameStarted) {
-        // Check game type and handle accordingly
-        if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'guessing') {
-            // Handle round intro for guessing games
-            if (gameData.showingRoundIntro && gameData.guessingQuestionsAsked === 0) {
-                showRoundIntro(gameData.roundName);
-                setTimeout(() => {
-                    if (isHost && gameRef) {
-                        gameRef.update({
-                            showingRoundIntro: false,
-                            guessingPhase: 'answering'
-                        });
-                    }
-                }, 3000);
-            } else {
-                // After intro or between questions, handle the guessing game
-                handleGuessingGameUpdate(gameData);
-            }
-        } else if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'trivia') {
-            // Handle trivia rounds
-            if (gameData.showingRoundIntro && gameData.triviaQuestionsAsked === 0) {
-                showRoundIntro(gameData.roundName);
-                setTimeout(() => {
-                    if (isHost && gameRef) {
-                        gameRef.update({
-                            showingRoundIntro: false,
-                            triviaPhase: 'questioning'
-                        });
-                    }
-                }, 3000);
-            } else {
-                handleTriviaGameUpdate(gameData);
-            }
-        } else if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'speed') {
-            // Handle speed categories round
-            if (gameData.showingRoundIntro && !gameData.speedStarted) {
-                showRoundIntro(gameData.roundName);
-                setTimeout(() => {
-                    if (isHost && gameRef) {
-                        const category = getRandomSpeedCategory();
-                        gameRef.update({
-                            showingRoundIntro: false,
-                            speedCategory: category,
-                            speedPhase: 'playing',
-                            speedStarted: true,
-                            speedStartTime: Date.now(),
-                            player1Answers: [],
-                            player2Answers: []
-                        });
-                    }
-                }, 3000);
-            } else {
-                handleSpeedCategoriesUpdate(gameData);
-            }
+        // Handle different game phases
+        if (gameData.gamePhase === 'spin-wheel') {
+            handleSpinWheelPhase(gameData);
+        } else if (gameData.gamePhase === 'category-selection') {
+            handleCategorySelectionPhase(gameData);
+        } else if (gameData.gamePhase === 'question-answering') {
+            handleQuestionAnsweringPhase(gameData);
         } else {
-            // Handle question rounds
-            showScreen('game-screen');
-            updateGameScreen(gameData);
+            // Regular competitive game phases
+            if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'guessing') {
+                // Handle round intro for guessing games
+                if (gameData.showingRoundIntro && gameData.guessingQuestionsAsked === 0) {
+                    showRoundIntro(gameData.roundName);
+                    setTimeout(() => {
+                        if (isHost && gameRef) {
+                            gameRef.update({
+                                showingRoundIntro: false,
+                                guessingPhase: 'answering'
+                            });
+                        }
+                    }, 3000);
+                } else {
+                    // After intro or between questions, handle the guessing game
+                    handleGuessingGameUpdate(gameData);
+                }
+            } else if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'trivia') {
+                // Handle trivia rounds
+                if (gameData.showingRoundIntro && gameData.triviaQuestionsAsked === 0) {
+                    showRoundIntro(gameData.roundName);
+                    setTimeout(() => {
+                        if (isHost && gameRef) {
+                            gameRef.update({
+                                showingRoundIntro: false,
+                                triviaPhase: 'questioning'
+                            });
+                        }
+                    }, 3000);
+                } else {
+                    handleTriviaGameUpdate(gameData);
+                }
+            } else if (gameData.currentRound && GAME_STRUCTURE[gameData.currentRound]?.type === 'speed') {
+                // Handle speed categories round
+                if (gameData.showingRoundIntro && !gameData.speedStarted) {
+                    showRoundIntro(gameData.roundName);
+                    setTimeout(() => {
+                        if (isHost && gameRef) {
+                            const category = getRandomSpeedCategory();
+                            gameRef.update({
+                                showingRoundIntro: false,
+                                speedCategory: category,
+                                speedPhase: 'playing',
+                                speedStarted: true,
+                                speedStartTime: Date.now(),
+                                player1Answers: [],
+                                player2Answers: []
+                            });
+                        }
+                    }, 3000);
+                } else {
+                    handleSpeedCategoriesUpdate(gameData);
+                }
+            } else {
+                // Handle question rounds (this shouldn't happen in new flow)
+                showScreen('game-screen');
+                updateGameScreen(gameData);
+            }
+        }
+    }
+}
+
+// NEW: Handle different question flow phases
+function handleSpinWheelPhase(gameData) {
+    // TODO: Show spin wheel screen
+    console.log('Spin wheel phase - not implemented yet');
+    
+    // For now, just randomly pick someone
+    if (isHost && !gameData.spinResult) {
+        const playerIds = Object.keys(gameData.players);
+        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
+        
+        gameRef.update({
+            spinResult: randomWinner,
+            gamePhase: 'category-selection',
+            questionWinner: randomWinner
+        });
+    }
+}
+
+function handleCategorySelectionPhase(gameData) {
+    // TODO: Show category selection screen
+    console.log('Category selection phase - not implemented yet');
+    
+    // Show category selection for winner
+    const isWinner = gameData.questionWinner === playerId;
+    
+    if (isWinner) {
+        // Show category selection screen
+        showCategorySelection(gameData.currentRound);
+    } else {
+        // Show waiting screen
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Waiting for your partner to choose a question category...';
+        document.getElementById('question-content').style.display = 'none';
+        document.getElementById('waiting-content').style.display = 'block';
+    }
+}
+
+function handleQuestionAnsweringPhase(gameData) {
+    // TODO: Show question answering screen
+    console.log('Question answering phase - not implemented yet');
+    
+    const isAnswerer = gameData.questionWinner !== playerId;
+    
+    if (isAnswerer && gameData.questionToAnswer) {
+        // Show question for answerer
+        showQuestionToAnswer(gameData.questionToAnswer);
+    } else {
+        // Show waiting screen for winner
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Waiting for your partner to answer the question...';
+        document.getElementById('question-content').style.display = 'none';
+        document.getElementById('waiting-content').style.display = 'block';
+    }
+}
+
+function showCategorySelection(roundNumber) {
+    // TODO: Create category selection screen
+    console.log('Showing category selection for round:', roundNumber);
+    
+    // For now, just auto-select first category and continue
+    const categories = QUESTION_CATEGORIES[roundNumber];
+    if (categories && categories.length > 0) {
+        selectCategory(categories[0]);
+    }
+}
+
+function selectCategory(category) {
+    console.log('Selected category:', category);
+    
+    // Get random question from category
+    const categoryQuestions = questions[category];
+    if (categoryQuestions && categoryQuestions.length > 0) {
+        const randomIndex = Math.floor(Math.random() * categoryQuestions.length);
+        const selectedQuestion = categoryQuestions[randomIndex];
+        
+        gameRef.update({
+            selectedCategory: category,
+            questionToAnswer: selectedQuestion,
+            gamePhase: 'question-answering'
+        });
+    }
+}
+
+function showQuestionToAnswer(question) {
+    // TODO: Create question answering screen
+    console.log('Showing question to answer:', question);
+    
+    showScreen('game-screen');
+    document.getElementById('turn-indicator').textContent = 'Your turn to answer a deep question!';
+    document.getElementById('question-text').textContent = question;
+    document.getElementById('question-content').style.display = 'block';
+    document.getElementById('waiting-content').style.display = 'none';
+    
+    // Change button to "Answer Complete"
+    const nextBtn = document.getElementById('next-btn');
+    nextBtn.textContent = 'Answer Complete';
+    nextBtn.disabled = false;
+    nextBtn.onclick = () => completeQuestionAnswer();
+}
+
+function completeQuestionAnswer() {
+    console.log('Question answer completed');
+    
+    // Move to next round or end game
+    const nextRound = (currentGame.currentRound || 0) + 1;
+    
+    if (isHost) {
+        if (nextRound > 3) {
+            // Game complete
+            endGame();
+        } else {
+            // Start next competitive round
+            startNewRound(nextRound);
         }
     }
 }
@@ -772,7 +986,7 @@ function startNewRound(roundNumber = null) {
         roundNumber = (currentGame.currentRound || 0) + 1;
     }
     
-    if (roundNumber > 4) { // Updated to 4 rounds
+    if (roundNumber > 3) { // Updated to 3 rounds
         soundSystem.playGameComplete();
         endGame();
         return;
@@ -795,24 +1009,6 @@ function startNewRound(roundNumber = null) {
     } else if (roundInfo.type === 'speed') {
         // Start speed categories round
         startSpeedCategoriesGame(roundNumber);
-    } else {
-        // Question round with progressive depth
-        gameRef.update({
-            mode: 'progressive',
-            gameStarted: true,
-            currentQuestion: 0,
-            currentTurn: Math.floor(Math.random() * 2),
-            currentRound: roundNumber,
-            roundName: `Round ${roundNumber} - ${roundInfo.name}`,
-            questionsAskedThisRound: 0,
-            showingRoundIntro: true,
-            guessingPhase: null,
-            guessingQuestionsAsked: 0,
-            triviaPhase: null,
-            triviaQuestionsAsked: 0,
-            speedPhase: null,
-            speedStarted: false
-        });
     }
 }
 
@@ -833,11 +1029,11 @@ function startSpeedCategoriesGame(roundNumber) {
         speedStartTime: null,
         speedTimerStarted: false,
         speedEndTime: null,
-        player1Done: false,    // Add this
-        player2Done: false     // Add this
+        player1Done: false,
+        player2Done: false,
+        gamePhase: null // Reset to competitive phase
     });
 }
-
 
 function handleSpeedCategoriesUpdate(gameData) {
     if (!gameData.speedCategory) return;
@@ -865,7 +1061,7 @@ function handleSpeedCategoriesUpdate(gameData) {
             break;
     }
     
-    // Check if both players are done and transition to results (host only)
+    // Check if both players are done and transition to winner determination (host only)
     if (gameData.speedPhase === 'playing' && 
         gameData.player1Done && 
         gameData.player2Done && 
@@ -892,60 +1088,52 @@ function handleSpeedCategoriesUpdate(gameData) {
 function showSpeedCategoriesScreen(gameData) {
     showScreen('speed-categories-screen');
     
-    document.getElementById('speed-category').textContent = gameData.speedCategory;
-    document.getElementById('speed-input').value = '';
-    document.getElementById('speed-answers-list').innerHTML = '';
-    document.getElementById('speed-input').disabled = false;
-    
     // Clear any existing timer to prevent duplicates
     if (speedTimer) {
         clearInterval(speedTimer);
         speedTimer = null;
     }
     
+    document.getElementById('speed-category').textContent = gameData.speedCategory;
+    document.getElementById('speed-timer').textContent = '45';
+    document.getElementById('speed-input').value = '';
+    document.getElementById('speed-answers-list').innerHTML = '';
+    document.getElementById('speed-input').disabled = false;
+    document.getElementById('speed-current-score').textContent = '0'; // Reset score display
+    
     // Reset local state
     speedMyAnswers = [];
     speedGameActive = true;
-
-    // Reset score display
-document.getElementById('speed-current-score').textContent = '0';
+    speedTimeLeft = 45;
     
     // Focus on input
     setTimeout(() => {
         document.getElementById('speed-input').focus();
     }, 100);
     
-    // Only the host manages the timer through Firebase
+    // Only host manages the centralized timer through Firebase
     if (isHost && !gameData.speedTimerStarted) {
-        // Start the centralized timer
+        const endTime = Date.now() + 45000; // 45 seconds from now
         gameRef.update({
             speedTimerStarted: true,
-            speedEndTime: Date.now() + 45000
+            speedEndTime: endTime
         });
-        
-        startSpeedTimer(gameData);
-    } else if (gameData.speedTimerStarted) {
-        // Non-host or rejoining host - sync with existing timer
-        startSpeedTimer(gameData);
+    }
+    
+    // Start synchronized timer display for all players
+    if (gameData.speedTimerStarted && gameData.speedEndTime) {
+        startSpeedTimer(gameData.speedEndTime);
     }
 }
 
-function startSpeedTimer(gameData) {
-    if (!gameData.speedEndTime) return;
-    
-    // Clear any existing timer
+function startSpeedTimer(endTime) {
+    // Clear any existing timer first
     if (speedTimer) {
         clearInterval(speedTimer);
-        speedTimer = null;
     }
     
-    const updateTimer = () => {
-        const now = Date.now();
-        const timeLeft = Math.max(0, Math.ceil((gameData.speedEndTime - now) / 1000));
-        
-        console.log('Timer update - Time left:', timeLeft, 'Game active:', speedGameActive);
-        
-        // Update display
+    speedTimer = setInterval(() => {
+        const timeLeft = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
         document.getElementById('speed-timer').textContent = timeLeft;
         
         // Play tick sound for last 10 seconds
@@ -953,20 +1141,15 @@ function startSpeedTimer(gameData) {
             soundSystem.playSpeedTimer();
         }
         
-        // End game when time is up
-        if (timeLeft <= 0 && speedGameActive) {
-            console.log('Timer reached 0, ending game...');
+        // Time's up - end the game
+        if (timeLeft <= 0) {
             clearInterval(speedTimer);
             speedTimer = null;
             endSpeedGame();
         }
-    };
+    }, 100); // Update every 100ms for smooth countdown
     
-    // Update immediately
-    updateTimer();
-    
-    // Start interval for updates
-    speedTimer = setInterval(updateTimer, 1000);
+    console.log('Started synchronized timer, ending at:', new Date(endTime));
 }
 
 function handleSpeedAnswer() {
@@ -1052,8 +1235,6 @@ function endSpeedGame() {
     });
 }
 
-
-
 function showSpeedCategoriesResults(gameData) {
     showScreen('speed-categories-results');
     
@@ -1088,10 +1269,14 @@ function showSpeedCategoriesResults(gameData) {
     document.getElementById('speed-result-player1-answers').textContent = player1Answers.join(', ');
     document.getElementById('speed-result-player2-answers').textContent = player2Answers.join(', ');
     
-    // Continue button (only host can click)
+    // Update continue button names
+    document.getElementById('speed-result-player1-name-2').textContent = gameData.players[playerIds[0]].name + ' Answers:';
+    document.getElementById('speed-result-player2-name-2').textContent = gameData.players[playerIds[1]].name + ' Answers:';
+    
+    // Continue button leads to winner determination
     const continueBtn = document.getElementById('continue-from-speed-btn');
     if (isHost) {
-        continueBtn.textContent = 'Continue to Final Round';
+        continueBtn.textContent = 'Continue';
         continueBtn.disabled = false;
     } else {
         continueBtn.textContent = 'Waiting for host...';
@@ -1145,7 +1330,8 @@ function startGuessingGame(roundNumber) {
         playerAnswer: null,
         playerGuess: null,
         showingRoundIntro: guessingQuestionsAsked === 0, // Only show intro for first question
-        guessingQuestionsAsked: guessingQuestionsAsked
+        guessingQuestionsAsked: guessingQuestionsAsked,
+        gamePhase: null // Reset to competitive phase
     });
 }
 
@@ -1424,7 +1610,7 @@ function showGuessingResult(isCorrect, correctAnswer, playerGuess) {
     if (questionsLeft > 0) {
         continueBtn.textContent = `Continue (${questionsLeft} questions left)`;
     } else {
-        continueBtn.textContent = 'Continue to Next Round';
+        continueBtn.textContent = 'Continue';
     }
 }
 
@@ -1527,36 +1713,34 @@ function updateQuestionGame(gameData) {
     }
     
     document.getElementById('question-number').textContent = 
-        `Round ${gameData.currentRound}/4 • Question ${questionsAsked + 1} of 6${depthIndicator}`;
+        `Round ${gameData.currentRound}/3 • Question ${questionsAsked + 1} of 6${depthIndicator}`;
     document.getElementById('question-text').textContent = currentQuestion;
     
-    // Update progress bar to reflect total questions (19 total: 6+6+1+6 questions)
-    const totalQuestionsInGame = 19;
-    let totalQuestionsCompleted = 0;
+    // Update progress bar to reflect new structure (3 competitive rounds + 3 question sessions = 6 total segments)
+    // Each competitive round is followed by a question, so we have segments: G1, Q1, T2, Q2, S3, Q3
+    const totalSegments = 6;
+    let segmentsCompleted = 0;
     
-    // Calculate questions completed based on rounds
+    // Calculate completed segments
     if (gameData.currentRound > 1) {
-        if (gameData.currentRound === 2) {
-            totalQuestionsCompleted = 6; // Round 1 complete
-        } else if (gameData.currentRound === 3) {
-            totalQuestionsCompleted = 12; // Rounds 1&2 complete
-        } else if (gameData.currentRound === 4) {
-            totalQuestionsCompleted = 13; // Rounds 1,2,3 complete (3 was speed with 1 interaction)
-        }
+        segmentsCompleted = (gameData.currentRound - 1) * 2; // Each previous round = competitive + question
     }
     
     // Add current round progress
-    if (GAME_STRUCTURE[gameData.currentRound]?.type === 'questions') {
-        totalQuestionsCompleted += gameData.questionsAskedThisRound || 0;
-    } else if (GAME_STRUCTURE[gameData.currentRound]?.type === 'guessing') {
-        totalQuestionsCompleted += gameData.guessingQuestionsAsked || 0;
+    if (GAME_STRUCTURE[gameData.currentRound]?.type === 'guessing') {
+        segmentsCompleted += Math.min(1, (gameData.guessingQuestionsAsked || 0) / 6);
     } else if (GAME_STRUCTURE[gameData.currentRound]?.type === 'trivia') {
-        totalQuestionsCompleted += gameData.triviaQuestionsAsked || 0;
+        segmentsCompleted += Math.min(1, (gameData.triviaQuestionsAsked || 0) / 6);
     } else if (GAME_STRUCTURE[gameData.currentRound]?.type === 'speed') {
-        totalQuestionsCompleted += gameData.speedStarted ? 1 : 0;
+        segmentsCompleted += gameData.speedStarted ? 1 : 0;
     }
     
-    const progress = (totalQuestionsCompleted / totalQuestionsInGame) * 100;
+    // Add question phase progress if in question phase
+    if (gameData.gamePhase === 'question-answering') {
+        segmentsCompleted += 1; // Question phase complete
+    }
+    
+    const progress = (segmentsCompleted / totalSegments) * 100;
     document.getElementById('progress-fill').style.width = progress + '%';
     
     const skipBtn = document.getElementById('skip-btn');
@@ -1588,7 +1772,8 @@ function skipQuestion() {
 }
 
 function endGame() {
-    alert(`Amazing connection! You've completed all 4 rounds - sharing 19 meaningful moments together! 💕`);
+    triggerConfetti('game-complete');
+    alert(`Amazing connection! You've completed all 3 rounds with deep questions between each! 💕`);
     leaveGame();
 }
 
@@ -1646,6 +1831,7 @@ document.getElementById('submit-answer-btn').addEventListener('click', () => {
     });
 });
 
+// UPDATED: Modified to handle winner determination instead of direct round progression
 document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
     console.log('Continue button clicked', { isHost, guessingQuestionsAsked, processingContinue });
     
@@ -1654,53 +1840,39 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
     
     // Disable button to prevent double clicks
     const continueBtn = document.getElementById('continue-from-guess-btn');
-    if (continueBtn.disabled) return; // Already processing
+    if (continueBtn.disabled) return;
     
     continueBtn.disabled = true;
     processingContinue = true;
     continueBtn.textContent = 'Loading next question...';
     
-    // Use Firebase value for questions asked to ensure sync
     const nextQuestionNumber = (currentGame.guessingQuestionsAsked || 0) + 1;
-    
-    console.log('Processing continue...', { 
-        currentQuestionsAsked: currentGame.guessingQuestionsAsked,
-        nextQuestionNumber 
-    });
     
     // Check if we've completed 6 questions
     if (nextQuestionNumber >= 6) {
-        // Reset counter and move to next round
+        // Guessing round complete - determine winner and start question phase
         guessingQuestionsAsked = 0;
         processingContinue = false;
-        startNewRound();
-    } else {
-        // Get appropriate questions for this round
-        const questionBank = currentGame.currentRound === 1 ? guessingQuestions.round1 :
-                            currentGame.currentRound === 4 ? guessingQuestions.round3 :
-                            guessingQuestions.round5;
         
-        // Select a new random question
+        if (isHost) {
+            determineGuessingWinner();
+        }
+    } else {
+        // Continue with next guessing question (existing logic)
+        const questionBank = guessingQuestions.round1;
+        
         const randomIndex = Math.floor(Math.random() * questionBank.length);
         const newQuestion = questionBank[randomIndex];
         
-        // Determine who answers next based on question number
-        const questionNumber = nextQuestionNumber + 1; // +1 because it's the next question
+        const questionNumber = nextQuestionNumber + 1;
         let hostIsAnswerer;
         
         if (questionNumber <= 3) {
-            hostIsAnswerer = (questionNumber % 2 === 1); // Host answers questions 1 and 3
+            hostIsAnswerer = (questionNumber % 2 === 1);
         } else {
-            hostIsAnswerer = (questionNumber % 2 === 0); // Host answers questions 4 and 6
+            hostIsAnswerer = (questionNumber % 2 === 0);
         }
         
-        console.log('Updating Firebase for next question...', {
-            questionNumber,
-            hostIsAnswerer,
-            question: newQuestion.question
-        });
-        
-        // Update Firebase to start next question - either player can do this
         gameRef.update({
             guessingQuestion: newQuestion,
             hostIsAnswerer: hostIsAnswerer,
@@ -1709,7 +1881,7 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
             playerGuess: null,
             guessingQuestionsAsked: nextQuestionNumber,
             showingRoundIntro: false,
-            lastUpdate: Date.now() // Force update
+            lastUpdate: Date.now()
         }).then(() => {
             console.log('Firebase updated successfully');
             processingContinue = false;
@@ -1766,7 +1938,8 @@ function startTriviaGame(roundNumber) {
         player2Answer: null,
         showingRoundIntro: triviaQuestionsAsked === 0,
         triviaQuestionsAsked: triviaQuestionsAsked,
-        triviaRoundScores: triviaRoundScores || { player1: 0, player2: 0 }
+        triviaRoundScores: triviaRoundScores || { player1: 0, player2: 0 },
+        gamePhase: null // Reset to competitive phase
     });
 }
 
@@ -2043,12 +2216,12 @@ function showTriviaRoundComplete(gameData) {
         if (!isHost) {
             continueBtn.textContent = 'Waiting for host...';
         } else {
-            continueBtn.textContent = 'Continue to Next Round';
+            continueBtn.textContent = 'Continue';
         }
     }
 }
 
-// Add event listeners for trivia buttons
+// UPDATED: Modified trivia event listeners to handle winner determination
 document.getElementById('continue-from-trivia-btn').addEventListener('click', () => {
     // Only let the host control progression to avoid conflicts
     if (!isHost) return;
@@ -2082,14 +2255,13 @@ document.getElementById('continue-from-trivia-btn').addEventListener('click', ()
 document.getElementById('continue-from-trivia-complete-btn').addEventListener('click', () => {
     if (!isHost) return; // Only host can continue
     
-    console.log('Trivia complete button clicked, starting new round...');
+    console.log('Trivia complete button clicked, determining winner...');
     
     // Reset trivia counters for next time
     triviaQuestionsAsked = 0;
-    triviaRoundScores = { player1: 0, player2: 0 };
     
-    // Start the next round
-    startNewRound();
+    // Determine winner and start question phase
+    determineTriviaWinner();
 });
 
 // Event listeners for Speed Categories
@@ -2099,11 +2271,12 @@ document.getElementById('speed-input').addEventListener('keypress', function(e) 
     }
 });
 
+// UPDATED: Modified speed categories event listener to handle winner determination
 document.getElementById('continue-from-speed-btn').addEventListener('click', () => {
     if (!isHost) return; // Only host can continue
     
-    console.log('Speed categories complete, starting next round...');
-    startNewRound();
+    console.log('Speed categories complete, determining winner...');
+    determineSpeedWinner();
 });
 
 // Allow Enter key to submit guessing answer
