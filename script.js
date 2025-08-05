@@ -675,20 +675,23 @@ function joinRoom() {
 function determineGuessingWinner() {
     console.log('Determining guessing game winner...');
     
-    // Calculate scores for the guessing round
     const playerIds = Object.keys(currentGame.players);
-    let player1Score = 0;
-    let player2Score = 0;
+    const player1Score = overallScores.player1 || 0;
+    const player2Score = overallScores.player2 || 0;
     
-    // We need to track scores from the guessing game somehow
-    // For now, let's use the overall scores difference
-    if (overallScores.player1 > overallScores.player2) {
+    // Subtract the starting scores to get just the guessing game scores
+    const guessingStartScores = currentGame.guessingStartScores || { player1: 0, player2: 0 };
+    const guessingPlayer1Score = player1Score - guessingStartScores.player1;
+    const guessingPlayer2Score = player2Score - guessingStartScores.player2;
+    
+    if (guessingPlayer1Score > guessingPlayer2Score) {
         startQuestionPhase(playerIds[0], 'guessing');
-    } else if (overallScores.player2 > overallScores.player1) {
+    } else if (guessingPlayer2Score > guessingPlayer1Score) {
         startQuestionPhase(playerIds[1], 'guessing');
     } else {
-        // Tie - show spin wheel
-        showSpinWheel('guessing');
+        // Tie - randomly pick someone
+        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
+        startQuestionPhase(randomWinner, 'guessing');
     }
 }
 
@@ -703,8 +706,9 @@ function determineTriviaWinner() {
     } else if (scores.player2 > scores.player1) {
         startQuestionPhase(playerIds[1], 'trivia');
     } else {
-        // Tie - show spin wheel
-        showSpinWheel('trivia');
+        // Tie - randomly pick someone
+        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
+        startQuestionPhase(randomWinner, 'trivia');
     }
 }
 
@@ -720,20 +724,9 @@ function determineSpeedWinner() {
     } else if (player2Answers.length > player1Answers.length) {
         startQuestionPhase(playerIds[1], 'speed');
     } else {
-        // Tie - show spin wheel
-        showSpinWheel('speed');
-    }
-}
-
-function showSpinWheel(gameType) {
-    console.log('Showing spin wheel for tie in:', gameType);
-    
-    if (isHost) {
-        gameRef.update({
-            gamePhase: 'spin-wheel',
-            spinWheelType: gameType,
-            spinResult: null
-        });
+        // Tie - randomly pick someone
+        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
+        startQuestionPhase(randomWinner, 'speed');
     }
 }
 
@@ -741,12 +734,27 @@ function startQuestionPhase(winnerId, gameType) {
     console.log('Starting question phase, winner:', winnerId, 'game type:', gameType);
     
     if (isHost) {
+        // Get the appropriate category for this round
+        const currentRound = currentGame.currentRound;
+        const categories = QUESTION_CATEGORIES[currentRound];
+        
+        // For now, just pick the first category (we can make this random or let winner choose later)
+        const selectedCategory = categories[0];
+        
+        // Get a random question from the selected category
+        const categoryQuestions = questions[selectedCategory];
+        const randomIndex = Math.floor(Math.random() * categoryQuestions.length);
+        const selectedQuestion = categoryQuestions[randomIndex];
+        
         gameRef.update({
-            gamePhase: 'category-selection',
-            questionWinner: winnerId,
-            questionGameType: gameType,
-            selectedCategory: null,
-            questionToAnswer: null
+            gamePhase: 'question-answering',
+            questionWinner: winnerId, // Winner reads the question
+            questionLoser: winnerId === Object.keys(currentGame.players)[0] ? 
+                           Object.keys(currentGame.players)[1] : 
+                           Object.keys(currentGame.players)[0], // Loser answers
+            selectedCategory: selectedCategory,
+            questionToAnswer: selectedQuestion,
+            questionAnswered: false
         });
     }
 }
@@ -766,9 +774,11 @@ function handleGameUpdate(gameData) {
         overallScores = gameData.overallScores;
     }
     
-    // Update score display
-    document.getElementById('score-player1').textContent = `(${overallScores.player1 || 0})`;
-    document.getElementById('score-player2').textContent = `(${overallScores.player2 || 0})`;
+    // Update score display whenever we're in game screen
+    const gameScreen = document.getElementById('game-screen');
+    if (gameScreen && gameScreen.classList.contains('active')) {
+        updateScoreboard(gameData);
+    }
     
     // Sync guessing questions counter
     if (gameData.guessingQuestionsAsked !== undefined) {
@@ -776,16 +786,6 @@ function handleGameUpdate(gameData) {
     }
     
     const playerCount = Object.keys(gameData.players).length;
-    
-    const playerIds = Object.keys(gameData.players);
-    if (playerIds.length >= 1) {
-        const p1Name = gameData.players[playerIds[0]].name;
-        document.getElementById('game-player1').textContent = p1Name;
-    }
-    if (playerIds.length >= 2) {
-        const p2Name = gameData.players[playerIds[1]].name;
-        document.getElementById('game-player2').textContent = p2Name;
-    }
     
     if (playerCount === 2 && !gameData.gameStarted) {
         // Check if both players are ready
@@ -795,11 +795,7 @@ function handleGameUpdate(gameData) {
         }
     } else if (gameData.gameStarted) {
         // Handle different game phases
-        if (gameData.gamePhase === 'spin-wheel') {
-            handleSpinWheelPhase(gameData);
-        } else if (gameData.gamePhase === 'category-selection') {
-            handleCategorySelectionPhase(gameData);
-        } else if (gameData.gamePhase === 'question-answering') {
+        if (gameData.gamePhase === 'question-answering') {
             handleQuestionAnsweringPhase(gameData);
         } else {
             // Regular competitive game phases
@@ -864,104 +860,110 @@ function handleGameUpdate(gameData) {
     }
 }
 
-// NEW: Handle different question flow phases
-function handleSpinWheelPhase(gameData) {
-    // TODO: Show spin wheel screen
-    console.log('Spin wheel phase - not implemented yet');
+// Function to update scoreboard
+function updateScoreboard(gameData) {
+    const playerIds = Object.keys(gameData.players);
     
-    // For now, just randomly pick someone
-    if (isHost && !gameData.spinResult) {
-        const playerIds = Object.keys(gameData.players);
-        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
-        
-        gameRef.update({
-            spinResult: randomWinner,
-            gamePhase: 'category-selection',
-            questionWinner: randomWinner
-        });
+    // Update player names and scores
+    if (playerIds.length >= 1) {
+        const p1Name = gameData.players[playerIds[0]].name;
+        document.getElementById('game-player1').textContent = p1Name;
+        document.getElementById('score-player1').textContent = `(${overallScores.player1 || 0})`;
+    }
+    if (playerIds.length >= 2) {
+        const p2Name = gameData.players[playerIds[1]].name;
+        document.getElementById('game-player2').textContent = p2Name;
+        document.getElementById('score-player2').textContent = `(${overallScores.player2 || 0})`;
     }
 }
 
-function handleCategorySelectionPhase(gameData) {
-    // TODO: Show category selection screen
-    console.log('Category selection phase - not implemented yet');
-    
-    // Show category selection for winner
-    const isWinner = gameData.questionWinner === playerId;
-    
-    if (isWinner) {
-        // Show category selection screen
-        showCategorySelection(gameData.currentRound);
-    } else {
-        // Show waiting screen
-        showScreen('game-screen');
-        document.getElementById('turn-indicator').textContent = 'Waiting for your partner to choose a question category...';
-        document.getElementById('question-content').style.display = 'none';
-        document.getElementById('waiting-content').style.display = 'block';
-    }
-}
-
+// FIXED: Properly implement question answering phase
 function handleQuestionAnsweringPhase(gameData) {
-    // TODO: Show question answering screen
-    console.log('Question answering phase - not implemented yet');
-    
-    const isAnswerer = gameData.questionWinner !== playerId;
-    
-    if (isAnswerer && gameData.questionToAnswer) {
-        // Show question for answerer
-        showQuestionToAnswer(gameData.questionToAnswer);
-    } else {
-        // Show waiting screen for winner
-        showScreen('game-screen');
-        document.getElementById('turn-indicator').textContent = 'Waiting for your partner to answer the question...';
-        document.getElementById('question-content').style.display = 'none';
-        document.getElementById('waiting-content').style.display = 'block';
-    }
-}
-
-function showCategorySelection(roundNumber) {
-    // TODO: Create category selection screen
-    console.log('Showing category selection for round:', roundNumber);
-    
-    // For now, just auto-select first category and continue
-    const categories = QUESTION_CATEGORIES[roundNumber];
-    if (categories && categories.length > 0) {
-        selectCategory(categories[0]);
-    }
-}
-
-function selectCategory(category) {
-    console.log('Selected category:', category);
-    
-    // Get random question from category
-    const categoryQuestions = questions[category];
-    if (categoryQuestions && categoryQuestions.length > 0) {
-        const randomIndex = Math.floor(Math.random() * categoryQuestions.length);
-        const selectedQuestion = categoryQuestions[randomIndex];
-        
-        gameRef.update({
-            selectedCategory: category,
-            questionToAnswer: selectedQuestion,
-            gamePhase: 'question-answering'
-        });
-    }
-}
-
-function showQuestionToAnswer(question) {
-    // TODO: Create question answering screen
-    console.log('Showing question to answer:', question);
+    console.log('Question answering phase:', {
+        winner: gameData.questionWinner,
+        loser: gameData.questionLoser,
+        question: gameData.questionToAnswer,
+        myId: playerId
+    });
     
     showScreen('game-screen');
-    document.getElementById('turn-indicator').textContent = 'Your turn to answer a deep question!';
-    document.getElementById('question-text').textContent = question;
-    document.getElementById('question-content').style.display = 'block';
-    document.getElementById('waiting-content').style.display = 'none';
     
-    // Change button to "Answer Complete"
-    const nextBtn = document.getElementById('next-btn');
-    nextBtn.textContent = 'Answer Complete';
-    nextBtn.disabled = false;
-    nextBtn.onclick = () => completeQuestionAnswer();
+    // Update scoreboard
+    updateScoreboard(gameData);
+    
+    const isWinner = gameData.questionWinner === playerId; // Winner reads question
+    const isLoser = gameData.questionLoser === playerId;   // Loser answers question
+    
+    if (isWinner) {
+        // Winner sees the question to read out loud
+        document.getElementById('turn-indicator').textContent = 'Read this question out loud to your partner!';
+        document.getElementById('turn-indicator').className = 'turn-indicator my-turn';
+        
+        document.getElementById('question-content').style.display = 'block';
+        document.getElementById('waiting-content').style.display = 'none';
+        
+        document.getElementById('question-number').textContent = 
+            `Round ${gameData.currentRound} Soul Question`;
+        document.getElementById('question-text').textContent = gameData.questionToAnswer;
+        
+        // Show continue button for winner (to indicate they've read it)
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.textContent = 'Question Read - Continue';
+        nextBtn.disabled = false;
+        nextBtn.onclick = () => markQuestionAsRead();
+        
+        // Hide skip button during soul questions
+        document.getElementById('skip-btn').style.display = 'none';
+        
+    } else if (isLoser) {
+        // Loser waits to hear the question, then discusses/answers
+        if (gameData.questionRead) {
+            // Question has been read, now loser can see it and answer
+            document.getElementById('turn-indicator').textContent = 'Your turn to answer and discuss!';
+            document.getElementById('turn-indicator').className = 'turn-indicator my-turn';
+            
+            document.getElementById('question-content').style.display = 'block';
+            document.getElementById('waiting-content').style.display = 'none';
+            
+            document.getElementById('question-number').textContent = 
+                `Round ${gameData.currentRound} Soul Question`;
+            document.getElementById('question-text').textContent = gameData.questionToAnswer;
+            
+            // Show complete button for loser (when they're done answering)
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.textContent = 'Done Answering - Continue';
+            nextBtn.disabled = false;
+            nextBtn.onclick = () => completeQuestionAnswer();
+            
+            // Hide skip button
+            document.getElementById('skip-btn').style.display = 'none';
+            
+        } else {
+            // Waiting for winner to read the question
+            document.getElementById('turn-indicator').textContent = 'Listen carefully to the question...';
+            document.getElementById('turn-indicator').className = 'turn-indicator waiting';
+            
+            document.getElementById('question-content').style.display = 'none';
+            document.getElementById('waiting-content').style.display = 'block';
+        }
+        
+    } else {
+        // Neither winner nor loser (shouldn't happen with 2 players)
+        document.getElementById('turn-indicator').textContent = 'Waiting for soul question...';
+        document.getElementById('turn-indicator').className = 'turn-indicator waiting';
+        
+        document.getElementById('question-content').style.display = 'none';
+        document.getElementById('waiting-content').style.display = 'block';
+    }
+}
+
+// Function for winner to mark question as read
+function markQuestionAsRead() {
+    if (isHost) {
+        gameRef.update({
+            questionRead: true
+        });
+    }
 }
 
 function completeQuestionAnswer() {
@@ -998,6 +1000,10 @@ function startNewRound(roundNumber = null) {
     const roundInfo = GAME_STRUCTURE[roundNumber];
     
     if (roundInfo.type === 'guessing') {
+        // Store starting scores for this round to calculate round-specific scores later
+        if (isHost) {
+            gameRef.child('guessingStartScores').set(overallScores);
+        }
         // Reset guessing questions counter for new round
         guessingQuestionsAsked = 0;
         startGuessingGame(roundNumber);
@@ -1659,6 +1665,9 @@ function getProgressiveQuestion(questionNumber) {
 function showRoundIntro(roundName) {
     // Always show game screen first
     showScreen('game-screen');
+    
+    // Update scoreboard during round intro
+    updateScoreboard(currentGame);
     
     const roundIndicator = document.getElementById('round-indicator');
     roundIndicator.textContent = roundName;
