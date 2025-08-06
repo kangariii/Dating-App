@@ -1047,18 +1047,19 @@ function handleTriviaAnswer(answerIndex) {
         gameRef.update({ player2Answer: answerIndex });
     }
     
-    // Check if both players have answered (host only)
-    if (isHost) {
-        setTimeout(() => {
-            gameRef.once('value').then((snapshot) => {
-                const currentData = snapshot.val();
-                if (currentData && currentData.player1Answer !== null && currentData.player2Answer !== null) {
-                    console.log('Both players answered, calculating results...');
+    // FIXED: Check if both players have answered (any player can trigger this check)
+    setTimeout(() => {
+        gameRef.once('value').then((snapshot) => {
+            const currentData = snapshot.val();
+            if (currentData && currentData.player1Answer !== null && currentData.player2Answer !== null) {
+                console.log('Both players answered, calculating results...');
+                // Only host actually progresses the game to prevent race conditions
+                if (isHost) {
                     calculateAndShowTriviaResults();
                 }
-            });
-        }, 500);
-    }
+            }
+        });
+    }, 500);
 }
 
 function calculateAndShowTriviaResults() {
