@@ -182,6 +182,9 @@ let speedTimeLeft = 45;
 let speedMyAnswers = [];
 let speedGameActive = false;
 
+// FIXED: Add tracking for question results to prevent duplicate scoring
+let processedResults = new Set();
+
 // Confetti animation functions
 function triggerConfetti(type = 'default') {
     switch(type) {
@@ -567,16 +570,19 @@ function continueFromQuestionInstructions() {
     console.log('Continuing from question instructions');
     soundSystem.playClick();
     
-    // Continue to category selection
-    const winnerId = currentGame.questionWinner;
-    const gameType = currentGame.questionGameType;
-    
-    gameRef.update({
-        gamePhase: 'category-selection',
-        questionWinner: winnerId,
-        questionGameType: gameType,
-        selectedCategory: null,
-        questionToAnswer: null
+    // FIXED: Get winner data from Firebase, not local variables
+    gameRef.once('value').then((snapshot) => {
+        const gameData = snapshot.val();
+        const winnerId = gameData.questionWinner;
+        const gameType = gameData.questionGameType;
+        
+        gameRef.update({
+            gamePhase: 'category-selection',
+            questionWinner: winnerId,
+            questionGameType: gameType,
+            selectedCategory: null,
+            questionToAnswer: null
+        });
     });
 }
 
@@ -833,13 +839,18 @@ function showWaitingForGuess() {
     document.getElementById('answer-waiting').textContent = 'Waiting for your partner to guess...';
 }
 
+// FIXED: Prevent duplicate scoring in This or That results
 function showThisOrThatResult(gameData) {
     showScreen('guessing-result-screen');
     
     const isCorrect = gameData.playerGuess === gameData.playerChoice;
     const question = gameData.thisOrThatQuestion;
     
-    if (isCorrect) {
+    // FIXED: Create unique result ID and only process once
+    const resultId = `${gameData.currentRound}-${gameData.thisOrThatQuestionsAsked}-${gameData.playerChoice}-${gameData.playerGuess}`;
+    
+    if (isCorrect && !processedResults.has(resultId)) {
+        processedResults.add(resultId);
         triggerConfetti('correct');
         soundSystem.playCorrect();
         
@@ -862,7 +873,7 @@ function showThisOrThatResult(gameData) {
             overallScores = updatedScores;
             gameRef.child('overallScores').set(updatedScores);
         }
-    } else {
+    } else if (!isCorrect) {
         soundSystem.playIncorrect();
     }
 
@@ -1297,26 +1308,44 @@ function showSpeedCategoriesResults(gameData) {
 function determineThisOrThatWinner() {
     if (!isHost) return;
     
-    // Show question instructions first
-    gameRef.update({
-        gamePhase: 'question-instructions',
-        questionGameType: 'this-or-that'
-    });
+    console.log('Determining This or That winner...');
     
-    // After instructions, determine winner
-    setTimeout(() => {
-        const playerIds = Object.keys(currentGame.players);
-        // Simple winner determination based on overall scores
-        if (overallScores.player1 > overallScores.player2) {
-            startQuestionPhase(playerIds[0], 'this-or-that');
-        } else if (overallScores.player2 > overallScores.player1) {
-            startQuestionPhase(playerIds[1], 'this-or-that');
-        } else {
-            // Tie - randomly pick winner
-            const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
-            startQuestionPhase(randomWinner, 'this-or-that');
-        }
-    }, 2000); // Small delay to let instruction screen show
+    // FIXED: Get current game data from Firebase
+    gameRef.once('value').then((snapshot) => {
+        const gameData = snapshot.val();
+        const playerIds = Object.keys(gameData.players);
+        
+        console.log('Current overall scores:', overallScores);
+        
+        // Show question instructions first
+        gameRef.update({
+            gamePhase: 'question-instructions',
+            questionGameType: 'this-or-that'
+        });
+        
+        // After instructions, determine winner based on overall scores
+        setTimeout(() => {
+            let winnerId;
+            if (overallScores.player1 > overallScores.player2) {
+                winnerId = playerIds[0];
+            } else if (overallScores.player2 > overallScores.player1) {
+                winnerId = playerIds[1];
+            } else {
+                // Tie - randomly pick winner
+                winnerId = playerIds[Math.floor(Math.random() * playerIds.length)];
+            }
+            
+            console.log('This or That winner determined:', winnerId);
+            
+            gameRef.update({
+                gamePhase: 'category-selection',
+                questionWinner: winnerId,
+                questionGameType: 'this-or-that',
+                selectedCategory: null,
+                questionToAnswer: null
+            });
+        }, 1000); // Shorter delay
+    });
 }
 
 function determineTriviaWinner() {
@@ -1633,6 +1662,7 @@ function leaveGame() {
     triviaRoundScores = { player1: 0, player2: 0 };
     speedMyAnswers = [];
     speedGameActive = false;
+    processedResults.clear(); // FIXED: Clear processed results
     
     showScreen('start-screen');
 }
