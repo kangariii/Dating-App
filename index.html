@@ -1,30 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Nice to Meet You - Couples Connection Games</title>
-        
-        <!-- Better fonts -->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-        
-        <!-- Make it installable on phones -->
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="theme-color" content="#667eea">
-        
-        <link rel="stylesheet" href="styles.css">
-    </head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nice to Meet You - Couples Connection Game</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#667eea">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
 <body>
     <div class="container">
-        <div class="app-header">
-            <h1>Nice to Meet You</h1>
-            <p class="tagline">✨ The ultimate couples connection experience ✨</p>
-            <p class="subtitle">Play games, learn secrets, spark deeper conversations</p>
-        </div>
-
+        <h1>Nice to Meet You</h1>
+        
         <!-- Start Screen -->
         <div id="start-screen" class="screen active">
             <div class="start-options">
@@ -40,27 +36,9 @@
             </div>
         </div>
 
-        <!-- Avatar Selection Screen -->
-        <div id="avatar-selection-screen" class="screen">
-            <button class="btn back-button" onclick="showScreen('start-screen')">← Back</button>
-            <div class="avatar-selection-container">
-                <h2>Choose Your Avatar</h2>
-                <p>Pick an animal that represents you!</p>
-                <div id="avatar-grid" class="avatar-grid">
-                    <!-- Avatars will be populated by JavaScript -->
-                </div>
-                <div id="selected-avatar-display" class="selected-avatar-display" style="display: none;">
-                    <div class="selected-avatar">
-                        <span id="selected-avatar-emoji">🐵</span>
-                        <span id="selected-avatar-name">Monkey</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Create Room Screen -->
         <div id="create-screen" class="screen">
-            <button class="btn back-button" onclick="goBackFromCreate()">← Back</button>
+            <button class="btn back-button" onclick="showScreen('start-screen')">← Back</button>
             <div class="room-code-display">
                 <h2>Share this code with your partner:</h2>
                 <div class="room-code" id="room-code">----</div>
@@ -84,7 +62,7 @@
 
         <!-- Join Room Screen -->
         <div id="join-screen" class="screen">
-            <button class="btn back-button" onclick="goBackFromJoin()">← Back</button>
+            <button class="btn back-button" onclick="showScreen('start-screen')">← Back</button>
             <div class="join-input">
                 <h2 style="text-align: center; margin-bottom: 20px;">Enter Room Code</h2>
                 <input type="text" class="code-input" id="join-code" maxlength="4" placeholder="----" />
@@ -160,7 +138,6 @@
 
         <!-- Guessing Game Answer Screen -->
         <div id="guessing-answer-screen" class="screen">
-            <!-- Add scoreboard to This or That screens -->
             <button class="btn btn-danger" onclick="leaveGame()" style="position: absolute; top: 10px; left: 10px; font-size: 0.8rem; padding: 8px 15px;">Leave</button>
             
             <div class="player-status" style="margin-bottom: 20px;">
@@ -189,7 +166,6 @@
 
         <!-- Guessing Game Guess Screen -->
         <div id="guessing-guess-screen" class="screen">
-            <!-- Add scoreboard to This or That screens -->
             <button class="btn btn-danger" onclick="leaveGame()" style="position: absolute; top: 10px; left: 10px; font-size: 0.8rem; padding: 8px 15px;">Leave</button>
             
             <div class="player-status" style="margin-bottom: 20px;">
@@ -217,7 +193,6 @@
 
         <!-- Guessing Game Result Screen -->
         <div id="guessing-result-screen" class="screen">
-            <!-- Add scoreboard to This or That screens -->
             <button class="btn btn-danger" onclick="leaveGame()" style="position: absolute; top: 10px; left: 10px; font-size: 0.8rem; padding: 8px 15px;">Leave</button>
             
             <div class="player-status" style="margin-bottom: 20px;">
