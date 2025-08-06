@@ -509,6 +509,24 @@ function handleGameUpdate(snapshot) {
                 handleSpeedCategoriesUpdate(gameData);
             }
         }
+        
+        // FIXED: Auto-progression logic for completed questions (host only)
+        if (isHost && gameData.questionAnswered && gameData.gamePhase === 'question-answering') {
+            console.log('Question answered, auto-progressing to next round...');
+            
+            const nextRound = (gameData.currentRound || 0) + 1;
+            
+            if (nextRound > 3) {
+                console.log('All rounds complete, showing final screen');
+                showGameCompleteScreen();
+            } else {
+                console.log('Starting next round:', nextRound);
+                startNewRound(nextRound);
+            }
+            
+            // Clear the flag to prevent repeated progression
+            gameRef.update({ questionAnswered: false });
+        }
     } else if (playerCount === 1 && !isHost) {
         // Joiner waiting for host to be ready
         showScreen('join-screen');
@@ -621,7 +639,8 @@ function continueFromQuestionInstructions() {
             questionWinner: winnerId,
             questionGameType: gameType,
             selectedCategory: null,
-            questionToAnswer: null
+            questionToAnswer: null,
+            questionAnswered: false  // Initialize the flag
         });
     });
 }
@@ -1430,6 +1449,7 @@ function selectCategory(category) {
             selectedCategory: category,
             questionToAnswer: selectedQuestion,
             questionRead: false,
+            questionAnswered: false,  // Initialize the flag
             gamePhase: 'question-answering'
         });
     }
@@ -1480,25 +1500,18 @@ function handleQuestionAnsweringPhase(gameData) {
     }
 }
 
+// FIXED: Remove host restriction - any player (winner) can mark question as read
 function markQuestionAsRead() {
-    if (!isHost) return;
+    console.log('Marking question as read');
     gameRef.update({ questionRead: true });
 }
 
+// FIXED: Remove host restriction and change to set flag instead of direct progression
 function completeQuestionAnswer() {
-    if (!isHost) return;
+    console.log('Completing question answer - setting flag for host to progress');
     
-    const nextRound = (currentGame.currentRound || 0) + 1;
-    
-    console.log('Question complete, next round would be:', nextRound);
-    
-    if (nextRound > 3) {
-        console.log('All rounds complete, showing final screen');
-        showGameCompleteScreen();
-    } else {
-        console.log('Starting next round:', nextRound);
-        startNewRound(nextRound);
-    }
+    // Set flag for host to detect and auto-progress
+    gameRef.update({ questionAnswered: true });
 }
 
 // GAME COMPLETE SCREEN - ENHANCED with safety checks
