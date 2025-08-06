@@ -346,6 +346,19 @@ const QUESTION_CATEGORIES = {
     3: ['soul-connection', 'intimacy-passion', 'lifes-big-questions']
 };
 
+// Category display names for UI
+const CATEGORY_DISPLAY_NAMES = {
+    'personal-preferences': 'Personal Preferences',
+    'fun-personality': 'Fun & Personality',
+    'background-stories': 'Background Stories',
+    'values-beliefs': 'Values & Beliefs',
+    'relationships-love': 'Relationships & Love',
+    'dreams-goals': 'Dreams & Goals',
+    'soul-connection': 'Soul Connection',
+    'intimacy-passion': 'Intimacy & Passion',
+    'lifes-big-questions': "Life's Big Questions"
+};
+
 // Confetti animation functions
 function triggerConfetti(type = 'default') {
     switch(type) {
@@ -461,20 +474,75 @@ function showScreen(screenId) {
     }
 }
 
-// Update scoreboard function
+// UPDATED: Enhanced updateScoreboard function to update all scoreboards
 function updateScoreboard() {
-    // Update player names and scores in the scoreboard
+    // Update player names and scores in ALL scoreboards
     if (currentGame && currentGame.players) {
         const playerIds = Object.keys(currentGame.players);
         if (playerIds.length >= 1) {
             const p1Name = currentGame.players[playerIds[0]].name;
-            document.getElementById('game-player1').textContent = p1Name;
-            document.getElementById('score-player1').textContent = `(${overallScores.player1 || 0})`;
+            const p1Score = overallScores.player1 || 0;
+            
+            // Main game screen
+            const gameP1 = document.getElementById('game-player1');
+            const gameS1 = document.getElementById('score-player1');
+            if (gameP1) gameP1.textContent = p1Name;
+            if (gameS1) gameS1.textContent = `(${p1Score})`;
+            
+            // This or That screens
+            const answerP1 = document.getElementById('guessing-answer-player1');
+            const answerS1 = document.getElementById('guessing-answer-score1');
+            if (answerP1) answerP1.textContent = p1Name;
+            if (answerS1) answerS1.textContent = `(${p1Score})`;
+            
+            const guessP1 = document.getElementById('guessing-guess-player1');
+            const guessS1 = document.getElementById('guessing-guess-score1');
+            if (guessP1) guessP1.textContent = p1Name;
+            if (guessS1) guessS1.textContent = `(${p1Score})`;
+            
+            const resultP1 = document.getElementById('guessing-result-player1');
+            const resultS1 = document.getElementById('guessing-result-score1');
+            if (resultP1) resultP1.textContent = p1Name;
+            if (resultS1) resultS1.textContent = `(${p1Score})`;
+            
+            // Category selection screen
+            const categoryP1 = document.getElementById('category-player1');
+            const categoryS1 = document.getElementById('category-score1');
+            if (categoryP1) categoryP1.textContent = p1Name;
+            if (categoryS1) categoryS1.textContent = `(${p1Score})`;
         }
+        
         if (playerIds.length >= 2) {
             const p2Name = currentGame.players[playerIds[1]].name;
-            document.getElementById('game-player2').textContent = p2Name;
-            document.getElementById('score-player2').textContent = `(${overallScores.player2 || 0})`;
+            const p2Score = overallScores.player2 || 0;
+            
+            // Main game screen
+            const gameP2 = document.getElementById('game-player2');
+            const gameS2 = document.getElementById('score-player2');
+            if (gameP2) gameP2.textContent = p2Name;
+            if (gameS2) gameS2.textContent = `(${p2Score})`;
+            
+            // This or That screens
+            const answerP2 = document.getElementById('guessing-answer-player2');
+            const answerS2 = document.getElementById('guessing-answer-score2');
+            if (answerP2) answerP2.textContent = p2Name;
+            if (answerS2) answerS2.textContent = `(${p2Score})`;
+            
+            const guessP2 = document.getElementById('guessing-guess-player2');
+            const guessS2 = document.getElementById('guessing-guess-score2');
+            if (guessP2) guessP2.textContent = p2Name;
+            if (guessS2) guessS2.textContent = `(${p2Score})`;
+            
+            const resultP2 = document.getElementById('guessing-result-player2');
+            const resultS2 = document.getElementById('guessing-result-score2');
+            if (resultP2) resultP2.textContent = p2Name;
+            if (resultS2) resultS2.textContent = `(${p2Score})`;
+            
+            // Category selection screen
+            const categoryP2 = document.getElementById('category-player2');
+            const categoryS2 = document.getElementById('category-score2');
+            if (categoryP2) categoryP2.textContent = p2Name;
+            if (categoryS2) categoryS2.textContent = `(${p2Score})`;
         }
     }
 }
@@ -622,6 +690,7 @@ function setupRoom() {
     gameRef.child(`players/${playerId}/connected`).onDisconnect().set(false);
 }
 
+// UPDATED: Enhanced joinRoom function with waiting feedback
 function joinRoom() {
     const code = document.getElementById('join-code').value.toUpperCase();
     const name = document.getElementById('joiner-name').value || 'Player 2';
@@ -630,6 +699,14 @@ function joinRoom() {
         alert('Please enter a valid 4-character room code');
         return;
     }
+    
+    // Show waiting feedback immediately
+    const joinBtn = document.getElementById('join-game-btn');
+    const waitingText = document.getElementById('join-waiting');
+    
+    joinBtn.disabled = true;
+    joinBtn.textContent = 'Joining...';
+    waitingText.style.display = 'block';
     
     roomCode = code;
     playerId = generatePlayerId();
@@ -678,13 +755,25 @@ function joinRoom() {
             })
             .catch((error) => {
                 console.error('Error joining room:', error);
+                // Reset UI on error
+                joinBtn.disabled = false;
+                joinBtn.textContent = 'Join Game';
+                waitingText.style.display = 'none';
                 alert('Error joining room: ' + error.message);
             });
         } else {
+            // Reset UI on room not found
+            joinBtn.disabled = false;
+            joinBtn.textContent = 'Join Game';
+            waitingText.style.display = 'none';
             alert('Room not found. Please check the code and try again.');
         }
     }).catch((error) => {
         console.error('Error checking room:', error);
+        // Reset UI on error
+        joinBtn.disabled = false;
+        joinBtn.textContent = 'Join Game';
+        waitingText.style.display = 'none';
         alert('Error: ' + error.message);
     });
 }
@@ -889,9 +978,9 @@ function handleSpinWheelPhase(gameData) {
     }
 }
 
+// UPDATED: Implement category selection phase
 function handleCategorySelectionPhase(gameData) {
-    // TODO: Show category selection screen
-    console.log('Category selection phase - not implemented yet');
+    console.log('Category selection phase');
     
     // Show category selection for winner
     const isWinner = gameData.questionWinner === playerId;
@@ -971,19 +1060,41 @@ function markQuestionAsRead() {
     });
 }
 
+// UPDATED: Implement category selection screen
 function showCategorySelection(roundNumber) {
-    // TODO: Create category selection screen
     console.log('Showing category selection for round:', roundNumber);
     
-    // For now, just auto-select first category and continue
+    showScreen('category-selection-screen');
+    
+    // Get categories for this round
     const categories = QUESTION_CATEGORIES[roundNumber];
-    if (categories && categories.length > 0) {
-        selectCategory(categories[0]);
-    }
+    const optionsContainer = document.getElementById('category-options');
+    optionsContainer.innerHTML = '';
+    
+    // Create buttons for each category
+    categories.forEach((categoryKey, index) => {
+        const button = document.createElement('button');
+        button.className = 'guess-option';
+        button.textContent = CATEGORY_DISPLAY_NAMES[categoryKey];
+        button.addEventListener('click', () => selectCategory(categoryKey));
+        optionsContainer.appendChild(button);
+    });
 }
 
 function selectCategory(category) {
     console.log('Selected category:', category);
+    
+    // Play click sound
+    soundSystem.playClick();
+    
+    // Disable all category buttons
+    const buttons = document.querySelectorAll('#category-options .guess-option');
+    buttons.forEach(btn => {
+        btn.disabled = true;
+        if (btn.textContent === CATEGORY_DISPLAY_NAMES[category]) {
+            btn.classList.add('selected');
+        }
+    });
     
     // Get random question from category
     const categoryQuestions = questions[category];
@@ -1005,18 +1116,50 @@ function showQuestionToAnswer(question) {
     console.log('Question to answer flow handled by handleQuestionAnsweringPhase:', question);
 }
 
+// UPDATED: Fix completeQuestionAnswer to work for non-hosts
 function completeQuestionAnswer() {
     console.log('Question answer completed');
+    
+    // Allow anyone to trigger this, but only host makes the Firebase update
+    // This fixes the bug where non-host couldn't click "Discussion Complete"
     
     // Move to next round or end game
     const nextRound = (currentGame.currentRound || 0) + 1;
     
-    if (isHost) {
+    // First, let non-host signal completion to host
+    if (!isHost) {
+        gameRef.update({
+            questionAnswerComplete: true,
+            completedBy: playerId
+        });
+        return;
+    }
+    
+    // Host handles the actual game progression
+    if (nextRound > 3) {
+        // Game complete
+        endGame();
+    } else {
+        // Start next competitive round
+        startNewRound(nextRound);
+    }
+}
+
+// Add listener for question completion signals
+function handleQuestionCompletionSignal(gameData) {
+    if (gameData.questionAnswerComplete && isHost && !gameData.questionCompletionProcessed) {
+        // Host received signal from non-host to complete question
+        const nextRound = (currentGame.currentRound || 0) + 1;
+        
         if (nextRound > 3) {
             // Game complete
             endGame();
         } else {
-            // Start next competitive round
+            // Start next competitive round and clear the signal
+            gameRef.update({
+                questionAnswerComplete: false,
+                questionCompletionProcessed: true
+            });
             startNewRound(nextRound);
         }
     }

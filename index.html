@@ -73,29 +73,31 @@
                     <label>Your Name</label>
                     <input type="text" id="joiner-name" placeholder="Enter your name" />
                 </div>
-                <button class="btn btn-primary" onclick="joinRoom()" style="width: 100%;">
+                <button class="btn btn-primary" id="join-game-btn" onclick="joinRoom()" style="width: 100%;">
                     Join Game
                 </button>
+                <p id="join-waiting" style="display: none; color: white; text-align: center; margin-top: 15px;">
+                    Joining game... Please wait
+                </p>
             </div>
         </div>
 
         <!-- Game Screen -->
-        <<!-- Game Screen -->
-<div id="game-screen" class="screen">
-    <button class="btn btn-danger" onclick="leaveGame()">Leave Game</button>
-    
-    <div class="player-status">
-        <div class="player-badge">
-            <span class="status-dot"></span>
-            <span id="game-player1">Waiting...</span>
-            <span id="score-player1" style="margin-left: 10px; font-weight: bold;">(0)</span>
-        </div>
-        <div class="player-badge">
-            <span class="status-dot"></span>
-            <span id="game-player2">Waiting...</span>
-            <span id="score-player2" style="margin-left: 10px; font-weight: bold;">(0)</span>
-        </div>
-    </div>
+        <div id="game-screen" class="screen">
+            <button class="btn btn-danger" onclick="leaveGame()">Leave Game</button>
+            
+            <div class="player-status">
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="game-player1">Waiting...</span>
+                    <span id="score-player1" style="margin-left: 10px; font-weight: bold;">(0)</span>
+                </div>
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="game-player2">Waiting...</span>
+                    <span id="score-player2" style="margin-left: 10px; font-weight: bold;">(0)</span>
+                </div>
+            </div>
             
             <div class="game-screen">
                 <div id="round-indicator" class="round-indicator" style="display: none;">
@@ -139,6 +141,22 @@
 
         <!-- Guessing Game Answer Screen -->
         <div id="guessing-answer-screen" class="screen">
+            <!-- Add scoreboard to This or That screens -->
+            <button class="btn btn-danger" onclick="leaveGame()" style="position: absolute; top: 10px; left: 10px; font-size: 0.8rem; padding: 8px 15px;">Leave</button>
+            
+            <div class="player-status" style="margin-bottom: 20px;">
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="guessing-answer-player1">Player 1</span>
+                    <span id="guessing-answer-score1" style="margin-left: 10px; font-weight: bold;">(0)</span>
+                </div>
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="guessing-answer-player2">Player 2</span>
+                    <span id="guessing-answer-score2" style="margin-left: 10px; font-weight: bold;">(0)</span>
+                </div>
+            </div>
+            
             <div class="container" style="text-align: center;">
                 <h2 class="round-title">Quick! Answer this:</h2>
                 <p id="guessing-question" class="question"></p>
@@ -152,6 +170,22 @@
 
         <!-- Guessing Game Guess Screen -->
         <div id="guessing-guess-screen" class="screen">
+            <!-- Add scoreboard to This or That screens -->
+            <button class="btn btn-danger" onclick="leaveGame()" style="position: absolute; top: 10px; left: 10px; font-size: 0.8rem; padding: 8px 15px;">Leave</button>
+            
+            <div class="player-status" style="margin-bottom: 20px;">
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="guessing-guess-player1">Player 1</span>
+                    <span id="guessing-guess-score1" style="margin-left: 10px; font-weight: bold;">(0)</span>
+                </div>
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="guessing-guess-player2">Player 2</span>
+                    <span id="guessing-guess-score2" style="margin-left: 10px; font-weight: bold;">(0)</span>
+                </div>
+            </div>
+            
             <div class="container" style="text-align: center;">
                 <h2 class="round-title">Can you guess their answer?</h2>
                 <p id="guess-question" class="question"></p>
@@ -164,6 +198,22 @@
 
         <!-- Guessing Game Result Screen -->
         <div id="guessing-result-screen" class="screen">
+            <!-- Add scoreboard to This or That screens -->
+            <button class="btn btn-danger" onclick="leaveGame()" style="position: absolute; top: 10px; left: 10px; font-size: 0.8rem; padding: 8px 15px;">Leave</button>
+            
+            <div class="player-status" style="margin-bottom: 20px;">
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="guessing-result-player1">Player 1</span>
+                    <span id="guessing-result-score1" style="margin-left: 10px; font-weight: bold;">(0)</span>
+                </div>
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="guessing-result-player2">Player 2</span>
+                    <span id="guessing-result-score2" style="margin-left: 10px; font-weight: bold;">(0)</span>
+                </div>
+            </div>
+            
             <div class="container">
                 <h2 id="guess-result-title" class="round-title"></h2>
                 <div class="result-details">
@@ -172,6 +222,39 @@
                     <p class="result-guess"><strong>Your guess:</strong> <span id="player-guess"></span></p>
                 </div>
                 <button id="continue-from-guess-btn" class="play-btn">Continue</button>
+            </div>
+        </div>
+
+        <!-- Category Selection Screen -->
+        <div id="category-selection-screen" class="screen">
+            <button class="btn btn-danger" onclick="leaveGame()" style="position: absolute; top: 10px; left: 10px; font-size: 0.8rem; padding: 8px 15px;">Leave</button>
+            
+            <div class="player-status" style="margin-bottom: 20px;">
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="category-player1">Player 1</span>
+                    <span id="category-score1" style="margin-left: 10px; font-weight: bold;">(0)</span>
+                </div>
+                <div class="player-badge">
+                    <span class="status-dot"></span>
+                    <span id="category-player2">Player 2</span>
+                    <span id="category-score2" style="margin-left: 10px; font-weight: bold;">(0)</span>
+                </div>
+            </div>
+            
+            <div class="container">
+                <h2 class="round-title">🎉 You Won! 🎉</h2>
+                <p style="color: rgba(255,255,255,0.9); text-align: center; font-size: 1.2rem; margin: 2rem 0;">
+                    Choose a question category for your partner to answer:
+                </p>
+                
+                <div id="category-options" class="guess-options" style="grid-template-columns: 1fr; gap: 1.5rem; max-width: 500px; margin: 2rem auto;">
+                    <!-- Categories will be dynamically added here -->
+                </div>
+                
+                <p style="color: rgba(255,255,255,0.7); text-align: center; font-style: italic; margin-top: 2rem;">
+                    Pick the category that interests you most - you'll read the question to your partner!
+                </p>
             </div>
         </div>
 
@@ -228,6 +311,7 @@
                 <button id="continue-from-trivia-complete-btn" class="play-btn">Continue to Next Round</button>
             </div>
         </div>
+
         <!-- Speed Categories Game Screen -->
         <div id="speed-categories-screen" class="screen">
             <div class="container" style="text-align: center;">
@@ -307,10 +391,10 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <!-- Our Scripts -->
-<script src="config.js"></script>
-<script src="questions.js"></script>
-<script src="this-or-that-questions.js"></script>
-<script src="trivia-questions.js"></script>
-<script src="script.js"></script>
+    <script src="config.js"></script>
+    <script src="questions.js"></script>
+    <script src="this-or-that-questions.js"></script>
+    <script src="trivia-questions.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
