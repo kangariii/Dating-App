@@ -487,13 +487,17 @@ function handleGameUpdate(snapshot) {
             console.log('Not all players ready yet');
         }
     } else if (gameData.gameStarted) {
-        // Handle instruction screens first
+        // FIXED: Handle special game phases FIRST before checking round types
         if (gameData.gamePhase === 'instructions') {
             handleInstructionPhase(gameData);
         } else if (gameData.gamePhase === 'question-instructions') {
             handleQuestionInstructionPhase(gameData);
+        } else if (gameData.gamePhase === 'category-selection') {
+            handleCategorySelectionPhase(gameData);
+        } else if (gameData.gamePhase === 'question-answering') {
+            handleQuestionAnsweringPhase(gameData);
         } else {
-            // Handle different game phases based on current round
+            // Handle different game phases based on current round ONLY if no special phase
             const roundType = GAME_STRUCTURE[gameData.currentRound]?.type;
             console.log('Handling round type:', roundType); // Debug log
             
@@ -503,10 +507,6 @@ function handleGameUpdate(snapshot) {
                 handleTriviaGameUpdate(gameData);
             } else if (roundType === 'speed') {
                 handleSpeedCategoriesUpdate(gameData);
-            } else if (gameData.gamePhase === 'category-selection') {
-                handleCategorySelectionPhase(gameData);
-            } else if (gameData.gamePhase === 'question-answering') {
-                handleQuestionAnsweringPhase(gameData);
             }
         }
     } else if (playerCount === 1 && !isHost) {
