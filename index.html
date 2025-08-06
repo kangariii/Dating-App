@@ -79,6 +79,134 @@
             </div>
         </div>
 
+        <!-- This or That Instructions Screen -->
+        <div id="this-or-that-instructions" class="screen">
+            <div class="container" style="text-align: center;">
+                <h2 class="round-title">🤔 This or That Challenge</h2>
+                
+                <div class="instruction-content">
+                    <div class="instruction-section">
+                        <h3>How it works:</h3>
+                        <div class="instruction-steps">
+                            <p><strong>1.</strong> One person chooses between two options</p>
+                            <p><strong>2.</strong> Partner tries to guess which one they picked</p>
+                            <p><strong>3.</strong> Earn points for correct guesses!</p>
+                            <p><strong>4.</strong> Take turns for 6 questions total</p>
+                        </div>
+                    </div>
+                    
+                    <div class="instruction-example">
+                        <p><strong>Example:</strong><br>
+                        "Coffee or Tea?" → You pick Coffee → Partner guesses Coffee = 1 Point!</p>
+                    </div>
+                    
+                    <div class="instruction-tip">
+                        <p>💡 <em>Think about what your partner knows about you!</em></p>
+                    </div>
+                </div>
+                
+                <button class="play-btn" onclick="startGameModeFromInstructions('this-or-that')">
+                    Start This or That!
+                </button>
+            </div>
+        </div>
+
+        <!-- Trivia Instructions Screen -->
+        <div id="trivia-instructions" class="screen">
+            <div class="container" style="text-align: center;">
+                <h2 class="round-title">🧠 Trivia Challenge</h2>
+                
+                <div class="instruction-content">
+                    <div class="instruction-section">
+                        <h3>How it works:</h3>
+                        <div class="instruction-steps">
+                            <p><strong>1.</strong> Both players see the same trivia question</p>
+                            <p><strong>2.</strong> Choose your answer from 4 options</p>
+                            <p><strong>3.</strong> Get 1 point for each correct answer</p>
+                            <p><strong>4.</strong> 6 questions - highest score wins!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="instruction-example">
+                        <p><strong>Topics include:</strong><br>
+                        Science, History, Pop Culture, Geography, Sports, Food & more!</p>
+                    </div>
+                    
+                    <div class="instruction-tip">
+                        <p>🎯 <em>Questions are 9th grade level - you got this!</em></p>
+                    </div>
+                </div>
+                
+                <button class="play-btn" onclick="startGameModeFromInstructions('trivia')">
+                    Start Trivia Challenge!
+                </button>
+            </div>
+        </div>
+
+        <!-- Speed Categories Instructions Screen -->
+        <div id="speed-instructions" class="screen">
+            <div class="container" style="text-align: center;">
+                <h2 class="round-title">⚡ Speed Categories</h2>
+                
+                <div class="instruction-content">
+                    <div class="instruction-section">
+                        <h3>How it works:</h3>
+                        <div class="instruction-steps">
+                            <p><strong>1.</strong> You'll get a category (like "US States")</p>
+                            <p><strong>2.</strong> Type as many answers as you can in 45 seconds</p>
+                            <p><strong>3.</strong> Press Enter after each answer</p>
+                            <p><strong>4.</strong> Most valid answers wins!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="instruction-example">
+                        <p><strong>Example Categories:</strong><br>
+                        US States, Countries, Animals, Fruits, Colors, etc.</p>
+                    </div>
+                    
+                    <div class="instruction-tip">
+                        <p>⏰ <em>Think fast and type faster - you only have 45 seconds!</em></p>
+                    </div>
+                </div>
+                
+                <button class="play-btn" onclick="startGameModeFromInstructions('speed')">
+                    Start Speed Challenge!
+                </button>
+            </div>
+        </div>
+
+        <!-- Question Selection Instructions Screen -->
+        <div id="question-instructions" class="screen">
+            <div class="container" style="text-align: center;">
+                <h2 class="round-title">💝 Question Time</h2>
+                
+                <div class="instruction-content">
+                    <div class="instruction-section">
+                        <h3>How it works:</h3>
+                        <div class="instruction-steps">
+                            <p><strong>1.</strong> Winner of the challenge chooses a question category</p>
+                            <p><strong>2.</strong> You'll get a deep conversation question</p>
+                            <p><strong>3.</strong> Take turns reading and answering</p>
+                            <p><strong>4.</strong> Share, listen, and connect!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="instruction-example">
+                        <p><strong>Categories get deeper as you progress:</strong><br>
+                        Personal → Values → Soul Connection</p>
+                    </div>
+                    
+                    <div class="instruction-tip">
+                        <p>💕 <em>No points, no pressure - just honest connection</em></p>
+                    </div>
+                </div>
+                
+                <button class="play-btn" onclick="continueFromQuestionInstructions()">
+                    Ready to Connect!
+                </button>
+            </div>
+        </div>
+
         <!-- Game Screen -->
         <div id="game-screen" class="screen">
             <button class="btn btn-danger" onclick="leaveGame()">Leave Game</button>

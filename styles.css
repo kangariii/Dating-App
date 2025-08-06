@@ -1121,6 +1121,122 @@ input:focus {
     outline-offset: 2px;
 }
 
+/* Instruction Screen Styles */
+.instruction-content {
+    max-width: 600px;
+    margin: 2rem auto;
+    text-align: left;
+}
+
+.instruction-section {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 2rem;
+    margin: 2rem 0;
+}
+
+.instruction-section h3 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    color: #4CAF50;
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+.instruction-steps {
+    margin: 1rem 0;
+}
+
+.instruction-steps p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin: 1rem 0;
+    padding: 0.8rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border-left: 4px solid #4CAF50;
+}
+
+.instruction-example {
+    background: rgba(102, 126, 234, 0.2);
+    border: 2px solid rgba(102, 126, 234, 0.4);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.instruction-example p {
+    font-size: 1.1rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.instruction-tip {
+    background: rgba(255, 193, 7, 0.2);
+    border: 2px solid rgba(255, 193, 7, 0.4);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.instruction-tip p {
+    font-size: 1rem;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.instruction-tip em {
+    font-style: italic;
+    font-weight: 500;
+}
+
+/* Mobile responsiveness for instructions */
+@media (max-width: 768px) {
+    .instruction-content {
+        margin: 1rem auto;
+        padding: 0 1rem;
+    }
+    
+    .instruction-section {
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+    }
+    
+    .instruction-section h3 {
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+    }
+    
+    .instruction-steps p {
+        font-size: 1rem;
+        padding: 0.6rem 0.8rem;
+    }
+    
+    .instruction-example, .instruction-tip {
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .instruction-example p, .instruction-tip p {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .instruction-section h3 {
+        font-size: 1.1rem;
+    }
+    
+    .instruction-steps p {
+        font-size: 0.95rem;
+    }
+}
+
 /* Reduced motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
     * {

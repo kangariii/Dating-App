@@ -432,7 +432,7 @@ function joinRoom() {
         });
 }
 
-// Main game update handler - ENHANCED with better logging and safety checks
+// Main game update handler - ENHANCED with instruction screen handling
 function handleGameUpdate(snapshot) {
     const gameData = snapshot.val();
     if (!gameData) {
@@ -472,7 +472,7 @@ function handleGameUpdate(snapshot) {
                 document.getElementById('waiting-content').style.display = 'block';
             }
             
-            // Host starts the game
+            // Host starts the game with instruction screen
             if (isHost) {
                 console.log('Host starting game...');
                 setTimeout(() => {
@@ -484,26 +484,100 @@ function handleGameUpdate(snapshot) {
             console.log('Not all players ready yet');
         }
     } else if (gameData.gameStarted) {
-        // Handle different game phases based on current round
-        const roundType = GAME_STRUCTURE[gameData.currentRound]?.type;
-        console.log('Handling round type:', roundType); // Debug log
-        
-        if (roundType === 'this-or-that') {
-            handleThisOrThatGameUpdate(gameData);
-        } else if (roundType === 'trivia') {
-            handleTriviaGameUpdate(gameData);
-        } else if (roundType === 'speed') {
-            handleSpeedCategoriesUpdate(gameData);
-        } else if (gameData.gamePhase === 'category-selection') {
-            handleCategorySelectionPhase(gameData);
-        } else if (gameData.gamePhase === 'question-answering') {
-            handleQuestionAnsweringPhase(gameData);
+        // Handle instruction screens first
+        if (gameData.gamePhase === 'instructions') {
+            handleInstructionPhase(gameData);
+        } else if (gameData.gamePhase === 'question-instructions') {
+            handleQuestionInstructionPhase(gameData);
+        } else {
+            // Handle different game phases based on current round
+            const roundType = GAME_STRUCTURE[gameData.currentRound]?.type;
+            console.log('Handling round type:', roundType); // Debug log
+            
+            if (roundType === 'this-or-that') {
+                handleThisOrThatGameUpdate(gameData);
+            } else if (roundType === 'trivia') {
+                handleTriviaGameUpdate(gameData);
+            } else if (roundType === 'speed') {
+                handleSpeedCategoriesUpdate(gameData);
+            } else if (gameData.gamePhase === 'category-selection') {
+                handleCategorySelectionPhase(gameData);
+            } else if (gameData.gamePhase === 'question-answering') {
+                handleQuestionAnsweringPhase(gameData);
+            }
         }
     } else if (playerCount === 1 && !isHost) {
         // Joiner waiting for host to be ready
         showScreen('join-screen');
         document.getElementById('join-waiting').textContent = 'Waiting for host to get ready...';
     }
+}
+
+// NEW: Handle instruction screen phase
+function handleInstructionPhase(gameData) {
+    const roundType = GAME_STRUCTURE[gameData.currentRound]?.type;
+    
+    if (roundType === 'this-or-that') {
+        showScreen('this-or-that-instructions');
+    } else if (roundType === 'trivia') {
+        showScreen('trivia-instructions');
+    } else if (roundType === 'speed') {
+        showScreen('speed-instructions');
+    }
+    
+    // Update scoreboards on instruction screens
+    updateScoreboard();
+}
+
+// NEW: Handle question instruction phase
+function handleQuestionInstructionPhase(gameData) {
+    showScreen('question-instructions');
+    updateScoreboard();
+}
+
+// NEW: Function called when user clicks "Start Game" on instruction screens
+function startGameModeFromInstructions(gameType) {
+    if (!isHost) {
+        console.log('Only host can start game mode');
+        return;
+    }
+    
+    console.log('Starting game mode from instructions:', gameType);
+    soundSystem.playClick();
+    
+    // Set both players as ready for this round and start the actual game
+    const roundNumber = currentGame.currentRound;
+    
+    if (gameType === 'this-or-that') {
+        startThisOrThatGame(roundNumber);
+    } else if (gameType === 'trivia') {
+        startTriviaGame(roundNumber);
+    } else if (gameType === 'speed') {
+        startSpeedCategoriesGame(roundNumber);
+    }
+}
+
+// NEW: Function called when user clicks "Ready to Connect" on question instructions
+function continueFromQuestionInstructions() {
+    if (!isHost) {
+        console.log('Only host can continue from question instructions');
+        return;
+    }
+    
+    console.log('Continuing from question instructions');
+    soundSystem.playClick();
+    
+    // Continue to category selection
+    const winnerId = currentGame.questionWinner;
+    const gameType = currentGame.questionGameType;
+    
+    gameRef.update({
+        gamePhase: 'category-selection',
+        questionWinner: winnerId,
+        questionGameType: gameType,
+        selectedCategory: null,
+        questionToAnswer: null
+    });
 }
 
 // Update scoreboard with player names and scores
@@ -555,7 +629,7 @@ function updateScoreboard() {
     }
 }
 
-// Start new round - ENHANCED with safety checks
+// MODIFIED: Start new round - now shows instruction screen first
 function startNewRound(roundNumber = null) {
     if (!isHost) {
         console.log('Only host can start new round');
@@ -586,15 +660,13 @@ function startNewRound(roundNumber = null) {
         return;
     }
     
-    if (roundInfo.type === 'this-or-that') {
-        startThisOrThatGame(roundNumber);
-    } else if (roundInfo.type === 'trivia') {
-        startTriviaGame(roundNumber);
-    } else if (roundInfo.type === 'speed') {
-        startSpeedCategoriesGame(roundNumber);
-    } else {
-        console.error('Unknown round type:', roundInfo.type);
-    }
+    // Show instruction screen first
+    gameRef.update({
+        gameStarted: true,
+        currentRound: roundNumber,
+        roundName: `Round ${roundNumber} - ${roundInfo.name}`,
+        gamePhase: 'instructions'
+    });
 }
 
 // THIS OR THAT GAME FUNCTIONS
@@ -607,6 +679,7 @@ function startThisOrThatGame(roundNumber) {
         gameStarted: true,
         currentRound: roundNumber,
         roundName: `Round ${roundNumber} - ${GAME_STRUCTURE[roundNumber].name}`,
+        gamePhase: 'playing', // Changed from 'instructions'
         thisOrThatQuestion: thisOrThatQuestion,
         thisOrThatPhase: 'choosing',
         playerChoice: null,
@@ -822,6 +895,7 @@ function startTriviaGame(roundNumber) {
     gameRef.update({
         currentRound: roundNumber,
         roundName: `Round ${roundNumber} - ${GAME_STRUCTURE[roundNumber].name}`,
+        gamePhase: 'playing', // Changed from 'instructions'
         triviaQuestion: shuffledQuestion,
         triviaPhase: 'questioning',
         player1Answer: null,
@@ -1034,6 +1108,7 @@ function startSpeedCategoriesGame(roundNumber) {
     gameRef.update({
         currentRound: roundNumber,
         roundName: `Round ${roundNumber} - ${GAME_STRUCTURE[roundNumber].name}`,
+        gamePhase: 'playing', // Changed from 'instructions'
         speedCategory: category,
         speedPhase: 'playing',
         speedStartTime: Date.now(),
@@ -1222,50 +1297,77 @@ function showSpeedCategoriesResults(gameData) {
 function determineThisOrThatWinner() {
     if (!isHost) return;
     
-    const playerIds = Object.keys(currentGame.players);
-    // Simple winner determination based on overall scores
-    if (overallScores.player1 > overallScores.player2) {
-        startQuestionPhase(playerIds[0], 'this-or-that');
-    } else if (overallScores.player2 > overallScores.player1) {
-        startQuestionPhase(playerIds[1], 'this-or-that');
-    } else {
-        // Tie - randomly pick winner
-        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
-        startQuestionPhase(randomWinner, 'this-or-that');
-    }
+    // Show question instructions first
+    gameRef.update({
+        gamePhase: 'question-instructions',
+        questionGameType: 'this-or-that'
+    });
+    
+    // After instructions, determine winner
+    setTimeout(() => {
+        const playerIds = Object.keys(currentGame.players);
+        // Simple winner determination based on overall scores
+        if (overallScores.player1 > overallScores.player2) {
+            startQuestionPhase(playerIds[0], 'this-or-that');
+        } else if (overallScores.player2 > overallScores.player1) {
+            startQuestionPhase(playerIds[1], 'this-or-that');
+        } else {
+            // Tie - randomly pick winner
+            const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
+            startQuestionPhase(randomWinner, 'this-or-that');
+        }
+    }, 2000); // Small delay to let instruction screen show
 }
 
 function determineTriviaWinner() {
     if (!isHost) return;
     
-    const playerIds = Object.keys(currentGame.players);
-    const scores = currentGame.triviaRoundScores || { player1: 0, player2: 0 };
+    // Show question instructions first
+    gameRef.update({
+        gamePhase: 'question-instructions',
+        questionGameType: 'trivia'
+    });
     
-    if (scores.player1 > scores.player2) {
-        startQuestionPhase(playerIds[0], 'trivia');
-    } else if (scores.player2 > scores.player1) {
-        startQuestionPhase(playerIds[1], 'trivia');
-    } else {
-        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
-        startQuestionPhase(randomWinner, 'trivia');
-    }
+    // After instructions, determine winner
+    setTimeout(() => {
+        const playerIds = Object.keys(currentGame.players);
+        const scores = currentGame.triviaRoundScores || { player1: 0, player2: 0 };
+        
+        if (scores.player1 > scores.player2) {
+            startQuestionPhase(playerIds[0], 'trivia');
+        } else if (scores.player2 > scores.player1) {
+            startQuestionPhase(playerIds[1], 'trivia');
+        } else {
+            const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
+            startQuestionPhase(randomWinner, 'trivia');
+        }
+    }, 2000);
 }
 
 function determineSpeedWinner() {
     if (!isHost) return;
     
-    const playerIds = Object.keys(currentGame.players);
-    const player1Answers = currentGame.player1Answers || [];
-    const player2Answers = currentGame.player2Answers || [];
+    // Show question instructions first
+    gameRef.update({
+        gamePhase: 'question-instructions',
+        questionGameType: 'speed'
+    });
     
-    if (player1Answers.length > player2Answers.length) {
-        startQuestionPhase(playerIds[0], 'speed');
-    } else if (player2Answers.length > player1Answers.length) {
-        startQuestionPhase(playerIds[1], 'speed');
-    } else {
-        const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
-        startQuestionPhase(randomWinner, 'speed');
-    }
+    // After instructions, determine winner
+    setTimeout(() => {
+        const playerIds = Object.keys(currentGame.players);
+        const player1Answers = currentGame.player1Answers || [];
+        const player2Answers = currentGame.player2Answers || [];
+        
+        if (player1Answers.length > player2Answers.length) {
+            startQuestionPhase(playerIds[0], 'speed');
+        } else if (player2Answers.length > player1Answers.length) {
+            startQuestionPhase(playerIds[1], 'speed');
+        } else {
+            const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
+            startQuestionPhase(randomWinner, 'speed');
+        }
+    }, 2000);
 }
 
 function startQuestionPhase(winnerId, gameType) {
