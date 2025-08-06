@@ -570,12 +570,52 @@ function continueFromQuestionInstructions() {
     console.log('Continuing from question instructions');
     soundSystem.playClick();
     
-    // FIXED: Get winner data from Firebase, not local variables
+    // FIXED: Get fresh game data and determine winner based on game type
     gameRef.once('value').then((snapshot) => {
         const gameData = snapshot.val();
-        const winnerId = gameData.questionWinner;
+        const playerIds = Object.keys(gameData.players);
         const gameType = gameData.questionGameType;
+        let winnerId;
         
+        console.log('Determining winner for game type:', gameType);
+        console.log('Current scores:', overallScores);
+        
+        if (gameType === 'this-or-that') {
+            // Winner based on overall scores from this or that round
+            if (overallScores.player1 > overallScores.player2) {
+                winnerId = playerIds[0];
+            } else if (overallScores.player2 > overallScores.player1) {
+                winnerId = playerIds[1];
+            } else {
+                // Tie - randomly pick winner
+                winnerId = playerIds[Math.floor(Math.random() * playerIds.length)];
+            }
+        } else if (gameType === 'trivia') {
+            // Winner based on trivia round scores
+            const scores = gameData.triviaRoundScores || { player1: 0, player2: 0 };
+            if (scores.player1 > scores.player2) {
+                winnerId = playerIds[0];
+            } else if (scores.player2 > scores.player1) {
+                winnerId = playerIds[1];
+            } else {
+                winnerId = playerIds[Math.floor(Math.random() * playerIds.length)];
+            }
+        } else if (gameType === 'speed') {
+            // Winner based on speed game results
+            const player1Answers = gameData.player1Answers || [];
+            const player2Answers = gameData.player2Answers || [];
+            if (player1Answers.length > player2Answers.length) {
+                winnerId = playerIds[0];
+            } else if (player2Answers.length > player1Answers.length) {
+                winnerId = playerIds[1];
+            } else {
+                winnerId = playerIds[Math.floor(Math.random() * playerIds.length)];
+            }
+        }
+        
+        console.log('Winner determined:', winnerId);
+        
+        // Now go to category selection with the winner
         gameRef.update({
             gamePhase: 'category-selection',
             questionWinner: winnerId,
@@ -1310,105 +1350,34 @@ function determineThisOrThatWinner() {
     
     console.log('Determining This or That winner...');
     
-    // FIXED: Get current game data from Firebase
-    gameRef.once('value').then((snapshot) => {
-        const gameData = snapshot.val();
-        const playerIds = Object.keys(gameData.players);
-        
-        console.log('Current overall scores:', overallScores);
-        
-        // Show question instructions first
-        gameRef.update({
-            gamePhase: 'question-instructions',
-            questionGameType: 'this-or-that'
-        });
-        
-        // After instructions, determine winner based on overall scores
-        setTimeout(() => {
-            let winnerId;
-            if (overallScores.player1 > overallScores.player2) {
-                winnerId = playerIds[0];
-            } else if (overallScores.player2 > overallScores.player1) {
-                winnerId = playerIds[1];
-            } else {
-                // Tie - randomly pick winner
-                winnerId = playerIds[Math.floor(Math.random() * playerIds.length)];
-            }
-            
-            console.log('This or That winner determined:', winnerId);
-            
-            gameRef.update({
-                gamePhase: 'category-selection',
-                questionWinner: winnerId,
-                questionGameType: 'this-or-that',
-                selectedCategory: null,
-                questionToAnswer: null
-            });
-        }, 1000); // Shorter delay
+    // FIXED: Only show instructions, let continueFromQuestionInstructions handle winner logic
+    gameRef.update({
+        gamePhase: 'question-instructions',
+        questionGameType: 'this-or-that'
     });
 }
 
 function determineTriviaWinner() {
     if (!isHost) return;
     
-    // Show question instructions first
+    console.log('Determining Trivia winner...');
+    
+    // Only show instructions, let continueFromQuestionInstructions handle winner logic
     gameRef.update({
         gamePhase: 'question-instructions',
         questionGameType: 'trivia'
     });
-    
-    // After instructions, determine winner
-    setTimeout(() => {
-        const playerIds = Object.keys(currentGame.players);
-        const scores = currentGame.triviaRoundScores || { player1: 0, player2: 0 };
-        
-        if (scores.player1 > scores.player2) {
-            startQuestionPhase(playerIds[0], 'trivia');
-        } else if (scores.player2 > scores.player1) {
-            startQuestionPhase(playerIds[1], 'trivia');
-        } else {
-            const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
-            startQuestionPhase(randomWinner, 'trivia');
-        }
-    }, 2000);
 }
 
 function determineSpeedWinner() {
     if (!isHost) return;
     
-    // Show question instructions first
+    console.log('Determining Speed winner...');
+    
+    // Only show instructions, let continueFromQuestionInstructions handle winner logic
     gameRef.update({
         gamePhase: 'question-instructions',
         questionGameType: 'speed'
-    });
-    
-    // After instructions, determine winner
-    setTimeout(() => {
-        const playerIds = Object.keys(currentGame.players);
-        const player1Answers = currentGame.player1Answers || [];
-        const player2Answers = currentGame.player2Answers || [];
-        
-        if (player1Answers.length > player2Answers.length) {
-            startQuestionPhase(playerIds[0], 'speed');
-        } else if (player2Answers.length > player1Answers.length) {
-            startQuestionPhase(playerIds[1], 'speed');
-        } else {
-            const randomWinner = playerIds[Math.floor(Math.random() * playerIds.length)];
-            startQuestionPhase(randomWinner, 'speed');
-        }
-    }, 2000);
-}
-
-function startQuestionPhase(winnerId, gameType) {
-    if (!isHost) return;
-    
-    console.log(`Starting question phase - winner: ${winnerId}, game type: ${gameType}`);
-    gameRef.update({
-        gamePhase: 'category-selection',
-        questionWinner: winnerId,
-        questionGameType: gameType,
-        selectedCategory: null,
-        questionToAnswer: null
     });
 }
 
