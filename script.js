@@ -2,6 +2,44 @@
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
+// Animal avatars system
+const ANIMAL_AVATARS = [
+    { emoji: '🐵', name: 'Monkey' },
+    { emoji: '🐶', name: 'Dog' },
+    { emoji: '🐱', name: 'Cat' },
+    { emoji: '🦊', name: 'Fox' },
+    { emoji: '🐻', name: 'Bear' },
+    { emoji: '🐼', name: 'Panda' },
+    { emoji: '🐨', name: 'Koala' },
+    { emoji: '🐯', name: 'Tiger' },
+    { emoji: '🦁', name: 'Lion' },
+    { emoji: '🐸', name: 'Frog' },
+    { emoji: '🐷', name: 'Pig' },
+    { emoji: '🐮', name: 'Cow' },
+    { emoji: '🐔', name: 'Chicken' },
+    { emoji: '🦆', name: 'Duck' },
+    { emoji: '🐧', name: 'Penguin' },
+    { emoji: '🦉', name: 'Owl' },
+    { emoji: '🦅', name: 'Eagle' },
+    { emoji: '🐺', name: 'Wolf' },
+    { emoji: '🦝', name: 'Raccoon' },
+    { emoji: '🦦', name: 'Otter' },
+    { emoji: '🦘', name: 'Kangaroo' },
+    { emoji: '🐘', name: 'Elephant' },
+    { emoji: '🦏', name: 'Rhino' },
+    { emoji: '🦒', name: 'Giraffe' },
+    { emoji: '🐪', name: 'Camel' },
+    { emoji: '🐙', name: 'Octopus' },
+    { emoji: '🦈', name: 'Shark' },
+    { emoji: '🐬', name: 'Dolphin' },
+    { emoji: '🐳', name: 'Whale' },
+    { emoji: '🦀', name: 'Crab' }
+];
+
+function getRandomAvatar() {
+    return ANIMAL_AVATARS[Math.floor(Math.random() * ANIMAL_AVATARS.length)];
+}
+
 // Sound System
 class SoundSystem {
     constructor() {
@@ -328,6 +366,7 @@ const speedCategoriesWithAnswers = {
 let roomCode = '';
 let playerId = '';
 let playerName = '';
+let playerAvatar = null;
 let isHost = false;
 let gameRef = null;
 let currentGame = null;
@@ -474,74 +513,78 @@ function showScreen(screenId) {
     }
 }
 
-// UPDATED: Enhanced updateScoreboard function to update all scoreboards
+// UPDATED: Enhanced updateScoreboard function to update all scoreboards with avatars
 function updateScoreboard() {
     // Update player names and scores in ALL scoreboards
     if (currentGame && currentGame.players) {
         const playerIds = Object.keys(currentGame.players);
         if (playerIds.length >= 1) {
             const p1Name = currentGame.players[playerIds[0]].name;
+            const p1Avatar = currentGame.players[playerIds[0]].avatar || { emoji: '🐵', name: 'Player' };
             const p1Score = overallScores.player1 || 0;
+            const p1Display = `${p1Avatar.emoji} ${p1Name}`;
             
             // Main game screen
             const gameP1 = document.getElementById('game-player1');
             const gameS1 = document.getElementById('score-player1');
-            if (gameP1) gameP1.textContent = p1Name;
+            if (gameP1) gameP1.textContent = p1Display;
             if (gameS1) gameS1.textContent = `(${p1Score})`;
             
             // This or That screens
             const answerP1 = document.getElementById('guessing-answer-player1');
             const answerS1 = document.getElementById('guessing-answer-score1');
-            if (answerP1) answerP1.textContent = p1Name;
+            if (answerP1) answerP1.textContent = p1Display;
             if (answerS1) answerS1.textContent = `(${p1Score})`;
             
             const guessP1 = document.getElementById('guessing-guess-player1');
             const guessS1 = document.getElementById('guessing-guess-score1');
-            if (guessP1) guessP1.textContent = p1Name;
+            if (guessP1) guessP1.textContent = p1Display;
             if (guessS1) guessS1.textContent = `(${p1Score})`;
             
             const resultP1 = document.getElementById('guessing-result-player1');
             const resultS1 = document.getElementById('guessing-result-score1');
-            if (resultP1) resultP1.textContent = p1Name;
+            if (resultP1) resultP1.textContent = p1Display;
             if (resultS1) resultS1.textContent = `(${p1Score})`;
             
             // Category selection screen
             const categoryP1 = document.getElementById('category-player1');
             const categoryS1 = document.getElementById('category-score1');
-            if (categoryP1) categoryP1.textContent = p1Name;
+            if (categoryP1) categoryP1.textContent = p1Display;
             if (categoryS1) categoryS1.textContent = `(${p1Score})`;
         }
         
         if (playerIds.length >= 2) {
             const p2Name = currentGame.players[playerIds[1]].name;
+            const p2Avatar = currentGame.players[playerIds[1]].avatar || { emoji: '🐶', name: 'Player' };
             const p2Score = overallScores.player2 || 0;
+            const p2Display = `${p2Avatar.emoji} ${p2Name}`;
             
             // Main game screen
             const gameP2 = document.getElementById('game-player2');
             const gameS2 = document.getElementById('score-player2');
-            if (gameP2) gameP2.textContent = p2Name;
+            if (gameP2) gameP2.textContent = p2Display;
             if (gameS2) gameS2.textContent = `(${p2Score})`;
             
             // This or That screens
             const answerP2 = document.getElementById('guessing-answer-player2');
             const answerS2 = document.getElementById('guessing-answer-score2');
-            if (answerP2) answerP2.textContent = p2Name;
+            if (answerP2) answerP2.textContent = p2Display;
             if (answerS2) answerS2.textContent = `(${p2Score})`;
             
             const guessP2 = document.getElementById('guessing-guess-player2');
             const guessS2 = document.getElementById('guessing-guess-score2');
-            if (guessP2) guessP2.textContent = p2Name;
+            if (guessP2) guessP2.textContent = p2Display;
             if (guessS2) guessS2.textContent = `(${p2Score})`;
             
             const resultP2 = document.getElementById('guessing-result-player2');
             const resultS2 = document.getElementById('guessing-result-score2');
-            if (resultP2) resultP2.textContent = p2Name;
+            if (resultP2) resultP2.textContent = p2Display;
             if (resultS2) resultS2.textContent = `(${p2Score})`;
             
             // Category selection screen
             const categoryP2 = document.getElementById('category-player2');
             const categoryS2 = document.getElementById('category-score2');
-            if (categoryP2) categoryP2.textContent = p2Name;
+            if (categoryP2) categoryP2.textContent = p2Display;
             if (categoryS2) categoryS2.textContent = `(${p2Score})`;
         }
     }
@@ -592,6 +635,7 @@ function getCategoryMaxScore(category) {
 function createRoom() {
     roomCode = generateRoomCode();
     playerId = generatePlayerId();
+    playerAvatar = getRandomAvatar();
     isHost = true;
     
     document.getElementById('room-code').textContent = roomCode;
@@ -622,6 +666,7 @@ function submitCreatorName() {
     if (gameRef && playerId) {
         gameRef.child(`players/${playerId}`).update({
             name: name,
+            avatar: playerAvatar,
             ready: true
         });
         
@@ -642,6 +687,7 @@ function setupRoom() {
         players: {
             [playerId]: {
                 name: name,
+                avatar: playerAvatar,
                 connected: true,
                 ready: false
             }
@@ -690,7 +736,7 @@ function setupRoom() {
     gameRef.child(`players/${playerId}/connected`).onDisconnect().set(false);
 }
 
-// UPDATED: Enhanced joinRoom function with waiting feedback
+// UPDATED: Enhanced joinRoom function with avatar assignment
 function joinRoom() {
     const code = document.getElementById('join-code').value.toUpperCase();
     const name = document.getElementById('joiner-name').value || 'Player 2';
@@ -711,6 +757,7 @@ function joinRoom() {
     roomCode = code;
     playerId = generatePlayerId();
     playerName = name;
+    playerAvatar = getRandomAvatar();
     isHost = false;
     
     gameRef = database.ref(`games/${roomCode}`);
@@ -719,6 +766,7 @@ function joinRoom() {
         if (snapshot.exists()) {
             gameRef.child(`players/${playerId}`).set({
                 name: name,
+                avatar: playerAvatar,
                 connected: true,
                 ready: true
             })
@@ -858,7 +906,7 @@ function startQuestionPhase(winnerId, gameType) {
     }
 }
 
-// Game Logic
+// UPDATED: Fixed game logic to properly handle completion signals
 function handleGameUpdate(gameData) {
     // Always update currentGame first
     currentGame = gameData;
@@ -879,6 +927,12 @@ function handleGameUpdate(gameData) {
     // Sync this-or-that questions counter
     if (gameData.thisOrThatQuestionsAsked !== undefined) {
         thisOrThatQuestionsAsked = gameData.thisOrThatQuestionsAsked;
+    }
+    
+    // FIXED: Handle question completion signals
+    if (gameData.questionAnswerComplete && isHost && !gameData.questionCompletionProcessed) {
+        handleQuestionCompletionSignal(gameData);
+        return; // Exit early to prevent double processing
     }
     
     const playerCount = Object.keys(gameData.players).length;
@@ -957,6 +1011,27 @@ function handleGameUpdate(gameData) {
                 updateGameScreen(gameData);
             }
         }
+    }
+}
+
+// FIXED: Proper handling of question completion signals
+function handleQuestionCompletionSignal(gameData) {
+    console.log('Processing question completion signal from non-host');
+    
+    // Move to next round or end game
+    const nextRound = (currentGame.currentRound || 0) + 1;
+    
+    if (nextRound > 3) {
+        // Game complete
+        endGame();
+    } else {
+        // Start next competitive round and mark signal as processed
+        gameRef.update({
+            questionAnswerComplete: false,
+            questionCompletionProcessed: true,
+            completedBy: null
+        });
+        startNewRound(nextRound);
     }
 }
 
@@ -1116,18 +1191,14 @@ function showQuestionToAnswer(question) {
     console.log('Question to answer flow handled by handleQuestionAnsweringPhase:', question);
 }
 
-// UPDATED: Fix completeQuestionAnswer to work for non-hosts
+// FIXED: Simplified completeQuestionAnswer to always work
 function completeQuestionAnswer() {
-    console.log('Question answer completed');
+    console.log('Question answer completed by:', playerId, 'isHost:', isHost);
     
-    // Allow anyone to trigger this, but only host makes the Firebase update
-    // This fixes the bug where non-host couldn't click "Discussion Complete"
-    
-    // Move to next round or end game
-    const nextRound = (currentGame.currentRound || 0) + 1;
-    
-    // First, let non-host signal completion to host
+    // Always allow anyone to signal completion
+    // Non-hosts signal to host, hosts handle directly
     if (!isHost) {
+        console.log('Non-host signaling completion to host');
         gameRef.update({
             questionAnswerComplete: true,
             completedBy: playerId
@@ -1136,32 +1207,15 @@ function completeQuestionAnswer() {
     }
     
     // Host handles the actual game progression
+    console.log('Host processing completion');
+    const nextRound = (currentGame.currentRound || 0) + 1;
+    
     if (nextRound > 3) {
         // Game complete
         endGame();
     } else {
         // Start next competitive round
         startNewRound(nextRound);
-    }
-}
-
-// Add listener for question completion signals
-function handleQuestionCompletionSignal(gameData) {
-    if (gameData.questionAnswerComplete && isHost && !gameData.questionCompletionProcessed) {
-        // Host received signal from non-host to complete question
-        const nextRound = (currentGame.currentRound || 0) + 1;
-        
-        if (nextRound > 3) {
-            // Game complete
-            endGame();
-        } else {
-            // Start next competitive round and clear the signal
-            gameRef.update({
-                questionAnswerComplete: false,
-                questionCompletionProcessed: true
-            });
-            startNewRound(nextRound);
-        }
     }
 }
 
@@ -1429,20 +1483,24 @@ function showSpeedCategoriesResults(gameData) {
     // Show category
     document.getElementById('speed-result-category').textContent = gameData.speedCategory;
     
-    // Show scores
-    document.getElementById('speed-result-player1-name').textContent = gameData.players[playerIds[0]].name;
+    // Show scores with avatars
+    const player1Name = gameData.players[playerIds[0]].name;
+    const player1Avatar = gameData.players[playerIds[0]].avatar || { emoji: '🐵', name: 'Player' };
+    document.getElementById('speed-result-player1-name').textContent = `${player1Avatar.emoji} ${player1Name}`;
     document.getElementById('speed-result-player1-score').textContent = player1Answers.length;
     
-    document.getElementById('speed-result-player2-name').textContent = gameData.players[playerIds[1]].name;
+    const player2Name = gameData.players[playerIds[1]].name;
+    const player2Avatar = gameData.players[playerIds[1]].avatar || { emoji: '🐶', name: 'Player' };
+    document.getElementById('speed-result-player2-name').textContent = `${player2Avatar.emoji} ${player2Name}`;
     document.getElementById('speed-result-player2-score').textContent = player2Answers.length;
     
     // Show winner
     let winnerText = '';
     if (player1Answers.length > player2Answers.length) {
-        winnerText = `${gameData.players[playerIds[0]].name} wins!`;
+        winnerText = `${player1Avatar.emoji} ${player1Name} wins!`;
         triggerConfetti('correct');
     } else if (player2Answers.length > player1Answers.length) {
-        winnerText = `${gameData.players[playerIds[1]].name} wins!`;
+        winnerText = `${player2Avatar.emoji} ${player2Name} wins!`;
         triggerConfetti('correct');
     } else {
         winnerText = "It's a tie!";
@@ -1453,9 +1511,9 @@ function showSpeedCategoriesResults(gameData) {
     document.getElementById('speed-result-player1-answers').textContent = player1Answers.join(', ');
     document.getElementById('speed-result-player2-answers').textContent = player2Answers.join(', ');
     
-    // Update continue button names
-    document.getElementById('speed-result-player1-name-2').textContent = gameData.players[playerIds[0]].name + ' Answers:';
-    document.getElementById('speed-result-player2-name-2').textContent = gameData.players[playerIds[1]].name + ' Answers:';
+    // Update continue button names with avatars
+    document.getElementById('speed-result-player1-name-2').textContent = `${player1Avatar.emoji} ${player1Name} Answers:`;
+    document.getElementById('speed-result-player2-name-2').textContent = `${player2Avatar.emoji} ${player2Name} Answers:`;
     
     // Continue button leads to winner determination
     const continueBtn = document.getElementById('continue-from-speed-btn');
@@ -1468,6 +1526,7 @@ function showSpeedCategoriesResults(gameData) {
     }
 }
 
+// FIXED: Simplified This or That game logic
 function startThisOrThatGame(roundNumber) {
     console.log('Starting this or that game for round:', roundNumber);
     
@@ -1481,17 +1540,9 @@ function startThisOrThatGame(roundNumber) {
         thisOrThatQuestionsAsked = currentGame.thisOrThatQuestionsAsked;
     }
     
-    // Determine who chooses based on question number
-    // Questions 1,2,3: host chooses if odd question number
-    // Questions 4,5,6: host chooses if even question number
+    // FIXED: Simplified turn alternation - just alternate every question
     const questionNumber = thisOrThatQuestionsAsked + 1;
-    let hostIsChooser;
-    
-    if (questionNumber <= 3) {
-        hostIsChooser = (questionNumber % 2 === 1); // Host chooses questions 1 and 3
-    } else {
-        hostIsChooser = (questionNumber % 2 === 0); // Host chooses questions 4 and 6
-    }
+    const hostIsChooser = (questionNumber % 2 === 1); // Host chooses on odd questions (1, 3, 5)
     
     console.log('This or that game setup:', {
         questionNumber,
@@ -1536,7 +1587,7 @@ function handleThisOrThatGameUpdate(gameData) {
         return;
     }
     
-    // Determine if current player is the chooser based on their position
+    // FIXED: Simplified role determination - host alternates being chooser
     const hostIndex = playerIds.indexOf(gameData.host);
     const isChooser = (gameData.hostIsChooser && myPlayerIndex === hostIndex) || 
                      (!gameData.hostIsChooser && myPlayerIndex !== hostIndex);
@@ -1962,6 +2013,7 @@ function leaveGame() {
     roomCode = '';
     playerId = '';
     playerName = '';
+    playerAvatar = null;
     isHost = false;
     gameRef = null;
     currentGame = null;
@@ -1999,14 +2051,9 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
         // Continue with next this-or-that question (existing logic)
         const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
         
+        // FIXED: Simplified alternation logic
         const questionNumber = nextQuestionNumber + 1;
-        let hostIsChooser;
-        
-        if (questionNumber <= 3) {
-            hostIsChooser = (questionNumber % 2 === 1);
-        } else {
-            hostIsChooser = (questionNumber % 2 === 0);
-        }
+        const hostIsChooser = (questionNumber % 2 === 1); // Simple alternation
         
         gameRef.update({
             thisOrThatQuestion: newQuestion,
@@ -2110,12 +2157,17 @@ function showTriviaQuestion(gameData) {
     document.getElementById('trivia-question-number').textContent = 
         `Question ${questionNum} of 6`;
     
-    // Update scores
+    // Update scores with avatars
     const playerIds = Object.keys(gameData.players);
+    const player1Name = gameData.players[playerIds[0]].name;
+    const player1Avatar = gameData.players[playerIds[0]].avatar || { emoji: '🐵', name: 'Player' };
+    const player2Name = gameData.players[playerIds[1]].name;
+    const player2Avatar = gameData.players[playerIds[1]].avatar || { emoji: '🐶', name: 'Player' };
+    
     document.getElementById('player1-score').textContent = 
-        `${gameData.players[playerIds[0]].name}: ${triviaRoundScores.player1}`;
+        `${player1Avatar.emoji} ${player1Name}: ${triviaRoundScores.player1}`;
     document.getElementById('player2-score').textContent = 
-        `${gameData.players[playerIds[1]].name}: ${triviaRoundScores.player2}`;
+        `${player2Avatar.emoji} ${player2Name}: ${triviaRoundScores.player2}`;
     
     // Show question
     document.getElementById('trivia-question').textContent = gameData.triviaQuestion.question;
@@ -2248,10 +2300,15 @@ function showTriviaResults(gameData) {
     
     // Update title
     let title = '';
+    const player1Name = gameData.players[playerIds[0]].name;
+    const player1Avatar = gameData.players[playerIds[0]].avatar || { emoji: '🐵', name: 'Player' };
+    const player2Name = gameData.players[playerIds[1]].name;
+    const player2Avatar = gameData.players[playerIds[1]].avatar || { emoji: '🐶', name: 'Player' };
+    
     if (player1Correct && player2Correct) {
         title = '🎉 Both Correct! 🎉';
     } else if (player1Correct || player2Correct) {
-        const winner = player1Correct ? gameData.players[playerIds[0]].name : gameData.players[playerIds[1]].name;
+        const winner = player1Correct ? `${player1Avatar.emoji} ${player1Name}` : `${player2Avatar.emoji} ${player2Name}`;
         title = `🎉 ${winner} Got It! 🎉`;
     } else {
         title = '❌ Nobody Got It! ❌';
@@ -2262,13 +2319,13 @@ function showTriviaResults(gameData) {
     document.getElementById('trivia-result-question').textContent = gameData.triviaQuestion.question;
     document.getElementById('correct-answer').textContent = gameData.triviaQuestion.options[correctAnswer];
     
-    // Show player answers
-    document.getElementById('player1-name-result').textContent = gameData.players[playerIds[0]].name;
+    // Show player answers with avatars
+    document.getElementById('player1-name-result').textContent = `${player1Avatar.emoji} ${player1Name}`;
     document.getElementById('player1-answer').textContent = 
         gameData.player1Answer !== null ? gameData.triviaQuestion.options[gameData.player1Answer] : 'No answer';
     document.getElementById('player1-answer').style.color = player1Correct ? '#4CAF50' : '#f44336';
     
-    document.getElementById('player2-name-result').textContent = gameData.players[playerIds[1]].name;
+    document.getElementById('player2-name-result').textContent = `${player2Avatar.emoji} ${player2Name}`;
     document.getElementById('player2-answer').textContent = 
         gameData.player2Answer !== null ? gameData.triviaQuestion.options[gameData.player2Answer] : 'No answer';
     document.getElementById('player2-answer').style.color = player2Correct ? '#4CAF50' : '#f44336';
@@ -2300,19 +2357,24 @@ function showTriviaRoundComplete(gameData) {
     const playerIds = Object.keys(gameData.players);
     const scores = gameData.triviaRoundScores;
     
-    // Show final scores
-    document.getElementById('player1-final').textContent = gameData.players[playerIds[0]].name;
+    // Show final scores with avatars
+    const player1Name = gameData.players[playerIds[0]].name;
+    const player1Avatar = gameData.players[playerIds[0]].avatar || { emoji: '🐵', name: 'Player' };
+    const player2Name = gameData.players[playerIds[1]].name;
+    const player2Avatar = gameData.players[playerIds[1]].avatar || { emoji: '🐶', name: 'Player' };
+    
+    document.getElementById('player1-final').textContent = `${player1Avatar.emoji} ${player1Name}`;
     document.getElementById('player1-final-score').textContent = scores.player1;
     
-    document.getElementById('player2-final').textContent = gameData.players[playerIds[1]].name;
+    document.getElementById('player2-final').textContent = `${player2Avatar.emoji} ${player2Name}`;
     document.getElementById('player2-final-score').textContent = scores.player2;
     
     // Determine winner
     let winnerText = '';
     if (scores.player1 > scores.player2) {
-        winnerText = `${gameData.players[playerIds[0]].name} wins the trivia round!`;
+        winnerText = `${player1Avatar.emoji} ${player1Name} wins the trivia round!`;
     } else if (scores.player2 > scores.player1) {
-        winnerText = `${gameData.players[playerIds[1]].name} wins the trivia round!`;
+        winnerText = `${player2Avatar.emoji} ${player2Name} wins the trivia round!`;
     } else {
         winnerText = "It's a tie! Great minds think alike!";
     }
