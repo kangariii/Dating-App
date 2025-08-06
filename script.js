@@ -244,6 +244,7 @@ function generatePlayerId() {
 }
 
 function showScreen(screenId) {
+    console.log('Showing screen:', screenId); // Debug log
     const screens = document.querySelectorAll('.screen');
     screens.forEach(screen => {
         screen.classList.remove('active');
@@ -255,11 +256,14 @@ function showScreen(screenId) {
         targetScreen.style.display = 'block';
         targetScreen.classList.add('active');
         targetScreen.style.opacity = '1';
+    } else {
+        console.error('Screen not found:', screenId);
     }
 }
 
 // Simple create room function
 function createRoom() {
+    console.log('Creating room...'); // Debug log
     roomCode = generateRoomCode();
     playerId = generatePlayerId();
     isHost = true;
@@ -271,11 +275,19 @@ function createRoom() {
     soundSystem.init();
 }
 
-// Simple join room function
+// Simple join room function with better error handling
 function showJoinScreen() {
+    console.log('Showing join screen...'); // Debug log
     playerId = generatePlayerId();
     isHost = false;
     showScreen('join-screen');
+    
+    // Clear any previous input values
+    document.getElementById('join-code').value = '';
+    document.getElementById('joiner-name').value = '';
+    
+    // Initialize sound system
+    soundSystem.init();
 }
 
 // Setup room for creator
@@ -326,46 +338,99 @@ function submitCreatorName() {
     document.getElementById('creator-waiting').style.display = 'block';
 }
 
-// Join existing room
+// Join existing room with better error handling and user feedback
 function joinRoom() {
-    const code = document.getElementById('join-code').value.toUpperCase();
-    const name = document.getElementById('joiner-name').value || 'Player 2';
+    console.log('Attempting to join room...'); // Debug log
     
+    const code = document.getElementById('join-code').value.trim().toUpperCase();
+    const name = document.getElementById('joiner-name').value.trim() || 'Player 2';
+    
+    console.log('Join code:', code, 'Player name:', name); // Debug log
+    
+    // Validation
     if (code.length !== 4) {
         alert('Please enter a valid 4-character room code');
         return;
     }
+    
+    if (!name) {
+        alert('Please enter your name');
+        return;
+    }
+    
+    // Show loading state
+    const joinBtn = document.getElementById('join-game-btn');
+    const originalText = joinBtn.textContent;
+    joinBtn.textContent = 'Joining...';
+    joinBtn.disabled = true;
+    
+    // Show waiting message
+    document.getElementById('join-waiting').style.display = 'block';
     
     roomCode = code;
     playerName = name;
     
     gameRef = database.ref(`games/${roomCode}`);
     
-    gameRef.once('value').then((snapshot) => {
-        if (snapshot.exists()) {
-            // Initialize sound system
-            soundSystem.init();
-            soundSystem.playJoin();
+    console.log('Checking if room exists...'); // Debug log
+    
+    gameRef.once('value')
+        .then((snapshot) => {
+            console.log('Room check result:', snapshot.exists()); // Debug log
             
-            gameRef.child(`players/${playerId}`).set({
-                name: name,
-                connected: true,
-                ready: true
-            }).then(() => {
-                console.log('Successfully joined room!');
-                gameRef.on('value', handleGameUpdate);
-                gameRef.child(`players/${playerId}/connected`).onDisconnect().set(false);
-            });
-        } else {
-            alert('Room not found. Please check the code and try again.');
-        }
-    });
+            if (snapshot.exists()) {
+                console.log('Room found, joining...'); // Debug log
+                
+                // Initialize sound system
+                soundSystem.init();
+                soundSystem.playJoin();
+                
+                return gameRef.child(`players/${playerId}`).set({
+                    name: name,
+                    connected: true,
+                    ready: true
+                });
+            } else {
+                throw new Error('Room not found');
+            }
+        })
+        .then(() => {
+            console.log('Successfully joined room!');
+            
+            // Set up listeners
+            gameRef.on('value', handleGameUpdate);
+            gameRef.child(`players/${playerId}/connected`).onDisconnect().set(false);
+            
+            // Show success message temporarily
+            document.getElementById('join-waiting').textContent = 'Joined successfully! Waiting for host to start...';
+            
+        })
+        .catch((error) => {
+            console.error('Error joining room:', error);
+            
+            // Reset UI
+            joinBtn.textContent = originalText;
+            joinBtn.disabled = false;
+            document.getElementById('join-waiting').style.display = 'none';
+            
+            // Show appropriate error message
+            if (error.message === 'Room not found') {
+                alert('Room not found. Please check the code and try again.');
+            } else {
+                alert('Error joining room: ' + error.message);
+            }
+        });
 }
 
 // Main game update handler
 function handleGameUpdate(snapshot) {
     const gameData = snapshot.val();
-    if (!gameData) return;
+    if (!gameData) {
+        console.log('No game data received');
+        return;
+    }
+    
+    console.log('Game update received:', gameData); // Debug log
     
     currentGame = gameData;
     
@@ -378,16 +443,33 @@ function handleGameUpdate(snapshot) {
     updateScoreboard();
     
     const playerCount = Object.keys(gameData.players).length;
+    console.log('Player count:', playerCount); // Debug log
     
     // Start game when both players ready
     if (playerCount === 2 && !gameData.gameStarted) {
         const allReady = Object.values(gameData.players).every(player => player.ready);
-        if (allReady && isHost) {
-            startNewRound(1);
+        console.log('All players ready:', allReady); // Debug log
+        
+        if (allReady) {
+            // Show game is starting
+            if (!isHost) {
+                showScreen('game-screen');
+                document.getElementById('turn-indicator').textContent = 'Game starting soon...';
+                document.getElementById('question-content').style.display = 'none';
+                document.getElementById('waiting-content').style.display = 'block';
+            }
+            
+            if (isHost) {
+                console.log('Host starting game...');
+                setTimeout(() => {
+                    startNewRound(1);
+                }, 1000); // Small delay for better UX
+            }
         }
     } else if (gameData.gameStarted) {
         // Handle different game phases based on current round
         const roundType = GAME_STRUCTURE[gameData.currentRound]?.type;
+        console.log('Handling round type:', roundType); // Debug log
         
         if (roundType === 'this-or-that') {
             handleThisOrThatGameUpdate(gameData);
@@ -400,6 +482,10 @@ function handleGameUpdate(snapshot) {
         } else if (gameData.gamePhase === 'question-answering') {
             handleQuestionAnsweringPhase(gameData);
         }
+    } else if (playerCount === 1 && !isHost) {
+        // Joiner waiting for host to be ready
+        showScreen('join-screen');
+        document.getElementById('join-waiting').textContent = 'Joined successfully! Waiting for host to start...';
     }
 }
 
@@ -413,10 +499,20 @@ function updateScoreboard() {
             const p1Score = overallScores.player1 || 0;
             
             // Update all scoreboards
-            const gameP1 = document.getElementById('game-player1');
-            const gameS1 = document.getElementById('score-player1');
-            if (gameP1) gameP1.textContent = p1Name;
-            if (gameS1) gameS1.textContent = `(${p1Score})`;
+            const gameP1Elements = document.querySelectorAll('[id*="player1"]');
+            const gameS1Elements = document.querySelectorAll('[id*="score1"], [id*="score-player1"]');
+            
+            gameP1Elements.forEach(el => {
+                if (el && el.textContent !== undefined) {
+                    el.textContent = p1Name;
+                }
+            });
+            
+            gameS1Elements.forEach(el => {
+                if (el && el.textContent !== undefined) {
+                    el.textContent = `(${p1Score})`;
+                }
+            });
         }
         
         if (playerIds.length >= 2) {
@@ -424,10 +520,20 @@ function updateScoreboard() {
             const p2Score = overallScores.player2 || 0;
             
             // Update all scoreboards
-            const gameP2 = document.getElementById('game-player2');
-            const gameS2 = document.getElementById('score-player2');
-            if (gameP2) gameP2.textContent = p2Name;
-            if (gameS2) gameS2.textContent = `(${p2Score})`;
+            const gameP2Elements = document.querySelectorAll('[id*="player2"]');
+            const gameS2Elements = document.querySelectorAll('[id*="score2"], [id*="score-player2"]');
+            
+            gameP2Elements.forEach(el => {
+                if (el && el.textContent !== undefined) {
+                    el.textContent = p2Name;
+                }
+            });
+            
+            gameS2Elements.forEach(el => {
+                if (el && el.textContent !== undefined) {
+                    el.textContent = `(${p2Score})`;
+                }
+            });
         }
     }
 }
@@ -437,6 +543,8 @@ function startNewRound(roundNumber = null) {
     if (!roundNumber) {
         roundNumber = (currentGame.currentRound || 0) + 1;
     }
+    
+    console.log('Starting round:', roundNumber); // Debug log
     
     if (roundNumber > 3) {
         // Game complete - show final screen
@@ -1433,7 +1541,12 @@ document.getElementById('creator-name').addEventListener('keypress', function(e)
 
 document.getElementById('join-code').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-        joinRoom();
+        const nameField = document.getElementById('joiner-name');
+        if (nameField.value.trim()) {
+            joinRoom();
+        } else {
+            nameField.focus();
+        }
     }
 });
 
