@@ -290,7 +290,7 @@ function showJoinScreen() {
     soundSystem.init();
 }
 
-// Setup room for creator
+// Setup room for creator - FIXED to set host as ready
 function setupRoom() {
     const name = document.getElementById('creator-name').value || 'Player 1';
     playerName = name;
@@ -303,7 +303,7 @@ function setupRoom() {
             [playerId]: {
                 name: name,
                 connected: true,
-                ready: false
+                ready: false  // Initially false, will be set to true in submitCreatorName
             }
         },
         currentRound: 0,
@@ -316,6 +316,12 @@ function setupRoom() {
             console.log('Room created successfully!');
             gameRef.on('value', handleGameUpdate);
             gameRef.child(`players/${playerId}/connected`).onDisconnect().set(false);
+            
+            // CRITICAL FIX: Set host as ready after room is created
+            return gameRef.child(`players/${playerId}/ready`).set(true);
+        })
+        .then(() => {
+            console.log('Host set to ready!');
         })
         .catch((error) => {
             console.error('Error creating room:', error);
@@ -323,7 +329,7 @@ function setupRoom() {
         });
 }
 
-// Submit creator name
+// Submit creator name - FIXED to properly handle host ready state
 function submitCreatorName() {
     const name = document.getElementById('creator-name').value.trim();
     if (!name) {
@@ -331,14 +337,15 @@ function submitCreatorName() {
         return;
     }
     
+    console.log('Host submitting name and setting up room:', name);
     setupRoom();
     
-    // Update UI
+    // Update UI to show waiting state
     document.getElementById('creator-setup').style.display = 'none';
     document.getElementById('creator-waiting').style.display = 'block';
 }
 
-// Join existing room with better error handling and user feedback
+// Join existing room - ENHANCED with better error handling and logging
 function joinRoom() {
     console.log('Attempting to join room...'); // Debug log
     
@@ -365,7 +372,9 @@ function joinRoom() {
     joinBtn.disabled = true;
     
     // Show waiting message
-    document.getElementById('join-waiting').style.display = 'block';
+    const waitingElement = document.getElementById('join-waiting');
+    waitingElement.style.display = 'block';
+    waitingElement.textContent = 'Connecting to room...';
     
     roomCode = code;
     playerName = name;
@@ -385,24 +394,25 @@ function joinRoom() {
                 soundSystem.init();
                 soundSystem.playJoin();
                 
+                // Set joiner as ready immediately
                 return gameRef.child(`players/${playerId}`).set({
                     name: name,
                     connected: true,
-                    ready: true
+                    ready: true  // Joiner is ready immediately
                 });
             } else {
                 throw new Error('Room not found');
             }
         })
         .then(() => {
-            console.log('Successfully joined room!');
+            console.log('Successfully joined room and set as ready!');
             
             // Set up listeners
             gameRef.on('value', handleGameUpdate);
             gameRef.child(`players/${playerId}/connected`).onDisconnect().set(false);
             
-            // Show success message temporarily
-            document.getElementById('join-waiting').textContent = 'Joined successfully! Waiting for host to start...';
+            // Show success message
+            waitingElement.textContent = 'Joined successfully! Waiting for host to start...';
             
         })
         .catch((error) => {
@@ -411,7 +421,7 @@ function joinRoom() {
             // Reset UI
             joinBtn.textContent = originalText;
             joinBtn.disabled = false;
-            document.getElementById('join-waiting').style.display = 'none';
+            waitingElement.style.display = 'none';
             
             // Show appropriate error message
             if (error.message === 'Room not found') {
@@ -422,7 +432,7 @@ function joinRoom() {
         });
 }
 
-// Main game update handler
+// Main game update handler - ENHANCED with better logging and safety checks
 function handleGameUpdate(snapshot) {
     const gameData = snapshot.val();
     if (!gameData) {
@@ -445,13 +455,16 @@ function handleGameUpdate(snapshot) {
     const playerCount = Object.keys(gameData.players).length;
     console.log('Player count:', playerCount); // Debug log
     
-    // Start game when both players ready
+    // ENHANCED: Start game when both players ready
     if (playerCount === 2 && !gameData.gameStarted) {
         const allReady = Object.values(gameData.players).every(player => player.ready);
+        console.log('All players ready status:', Object.values(gameData.players).map(p => ({name: p.name, ready: p.ready})));
         console.log('All players ready:', allReady); // Debug log
         
         if (allReady) {
-            // Show game is starting
+            console.log('Both players ready, starting game...');
+            
+            // Show game is starting for non-host
             if (!isHost) {
                 showScreen('game-screen');
                 document.getElementById('turn-indicator').textContent = 'Game starting soon...';
@@ -459,12 +472,16 @@ function handleGameUpdate(snapshot) {
                 document.getElementById('waiting-content').style.display = 'block';
             }
             
+            // Host starts the game
             if (isHost) {
                 console.log('Host starting game...');
                 setTimeout(() => {
+                    console.log('Calling startNewRound(1)...');
                     startNewRound(1);
                 }, 1000); // Small delay for better UX
             }
+        } else {
+            console.log('Not all players ready yet');
         }
     } else if (gameData.gameStarted) {
         // Handle different game phases based on current round
@@ -485,7 +502,7 @@ function handleGameUpdate(snapshot) {
     } else if (playerCount === 1 && !isHost) {
         // Joiner waiting for host to be ready
         showScreen('join-screen');
-        document.getElementById('join-waiting').textContent = 'Joined successfully! Waiting for host to start...';
+        document.getElementById('join-waiting').textContent = 'Waiting for host to get ready...';
     }
 }
 
@@ -538,8 +555,13 @@ function updateScoreboard() {
     }
 }
 
-// Start new round
+// Start new round - ENHANCED with safety checks
 function startNewRound(roundNumber = null) {
+    if (!isHost) {
+        console.log('Only host can start new round');
+        return;
+    }
+    
     if (!roundNumber) {
         roundNumber = (currentGame.currentRound || 0) + 1;
     }
@@ -548,6 +570,7 @@ function startNewRound(roundNumber = null) {
     
     if (roundNumber > 3) {
         // Game complete - show final screen
+        console.log('Game complete, showing final screen');
         showGameCompleteScreen();
         return;
     }
@@ -555,6 +578,13 @@ function startNewRound(roundNumber = null) {
     soundSystem.playNewRound();
     
     const roundInfo = GAME_STRUCTURE[roundNumber];
+    console.log('Round info:', roundInfo);
+    
+    // ENHANCED: Add safety check
+    if (!roundInfo) {
+        console.error('Invalid round number:', roundNumber);
+        return;
+    }
     
     if (roundInfo.type === 'this-or-that') {
         startThisOrThatGame(roundNumber);
@@ -562,6 +592,8 @@ function startNewRound(roundNumber = null) {
         startTriviaGame(roundNumber);
     } else if (roundInfo.type === 'speed') {
         startSpeedCategoriesGame(roundNumber);
+    } else {
+        console.error('Unknown round type:', roundInfo.type);
     }
 }
 
@@ -783,6 +815,7 @@ function showThisOrThatResult(gameData) {
 
 // TRIVIA GAME FUNCTIONS
 function startTriviaGame(roundNumber) {
+    console.log('Starting trivia game for round:', roundNumber);
     const triviaQuestion = getRandomTriviaQuestion(roundNumber);
     const shuffledQuestion = shuffleTriviaOptions(triviaQuestion);
     
@@ -873,15 +906,20 @@ function handleTriviaAnswer(answerIndex) {
     // Check if both players have answered (host only)
     if (isHost) {
         setTimeout(() => {
-            const currentData = currentGame;
-            if (currentData.player1Answer !== null && currentData.player2Answer !== null) {
-                calculateAndShowTriviaResults();
-            }
+            gameRef.once('value').then((snapshot) => {
+                const currentData = snapshot.val();
+                if (currentData && currentData.player1Answer !== null && currentData.player2Answer !== null) {
+                    console.log('Both players answered, calculating results...');
+                    calculateAndShowTriviaResults();
+                }
+            });
         }, 500);
     }
 }
 
 function calculateAndShowTriviaResults() {
+    if (!isHost) return;
+    
     const correctAnswer = currentGame.triviaQuestion.correct;
     const player1Correct = currentGame.player1Answer === correctAnswer;
     const player2Correct = currentGame.player2Answer === correctAnswer;
@@ -990,6 +1028,7 @@ function showTriviaRoundComplete(gameData) {
 
 // SPEED CATEGORIES FUNCTIONS
 function startSpeedCategoriesGame(roundNumber) {
+    console.log('Starting speed categories for round:', roundNumber);
     const category = getRandomSpeedCategory();
     
     gameRef.update({
@@ -1023,6 +1062,8 @@ function handleSpeedCategoriesUpdate(gameData) {
         gameData.player1Done && 
         gameData.player2Done && 
         isHost) {
+        
+        console.log('Both players finished speed categories, calculating results...');
         
         const player1Score = (gameData.player1Answers || []).length;
         const player2Score = (gameData.player2Answers || []).length;
@@ -1135,6 +1176,7 @@ function endSpeedGame() {
         updateData.player2Done = true;
     }
     
+    console.log('Submitting speed game answers:', updateData);
     gameRef.update(updateData);
 }
 
@@ -1178,6 +1220,8 @@ function showSpeedCategoriesResults(gameData) {
 
 // QUESTION PHASE FUNCTIONS (Winner determination and question flow)
 function determineThisOrThatWinner() {
+    if (!isHost) return;
+    
     const playerIds = Object.keys(currentGame.players);
     // Simple winner determination based on overall scores
     if (overallScores.player1 > overallScores.player2) {
@@ -1192,6 +1236,8 @@ function determineThisOrThatWinner() {
 }
 
 function determineTriviaWinner() {
+    if (!isHost) return;
+    
     const playerIds = Object.keys(currentGame.players);
     const scores = currentGame.triviaRoundScores || { player1: 0, player2: 0 };
     
@@ -1206,6 +1252,8 @@ function determineTriviaWinner() {
 }
 
 function determineSpeedWinner() {
+    if (!isHost) return;
+    
     const playerIds = Object.keys(currentGame.players);
     const player1Answers = currentGame.player1Answers || [];
     const player2Answers = currentGame.player2Answers || [];
@@ -1221,15 +1269,16 @@ function determineSpeedWinner() {
 }
 
 function startQuestionPhase(winnerId, gameType) {
-    if (isHost) {
-        gameRef.update({
-            gamePhase: 'category-selection',
-            questionWinner: winnerId,
-            questionGameType: gameType,
-            selectedCategory: null,
-            questionToAnswer: null
-        });
-    }
+    if (!isHost) return;
+    
+    console.log(`Starting question phase - winner: ${winnerId}, game type: ${gameType}`);
+    gameRef.update({
+        gamePhase: 'category-selection',
+        questionWinner: winnerId,
+        questionGameType: gameType,
+        selectedCategory: null,
+        questionToAnswer: null
+    });
 }
 
 function handleCategorySelectionPhase(gameData) {
@@ -1332,20 +1381,27 @@ function handleQuestionAnsweringPhase(gameData) {
 }
 
 function markQuestionAsRead() {
+    if (!isHost) return;
     gameRef.update({ questionRead: true });
 }
 
 function completeQuestionAnswer() {
+    if (!isHost) return;
+    
     const nextRound = (currentGame.currentRound || 0) + 1;
     
+    console.log('Question complete, next round would be:', nextRound);
+    
     if (nextRound > 3) {
+        console.log('All rounds complete, showing final screen');
         showGameCompleteScreen();
     } else {
+        console.log('Starting next round:', nextRound);
         startNewRound(nextRound);
     }
 }
 
-// GAME COMPLETE SCREEN - FIXED to show actual scores
+// GAME COMPLETE SCREEN - ENHANCED with safety checks
 function showGameCompleteScreen() {
     console.log('Showing game complete screen with scores:', overallScores);
     showScreen('game-complete-screen');
@@ -1357,9 +1413,11 @@ function showGameCompleteScreen() {
         const playerIds = Object.keys(currentGame.players);
         
         // Player 1 final score display
-        const p1Name = currentGame.players[playerIds[0]].name;
-        document.getElementById('final-player1-name').textContent = p1Name;
-        document.getElementById('final-player1-score').textContent = overallScores.player1 || 0;
+        if (playerIds.length >= 1) {
+            const p1Name = currentGame.players[playerIds[0]].name;
+            document.getElementById('final-player1-name').textContent = p1Name;
+            document.getElementById('final-player1-score').textContent = overallScores.player1 || 0;
+        }
         
         // Player 2 final score display
         if (playerIds.length >= 2) {
@@ -1371,15 +1429,17 @@ function showGameCompleteScreen() {
         // Determine final winner
         let finalWinnerText = '';
         if (overallScores.player1 > overallScores.player2) {
-            finalWinnerText = `🎉 ${p1Name} wins overall! 🎉`;
+            finalWinnerText = `🎉 ${currentGame.players[playerIds[0]].name} wins overall! 🎉`;
         } else if (overallScores.player2 > overallScores.player1) {
-            const p2Name = currentGame.players[playerIds[1]].name;
-            finalWinnerText = `🎉 ${p2Name} wins overall! 🎉`;
+            finalWinnerText = `🎉 ${currentGame.players[playerIds[1]].name} wins overall! 🎉`;
         } else {
             finalWinnerText = "It's a tie! You both win! 💕";
         }
         
         document.getElementById('final-winner').textContent = finalWinnerText;
+    } else {
+        // Fallback in case of missing data
+        document.getElementById('final-winner').textContent = "Thanks for playing! 🎉";
     }
 }
 
@@ -1416,6 +1476,8 @@ function getRandomSpeedCategory() {
 
 function validateSpeedAnswer(userAnswer, category) {
     const validAnswers = speedCategoriesWithAnswers[category];
+    if (!validAnswers) return false;
+    
     const cleanAnswer = userAnswer.toLowerCase().trim();
     
     if (validAnswers.includes(cleanAnswer)) {
@@ -1435,15 +1497,25 @@ function validateSpeedAnswer(userAnswer, category) {
     return false;
 }
 
-// Leave game function
+// Leave game function - ENHANCED with better cleanup
 function leaveGame() {
+    console.log('Leaving game...');
+    
     if (gameRef) {
         gameRef.off();
-        gameRef.child(`players/${playerId}`).remove();
+        if (playerId && currentGame && currentGame.players && currentGame.players[playerId]) {
+            gameRef.child(`players/${playerId}`).remove();
+        }
         
-        if (isHost) {
+        if (isHost && roomCode) {
             gameRef.remove();
         }
+    }
+    
+    // Clear timers
+    if (speedTimer) {
+        clearInterval(speedTimer);
+        speedTimer = null;
     }
     
     // Reset all state
@@ -1456,21 +1528,31 @@ function leaveGame() {
     overallScores = { player1: 0, player2: 0 };
     thisOrThatQuestionsAsked = 0;
     triviaQuestionsAsked = 0;
+    triviaRoundScores = { player1: 0, player2: 0 };
+    speedMyAnswers = [];
+    speedGameActive = false;
     
     showScreen('start-screen');
 }
 
-// EVENT LISTENERS
+// EVENT LISTENERS - ENHANCED with safety checks
 document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
-    if (!isHost) return;
+    console.log('Continue from guess button clicked');
+    if (!isHost) {
+        console.log('Only host can continue');
+        return;
+    }
     
     const nextQuestionNumber = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
+    console.log('Next question number:', nextQuestionNumber);
     
     if (nextQuestionNumber >= 6) {
         // This or That round complete - determine winner
+        console.log('This or That round complete, determining winner');
         determineThisOrThatWinner();
     } else {
         // Continue with next this-or-that question
+        console.log('Continuing with next This or That question');
         const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
         const questionNumber = nextQuestionNumber + 1;
         const hostIsChooser = (questionNumber % 2 === 1);
@@ -1487,16 +1569,20 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
 });
 
 document.getElementById('continue-from-trivia-btn').addEventListener('click', () => {
+    console.log('Continue from trivia button clicked');
     if (!isHost) return;
     
     const nextQuestionNumber = (currentGame.triviaQuestionsAsked || 0) + 1;
+    console.log('Next trivia question number:', nextQuestionNumber);
     
     if (nextQuestionNumber >= 6) {
+        console.log('Trivia round complete');
         gameRef.update({
             triviaPhase: 'complete',
             triviaQuestionsAsked: nextQuestionNumber
         });
     } else {
+        console.log('Continuing with next trivia question');
         const triviaQuestion = getRandomTriviaQuestion(currentGame.currentRound);
         const shuffledQuestion = shuffleTriviaOptions(triviaQuestion);
         
@@ -1511,11 +1597,13 @@ document.getElementById('continue-from-trivia-btn').addEventListener('click', ()
 });
 
 document.getElementById('continue-from-trivia-complete-btn').addEventListener('click', () => {
+    console.log('Continue from trivia complete button clicked');
     if (!isHost) return;
     determineTriviaWinner();
 });
 
 document.getElementById('continue-from-speed-btn').addEventListener('click', () => {
+    console.log('Continue from speed button clicked');
     if (!isHost) return;
     determineSpeedWinner();
 });
