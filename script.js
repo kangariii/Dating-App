@@ -36,10 +36,6 @@ const ANIMAL_AVATARS = [
     { emoji: '🦀', name: 'Crab' }
 ];
 
-function getRandomAvatar() {
-    return ANIMAL_AVATARS[Math.floor(Math.random() * ANIMAL_AVATARS.length)];
-}
-
 // Sound System
 class SoundSystem {
     constructor() {
@@ -370,6 +366,7 @@ let playerAvatar = null;
 let isHost = false;
 let gameRef = null;
 let currentGame = null;
+let selectedAvatarForCreation = null; // For avatar selection flow
 
 // Updated game structure - 3 competitive rounds only
 const GAME_STRUCTURE = {
@@ -513,6 +510,116 @@ function showScreen(screenId) {
     }
 }
 
+// Avatar Selection Functions
+function createRoom() {
+    // Show avatar selection first
+    showAvatarSelection('create');
+}
+
+function showJoinScreen() {
+    // Show avatar selection first
+    showAvatarSelection('join');
+}
+
+function showAvatarSelection(nextAction) {
+    // Store the next action (create or join)
+    selectedAvatarForCreation = nextAction;
+    
+    showScreen('avatar-selection-screen');
+    populateAvatarGrid();
+}
+
+function populateAvatarGrid() {
+    const avatarGrid = document.getElementById('avatar-grid');
+    avatarGrid.innerHTML = '';
+    
+    ANIMAL_AVATARS.forEach((avatar, index) => {
+        const avatarOption = document.createElement('div');
+        avatarOption.className = 'avatar-option';
+        avatarOption.innerHTML = `
+            <span class="avatar-emoji">${avatar.emoji}</span>
+            <span class="avatar-name">${avatar.name}</span>
+        `;
+        
+        avatarOption.addEventListener('click', () => selectAvatar(avatar, avatarOption));
+        avatarGrid.appendChild(avatarOption);
+    });
+    
+    // Add continue button
+    const continueContainer = document.createElement('div');
+    continueContainer.style.gridColumn = '1 / -1';
+    continueContainer.style.textAlign = 'center';
+    continueContainer.style.marginTop = '20px';
+    
+    continueContainer.innerHTML = `
+        <button class="btn btn-primary continue-with-avatar-btn" onclick="continueWithSelectedAvatar()" disabled>
+            Continue with Selected Avatar
+        </button>
+    `;
+    
+    avatarGrid.appendChild(continueContainer);
+}
+
+function selectAvatar(avatar, element) {
+    // Clear previous selection
+    document.querySelectorAll('.avatar-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Mark this one as selected
+    element.classList.add('selected');
+    playerAvatar = avatar;
+    
+    // Show selected avatar
+    const display = document.getElementById('selected-avatar-display');
+    document.getElementById('selected-avatar-emoji').textContent = avatar.emoji;
+    document.getElementById('selected-avatar-name').textContent = avatar.name;
+    display.style.display = 'block';
+    
+    // Enable continue button
+    const continueBtn = document.querySelector('.continue-with-avatar-btn');
+    continueBtn.disabled = false;
+    
+    // Play click sound
+    soundSystem.playClick();
+}
+
+function continueWithSelectedAvatar() {
+    if (!playerAvatar) return;
+    
+    // Initialize sound system on user interaction
+    soundSystem.init();
+    
+    if (selectedAvatarForCreation === 'create') {
+        // Continue with room creation
+        roomCode = generateRoomCode();
+        playerId = generatePlayerId();
+        isHost = true;
+        
+        document.getElementById('room-code').textContent = roomCode;
+        showScreen('create-screen');
+        
+        setupRoom();
+    } else if (selectedAvatarForCreation === 'join') {
+        // Continue to join screen
+        playerId = generatePlayerId();
+        isHost = false;
+        showScreen('join-screen');
+    }
+}
+
+function goBackFromCreate() {
+    playerAvatar = null;
+    selectedAvatarForCreation = null;
+    showScreen('start-screen');
+}
+
+function goBackFromJoin() {
+    playerAvatar = null;
+    selectedAvatarForCreation = null;
+    showScreen('start-screen');
+}
+
 // UPDATED: Enhanced updateScoreboard function to update all scoreboards with avatars
 function updateScoreboard() {
     // Update player names and scores in ALL scoreboards
@@ -631,36 +738,12 @@ function getCategoryMaxScore(category) {
   return speedCategoriesWithAnswers[category].length;
 }
 
-// Room Management
-function createRoom() {
-    roomCode = generateRoomCode();
-    playerId = generatePlayerId();
-    playerAvatar = getRandomAvatar();
-    isHost = true;
-    
-    document.getElementById('room-code').textContent = roomCode;
-    showScreen('create-screen');
-    
-    setupRoom();
-}
-
-function showJoinScreen() {
-    showScreen('join-screen');
-}
-
-function updateCreatorName() {
-    // Keep this function for backward compatibility but don't use it
-}
-
 function submitCreatorName() {
     const name = document.getElementById('creator-name').value.trim();
     if (!name) {
         alert('Please enter your name');
         return;
     }
-    
-    // Initialize sound system on user interaction
-    soundSystem.init();
     
     // Update name in Firebase
     if (gameRef && playerId) {
@@ -755,10 +838,7 @@ function joinRoom() {
     waitingText.style.display = 'block';
     
     roomCode = code;
-    playerId = generatePlayerId();
     playerName = name;
-    playerAvatar = getRandomAvatar();
-    isHost = false;
     
     gameRef = database.ref(`games/${roomCode}`);
     
@@ -1022,8 +1102,8 @@ function handleQuestionCompletionSignal(gameData) {
     const nextRound = (currentGame.currentRound || 0) + 1;
     
     if (nextRound > 3) {
-        // Game complete
-        endGame();
+        // Game complete - show final screen with correct scores
+        showGameCompleteScreen();
     } else {
         // Start next competitive round and mark signal as processed
         gameRef.update({
@@ -1032,6 +1112,48 @@ function handleQuestionCompletionSignal(gameData) {
             completedBy: null
         });
         startNewRound(nextRound);
+    }
+}
+
+// NEW: Game complete screen with proper final scores
+function showGameCompleteScreen() {
+    console.log('Showing game complete screen with scores:', overallScores);
+    showScreen('game-complete-screen');
+    
+    // Trigger celebration
+    triggerConfetti('game-complete');
+    soundSystem.playGameComplete();
+    
+    if (currentGame && currentGame.players) {
+        const playerIds = Object.keys(currentGame.players);
+        
+        // Player 1 final score display
+        const p1Name = currentGame.players[playerIds[0]].name;
+        const p1Avatar = currentGame.players[playerIds[0]].avatar || { emoji: '🐵', name: 'Player' };
+        document.getElementById('final-player1-name').textContent = `${p1Avatar.emoji} ${p1Name}`;
+        document.getElementById('final-player1-score').textContent = overallScores.player1 || 0;
+        
+        // Player 2 final score display
+        if (playerIds.length >= 2) {
+            const p2Name = currentGame.players[playerIds[1]].name;
+            const p2Avatar = currentGame.players[playerIds[1]].avatar || { emoji: '🐶', name: 'Player' };
+            document.getElementById('final-player2-name').textContent = `${p2Avatar.emoji} ${p2Name}`;
+            document.getElementById('final-player2-score').textContent = overallScores.player2 || 0;
+        }
+        
+        // Determine final winner
+        let finalWinnerText = '';
+        if (overallScores.player1 > overallScores.player2) {
+            finalWinnerText = `🎉 ${p1Avatar.emoji} ${p1Name} wins overall! 🎉`;
+        } else if (overallScores.player2 > overallScores.player1) {
+            const p2Name = currentGame.players[playerIds[1]].name;
+            const p2Avatar = currentGame.players[playerIds[1]].avatar || { emoji: '🐶', name: 'Player' };
+            finalWinnerText = `🎉 ${p2Avatar.emoji} ${p2Name} wins overall! 🎉`;
+        } else {
+            finalWinnerText = "It's a tie! You both win! 💕";
+        }
+        
+        document.getElementById('final-winner').textContent = finalWinnerText;
     }
 }
 
@@ -1211,8 +1333,8 @@ function completeQuestionAnswer() {
     const nextRound = (currentGame.currentRound || 0) + 1;
     
     if (nextRound > 3) {
-        // Game complete
-        endGame();
+        // Game complete - show final screen instead of calling endGame
+        showGameCompleteScreen();
     } else {
         // Start next competitive round
         startNewRound(nextRound);
@@ -1226,7 +1348,7 @@ function startNewRound(roundNumber = null) {
     
     if (roundNumber > 3) { // Updated to 3 rounds
         soundSystem.playGameComplete();
-        endGame();
+        showGameCompleteScreen(); // Use new game complete screen instead of endGame
         return;
     }
     
@@ -1994,11 +2116,7 @@ function skipQuestion() {
     }
 }
 
-function endGame() {
-    triggerConfetti('game-complete');
-    alert(`Amazing connection! You've completed all 3 rounds with deep questions between each! 💕`);
-    leaveGame();
-}
+// REMOVED: endGame function - we now use showGameCompleteScreen instead
 
 function leaveGame() {
     if (gameRef) {
@@ -2014,9 +2132,11 @@ function leaveGame() {
     playerId = '';
     playerName = '';
     playerAvatar = null;
+    selectedAvatarForCreation = null;
     isHost = false;
     gameRef = null;
     currentGame = null;
+    overallScores = { player1: 0, player2: 0 }; // Reset scores
     
     showScreen('start-screen');
 }

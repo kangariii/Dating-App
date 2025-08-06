@@ -21,7 +21,8 @@
     <div class="container">
         <div class="app-header">
             <h1>Nice to Meet You</h1>
-            <p>9 rounds of games and connection</p>
+            <p class="tagline">✨ The ultimate couples connection experience ✨</p>
+            <p class="subtitle">Play games, learn secrets, spark deeper conversations</p>
         </div>
 
         <!-- Start Screen -->
@@ -39,9 +40,27 @@
             </div>
         </div>
 
+        <!-- Avatar Selection Screen -->
+        <div id="avatar-selection-screen" class="screen">
+            <button class="btn back-button" onclick="showScreen('start-screen')">← Back</button>
+            <div class="avatar-selection-container">
+                <h2>Choose Your Avatar</h2>
+                <p>Pick an animal that represents you!</p>
+                <div id="avatar-grid" class="avatar-grid">
+                    <!-- Avatars will be populated by JavaScript -->
+                </div>
+                <div id="selected-avatar-display" class="selected-avatar-display" style="display: none;">
+                    <div class="selected-avatar">
+                        <span id="selected-avatar-emoji">🐵</span>
+                        <span id="selected-avatar-name">Monkey</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Create Room Screen -->
         <div id="create-screen" class="screen">
-            <button class="btn back-button" onclick="showScreen('start-screen')">← Back</button>
+            <button class="btn back-button" onclick="goBackFromCreate()">← Back</button>
             <div class="room-code-display">
                 <h2>Share this code with your partner:</h2>
                 <div class="room-code" id="room-code">----</div>
@@ -65,7 +84,7 @@
 
         <!-- Join Room Screen -->
         <div id="join-screen" class="screen">
-            <button class="btn back-button" onclick="showScreen('start-screen')">← Back</button>
+            <button class="btn back-button" onclick="goBackFromJoin()">← Back</button>
             <div class="join-input">
                 <h2 style="text-align: center; margin-bottom: 20px;">Enter Room Code</h2>
                 <input type="text" class="code-input" id="join-code" maxlength="4" placeholder="----" />
@@ -379,6 +398,29 @@
                 </div>
                 
                 <button id="continue-from-speed-btn" class="play-btn">Continue to Final Round</button>
+            </div>
+        </div>
+
+        <!-- Game Complete Screen -->
+        <div id="game-complete-screen" class="screen">
+            <div class="container" style="text-align: center;">
+                <h2 class="round-title">🎉 Game Complete! 🎉</h2>
+                <div class="final-scores">
+                    <div class="score-display">
+                        <h3 id="final-player1-name">Player 1</h3>
+                        <p class="final-score" id="final-player1-score">0</p>
+                    </div>
+                    <div class="score-display">
+                        <h3 id="final-player2-name">Player 2</h3>
+                        <p class="final-score" id="final-player2-score">0</p>
+                    </div>
+                </div>
+                <p id="final-winner" class="winner-text">Thanks for playing!</p>
+                <div class="game-summary">
+                    <p>You completed 3 competitive rounds and 3 deep conversations!</p>
+                    <p>✨ Hope you learned something new about each other ✨</p>
+                </div>
+                <button class="play-btn" onclick="leaveGame()">Play Again</button>
             </div>
         </div>
     </div>
