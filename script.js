@@ -985,10 +985,10 @@ function handleTriviaGameUpdate(gameData) {
         case 'questioning':
             showTriviaQuestion(gameData);
             
-            // ADDED: Check if both players have answered and auto-progress (host only)
+            // FIXED: Check if both players have answered and auto-progress (host only)
             if (isHost && 
-                gameData.player1Answer !== null && 
-                gameData.player2Answer !== null && 
+                typeof gameData.player1Answer === 'number' && 
+                typeof gameData.player2Answer === 'number' && 
                 gameData.triviaPhase === 'questioning') {
                 
                 console.log('Both players answered, calculating results...');
