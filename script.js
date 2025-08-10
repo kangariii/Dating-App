@@ -984,6 +984,16 @@ function handleTriviaGameUpdate(gameData) {
     switch(gameData.triviaPhase) {
         case 'questioning':
             showTriviaQuestion(gameData);
+            
+            // ADDED: Check if both players have answered and auto-progress (host only)
+            if (isHost && 
+                gameData.player1Answer !== null && 
+                gameData.player2Answer !== null && 
+                gameData.triviaPhase === 'questioning') {
+                
+                console.log('Both players answered, calculating results...');
+                setTimeout(() => calculateAndShowTriviaResults(), 500);
+            }
             break;
         case 'results':
             showTriviaResults(gameData);
@@ -1047,19 +1057,7 @@ function handleTriviaAnswer(answerIndex) {
         gameRef.update({ player2Answer: answerIndex });
     }
     
-    // FIXED: Check if both players have answered (any player can trigger this check)
-    setTimeout(() => {
-        gameRef.once('value').then((snapshot) => {
-            const currentData = snapshot.val();
-            if (currentData && currentData.player1Answer !== null && currentData.player2Answer !== null) {
-                console.log('Both players answered, calculating results...');
-                // Only host actually progresses the game to prevent race conditions
-                if (isHost) {
-                    calculateAndShowTriviaResults();
-                }
-            }
-        });
-    }, 500);
+    // Note: Removed the manual check - let the Firebase listener handle it
 }
 
 function calculateAndShowTriviaResults() {
