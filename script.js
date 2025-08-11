@@ -371,7 +371,7 @@ function joinRoom() {
     // Show loading state
     const joinBtn = document.getElementById('join-game-btn');
     const originalText = joinBtn.textContent;
-    joinBtn.textContent = 'Joining...';
+    joinBtn.textContent = 'Waiting...';
     joinBtn.disabled = true;
     
     // Show waiting message
@@ -435,7 +435,7 @@ function joinRoom() {
         });
 }
 
-// Main game update handler - ENHANCED with instruction screen handling
+// Main game update handler - ENHANCED with ready state checking
 function handleGameUpdate(snapshot) {
     const gameData = snapshot.val();
     if (!gameData) {
@@ -457,6 +457,45 @@ function handleGameUpdate(snapshot) {
     
     const playerCount = Object.keys(gameData.players).length;
     console.log('Player count:', playerCount); // Debug log
+    
+    // CHECK READY STATES FOR AUTO-PROGRESSION
+    if (gameData.gameStarted) {
+        // Check if both players are ready to continue from This or That results
+        if (checkBothPlayersReady(gameData, 'guess')) {
+            console.log('Both players ready to continue from This or That');
+            if (isHost) {
+                handleThisOrThatContinue();
+                resetReadyState('guess');
+            }
+        }
+        
+        // Check if both players are ready to continue from trivia question
+        if (checkBothPlayersReady(gameData, 'trivia')) {
+            console.log('Both players ready to continue from trivia question');
+            if (isHost) {
+                handleTriviaContinue();
+                resetReadyState('trivia');
+            }
+        }
+        
+        // Check if both players are ready to continue from trivia complete
+        if (checkBothPlayersReady(gameData, 'trivia-complete')) {
+            console.log('Both players ready to continue from trivia complete');
+            if (isHost) {
+                determineTriviaWinner();
+                resetReadyState('trivia-complete');
+            }
+        }
+        
+        // Check if both players are ready to continue from speed results
+        if (checkBothPlayersReady(gameData, 'speed')) {
+            console.log('Both players ready to continue from speed results');
+            if (isHost) {
+                determineSpeedWinner();
+                resetReadyState('speed');
+            }
+        }
+    }
     
     // ENHANCED: Start game when both players ready
     if (playerCount === 2 && !gameData.gameStarted) {
@@ -946,13 +985,43 @@ function showThisOrThatResult(gameData) {
     document.getElementById('player-guess').textContent = 
         gameData.playerGuess === 0 ? question.optionA : question.optionB;
     
-    // Update continue button
+    // Update continue button text
     const continueBtn = document.getElementById('continue-from-guess-btn');
     const questionsLeft = 6 - (currentGame.thisOrThatQuestionsAsked + 1);
     if (questionsLeft > 0) {
         continueBtn.textContent = `Continue (${questionsLeft} questions left)`;
     } else {
         continueBtn.textContent = 'Continue to Next Round';
+    }
+    
+    // Reset button state for new ready tracking
+    continueBtn.disabled = false;
+}
+
+// NEW: Handle This or That continue logic
+function handleThisOrThatContinue() {
+    const nextQuestionNumber = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
+    console.log('Next question number:', nextQuestionNumber);
+    
+    if (nextQuestionNumber >= 6) {
+        // This or That round complete - determine winner
+        console.log('This or That round complete, determining winner');
+        determineThisOrThatWinner();
+    } else {
+        // Continue with next this-or-that question
+        console.log('Continuing with next This or That question');
+        const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
+        const questionNumber = nextQuestionNumber + 1;
+        const hostIsChooser = (questionNumber % 2 === 1);
+        
+        gameRef.update({
+            thisOrThatQuestion: newQuestion,
+            hostIsChooser: hostIsChooser,
+            thisOrThatPhase: 'choosing',
+            playerChoice: null,
+            playerGuess: null,
+            thisOrThatQuestionsAsked: nextQuestionNumber
+        });
     }
 }
 
@@ -1135,9 +1204,36 @@ function showTriviaResults(gameData) {
         overallScores = gameData.overallScores;
     }
     
+    // Reset continue button for new ready tracking
     const continueBtn = document.getElementById('continue-from-trivia-btn');
-    continueBtn.disabled = !isHost;
-    continueBtn.textContent = isHost ? 'Continue' : 'Waiting for host...';
+    continueBtn.disabled = false;
+    continueBtn.textContent = 'Continue';
+}
+
+// NEW: Handle trivia continue logic
+function handleTriviaContinue() {
+    const nextQuestionNumber = (currentGame.triviaQuestionsAsked || 0) + 1;
+    console.log('Next trivia question number:', nextQuestionNumber);
+    
+    if (nextQuestionNumber >= 6) {
+        console.log('Trivia round complete');
+        gameRef.update({
+            triviaPhase: 'complete',
+            triviaQuestionsAsked: nextQuestionNumber
+        });
+    } else {
+        console.log('Continuing with next trivia question');
+        const triviaQuestion = getRandomTriviaQuestion(currentGame.currentRound);
+        const shuffledQuestion = shuffleTriviaOptions(triviaQuestion);
+        
+        gameRef.update({
+            triviaQuestion: shuffledQuestion,
+            triviaPhase: 'questioning',
+            player1Answer: null,
+            player2Answer: null,
+            triviaQuestionsAsked: nextQuestionNumber
+        });
+    }
 }
 
 function showTriviaRoundComplete(gameData) {
@@ -1164,9 +1260,10 @@ function showTriviaRoundComplete(gameData) {
     }
     document.getElementById('trivia-winner').textContent = winnerText;
     
+    // Reset continue button for new ready tracking
     const continueBtn = document.getElementById('continue-from-trivia-complete-btn');
-    continueBtn.disabled = !isHost;
-    continueBtn.textContent = isHost ? 'Continue' : 'Waiting for host...';
+    continueBtn.disabled = false;
+    continueBtn.textContent = 'Continue';
 }
 
 // SPEED CATEGORIES FUNCTIONS
@@ -1357,9 +1454,10 @@ function showSpeedCategoriesResults(gameData) {
     document.getElementById('speed-result-player1-name-2').textContent = `${gameData.players[playerIds[0]].name} Answers:`;
     document.getElementById('speed-result-player2-name-2').textContent = `${gameData.players[playerIds[1]].name} Answers:`;
     
+    // Reset continue button for new ready tracking
     const continueBtn = document.getElementById('continue-from-speed-btn');
-    continueBtn.disabled = !isHost;
-    continueBtn.textContent = isHost ? 'Continue' : 'Waiting for host...';
+    continueBtn.disabled = false;
+    continueBtn.textContent = 'Continue';
 }
 
 // QUESTION PHASE FUNCTIONS (Winner determination and question flow)
@@ -1706,77 +1804,21 @@ function resetReadyState(continueType) {
     gameRef.update(updateData);
 }
 
-// EVENT LISTENERS - ENHANCED with safety checks
+// UPDATED EVENT LISTENERS - Using new ready tracking system
 document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
-    console.log('Continue from guess button clicked');
-    if (!isHost) {
-        console.log('Only host can continue');
-        return;
-    }
-    
-    const nextQuestionNumber = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
-    console.log('Next question number:', nextQuestionNumber);
-    
-    if (nextQuestionNumber >= 6) {
-        // This or That round complete - determine winner
-        console.log('This or That round complete, determining winner');
-        determineThisOrThatWinner();
-    } else {
-        // Continue with next this-or-that question
-        console.log('Continuing with next This or That question');
-        const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
-        const questionNumber = nextQuestionNumber + 1;
-        const hostIsChooser = (questionNumber % 2 === 1);
-        
-        gameRef.update({
-            thisOrThatQuestion: newQuestion,
-            hostIsChooser: hostIsChooser,
-            thisOrThatPhase: 'choosing',
-            playerChoice: null,
-            playerGuess: null,
-            thisOrThatQuestionsAsked: nextQuestionNumber
-        });
-    }
+    handleContinueClick('guess');
 });
 
 document.getElementById('continue-from-trivia-btn').addEventListener('click', () => {
-    console.log('Continue from trivia button clicked');
-    if (!isHost) return;
-    
-    const nextQuestionNumber = (currentGame.triviaQuestionsAsked || 0) + 1;
-    console.log('Next trivia question number:', nextQuestionNumber);
-    
-    if (nextQuestionNumber >= 6) {
-        console.log('Trivia round complete');
-        gameRef.update({
-            triviaPhase: 'complete',
-            triviaQuestionsAsked: nextQuestionNumber
-        });
-    } else {
-        console.log('Continuing with next trivia question');
-        const triviaQuestion = getRandomTriviaQuestion(currentGame.currentRound);
-        const shuffledQuestion = shuffleTriviaOptions(triviaQuestion);
-        
-        gameRef.update({
-            triviaQuestion: shuffledQuestion,
-            triviaPhase: 'questioning',
-            player1Answer: null,
-            player2Answer: null,
-            triviaQuestionsAsked: nextQuestionNumber
-        });
-    }
+    handleContinueClick('trivia');
 });
 
 document.getElementById('continue-from-trivia-complete-btn').addEventListener('click', () => {
-    console.log('Continue from trivia complete button clicked');
-    if (!isHost) return;
-    determineTriviaWinner();
+    handleContinueClick('trivia-complete');
 });
 
 document.getElementById('continue-from-speed-btn').addEventListener('click', () => {
-    console.log('Continue from speed button clicked');
-    if (!isHost) return;
-    determineSpeedWinner();
+    handleContinueClick('speed');
 });
 
 // Speed Categories input handler
