@@ -1,514 +1,512 @@
-// This or That Questions - Binary choices for preference guessing
+// This or That Questions - Enhanced for couples with engaging, revealing choices
 const thisOrThatQuestions = {
     round1: [
-        // Food & Drinks (20 questions)
+        // Personality & Dating Style (25 questions)
         {
-            question: "Coffee or Tea?",
-            optionA: "Coffee",
-            optionB: "Tea"
+            question: "Love letters or surprise dates?",
+            optionA: "Love letters",
+            optionB: "Surprise dates"
         },
         {
-            question: "Pizza or Burgers?",
-            optionA: "Pizza", 
-            optionB: "Burgers"
+            question: "Netflix and chill or going out dancing?",
+            optionA: "Netflix and chill",
+            optionB: "Going out dancing"
         },
         {
-            question: "Sweet or Salty snacks?",
-            optionA: "Sweet",
-            optionB: "Salty"
+            question: "Deep conversations or playful banter?",
+            optionA: "Deep conversations",
+            optionB: "Playful banter"
         },
         {
-            question: "Ice cream or Cake?",
-            optionA: "Ice cream",
-            optionB: "Cake"
+            question: "Roses or funny memes?",
+            optionA: "Roses",
+            optionB: "Funny memes"
         },
         {
-            question: "Chocolate or Vanilla?",
-            optionA: "Chocolate",
-            optionB: "Vanilla"
+            question: "Fancy dinner or food truck adventure?",
+            optionA: "Fancy dinner",
+            optionB: "Food truck adventure"
         },
         {
-            question: "Wine or Beer?",
-            optionA: "Wine",
-            optionB: "Beer"
+            question: "Cuddling on the couch or exploring a new city?",
+            optionA: "Cuddling on the couch",
+            optionB: "Exploring a new city"
         },
         {
-            question: "Cooking at home or Dining out?",
-            optionA: "Cooking at home",
-            optionB: "Dining out"
+            question: "Good morning texts or goodnight calls?",
+            optionA: "Good morning texts",
+            optionB: "Goodnight calls"
         },
         {
-            question: "Breakfast or Dinner?",
-            optionA: "Breakfast",
-            optionB: "Dinner"
+            question: "Spontaneous getaway or planned vacation?",
+            optionA: "Spontaneous getaway",
+            optionB: "Planned vacation"
         },
         {
-            question: "Spicy food or Mild food?",
-            optionA: "Spicy food",
-            optionB: "Mild food"
+            question: "Matching outfits or completely different styles?",
+            optionA: "Matching outfits",
+            optionB: "Completely different styles"
         },
         {
-            question: "Fruits or Vegetables?",
-            optionA: "Fruits",
-            optionB: "Vegetables"
+            question: "Public displays of affection or private moments?",
+            optionA: "Public displays of affection",
+            optionB: "Private moments"
         },
         {
-            question: "Hot drinks or Cold drinks?",
-            optionA: "Hot drinks",
-            optionB: "Cold drinks"
+            question: "Breakfast in bed or midnight snacks?",
+            optionA: "Breakfast in bed",
+            optionB: "Midnight snacks"
         },
         {
-            question: "Pancakes or Waffles?",
-            optionA: "Pancakes",
-            optionB: "Waffles"
+            question: "Dancing in the rain or stargazing?",
+            optionA: "Dancing in the rain",
+            optionB: "Stargazing"
         },
         {
-            question: "Chinese food or Italian food?",
-            optionA: "Chinese food",
-            optionB: "Italian food"
+            question: "Handwritten notes or voice messages?",
+            optionA: "Handwritten notes",
+            optionB: "Voice messages"
         },
         {
-            question: "Cookies or Brownies?",
-            optionA: "Cookies",
-            optionB: "Brownies"
+            question: "Couple's massage or adrenaline rush activity?",
+            optionA: "Couple's massage",
+            optionB: "Adrenaline rush activity"
         },
         {
-            question: "Sandwich or Soup?",
-            optionA: "Sandwich",
-            optionB: "Soup"
+            question: "Sharing dessert or getting your own?",
+            optionA: "Sharing dessert",
+            optionB: "Getting your own"
         },
         {
-            question: "White bread or Wheat bread?",
-            optionA: "White bread",
-            optionB: "Wheat bread"
+            question: "Long walks or bike rides?",
+            optionA: "Long walks",
+            optionB: "Bike rides"
         },
         {
-            question: "Cereal or Oatmeal?",
-            optionA: "Cereal",
-            optionB: "Oatmeal"
+            question: "Surprise parties or intimate celebrations?",
+            optionA: "Surprise parties",
+            optionB: "Intimate celebrations"
         },
         {
-            question: "Popcorn or Chips?",
-            optionA: "Popcorn",
-            optionB: "Chips"
+            question: "Road trip playlist or comfortable silence?",
+            optionA: "Road trip playlist",
+            optionB: "Comfortable silence"
         },
         {
-            question: "Juice or Soda?",
-            optionA: "Juice",
-            optionB: "Soda"
+            question: "Cooking together or being cooked for?",
+            optionA: "Cooking together",
+            optionB: "Being cooked for"
         },
         {
-            question: "Meat or Vegetarian?",
-            optionA: "Meat",
-            optionB: "Vegetarian"
+            question: "Movie theater or drive-in?",
+            optionA: "Movie theater",
+            optionB: "Drive-in"
+        },
+        {
+            question: "Flowers delivered or picked from a garden?",
+            optionA: "Flowers delivered",
+            optionB: "Picked from a garden"
+        },
+        {
+            question: "Karaoke duet or slow dance?",
+            optionA: "Karaoke duet",
+            optionB: "Slow dance"
+        },
+        {
+            question: "Adventure park or art museum?",
+            optionA: "Adventure park",
+            optionB: "Art museum"
+        },
+        {
+            question: "Couple's workout or solo gym time?",
+            optionA: "Couple's workout",
+            optionB: "Solo gym time"
+        },
+        {
+            question: "Photo booth or professional photoshoot?",
+            optionA: "Photo booth",
+            optionB: "Professional photoshoot"
         },
 
-        // Lifestyle & Activities (20 questions)
+        // Life Choices & Values (25 questions)
         {
-            question: "Morning person or Night owl?",
-            optionA: "Morning person",
+            question: "City penthouse or countryside cottage?",
+            optionA: "City penthouse",
+            optionB: "Countryside cottage"
+        },
+        {
+            question: "Work hard, play hard or work-life balance?",
+            optionA: "Work hard, play hard",
+            optionB: "Work-life balance"
+        },
+        {
+            question: "Save money or live in the moment?",
+            optionA: "Save money",
+            optionB: "Live in the moment"
+        },
+        {
+            question: "Big friend group or close-knit circle?",
+            optionA: "Big friend group",
+            optionB: "Close-knit circle"
+        },
+        {
+            question: "Early bird or night owl?",
+            optionA: "Early bird",
             optionB: "Night owl"
         },
         {
-            question: "Beach or Mountains?",
-            optionA: "Beach",
-            optionB: "Mountains"
+            question: "Minimalist lifestyle or collector of memories?",
+            optionA: "Minimalist lifestyle",
+            optionB: "Collector of memories"
         },
         {
-            question: "Summer or Winter?",
-            optionA: "Summer",
-            optionB: "Winter"
+            question: "Technology enthusiast or digital detox?",
+            optionA: "Technology enthusiast",
+            optionB: "Digital detox"
         },
         {
-            question: "City or Countryside?",
-            optionA: "City",
-            optionB: "Countryside"
+            question: "Trendsetter or timeless classic?",
+            optionA: "Trendsetter",
+            optionB: "Timeless classic"
         },
         {
-            question: "Hot weather or Cold weather?",
-            optionA: "Hot weather",
-            optionB: "Cold weather"
+            question: "Risk taker or playing it safe?",
+            optionA: "Risk taker",
+            optionB: "Playing it safe"
         },
         {
-            question: "Indoor activities or Outdoor activities?",
-            optionA: "Indoor activities",
-            optionB: "Outdoor activities"
+            question: "Leader or supporter?",
+            optionA: "Leader",
+            optionB: "Supporter"
         },
         {
-            question: "Gym or Home workouts?",
-            optionA: "Gym",
-            optionB: "Home workouts"
+            question: "Optimist or realist?",
+            optionA: "Optimist",
+            optionB: "Realist"
         },
         {
-            question: "Bath or Shower?",
-            optionA: "Bath",
-            optionB: "Shower"
+            question: "Routine lover or chaos embracer?",
+            optionA: "Routine lover",
+            optionB: "Chaos embracer"
         },
         {
-            question: "Early bird or Procrastinator?",
-            optionA: "Early bird",
-            optionB: "Procrastinator"
+            question: "Quality over quantity or variety is key?",
+            optionA: "Quality over quantity",
+            optionB: "Variety is key"
         },
         {
-            question: "Planner or Spontaneous?",
-            optionA: "Planner",
-            optionB: "Spontaneous"
+            question: "Express feelings openly or show through actions?",
+            optionA: "Express feelings openly",
+            optionB: "Show through actions"
         },
         {
-            question: "Stay in or Go out?",
-            optionA: "Stay in",
-            optionB: "Go out"
+            question: "Forgive easily or need time to process?",
+            optionA: "Forgive easily",
+            optionB: "Need time to process"
         },
         {
-            question: "Big party or Small gathering?",
-            optionA: "Big party",
-            optionB: "Small gathering"
+            question: "Competitive spirit or just for fun?",
+            optionA: "Competitive spirit",
+            optionB: "Just for fun"
         },
         {
-            question: "Adventure or Relaxation?",
-            optionA: "Adventure",
-            optionB: "Relaxation"
+            question: "Debate ideas or avoid conflict?",
+            optionA: "Debate ideas",
+            optionB: "Avoid conflict"
         },
         {
-            question: "Road trip or Flying?",
-            optionA: "Road trip",
-            optionB: "Flying"
+            question: "Make decisions quickly or sleep on it?",
+            optionA: "Make decisions quickly",
+            optionB: "Sleep on it"
         },
         {
-            question: "Hotel or Camping?",
-            optionA: "Hotel",
-            optionB: "Camping"
+            question: "Glass half full or glass half empty?",
+            optionA: "Glass half full",
+            optionB: "Glass half empty"
         },
         {
-            question: "Shopping online or In-store?",
-            optionA: "Shopping online",
-            optionB: "In-store"
+            question: "Follow your heart or trust your head?",
+            optionA: "Follow your heart",
+            optionB: "Trust your head"
         },
         {
-            question: "Text or Phone call?",
-            optionA: "Text",
-            optionB: "Phone call"
+            question: "Social butterfly or introvert recharge?",
+            optionA: "Social butterfly",
+            optionB: "Introvert recharge"
         },
         {
-            question: "Sunrise or Sunset?",
-            optionA: "Sunrise",
-            optionB: "Sunset"
+            question: "Admit when wrong or stand your ground?",
+            optionA: "Admit when wrong",
+            optionB: "Stand your ground"
         },
         {
-            question: "Dancing or Singing?",
-            optionA: "Dancing",
-            optionB: "Singing"
+            question: "Live like there's no tomorrow or plan for the future?",
+            optionA: "Live like there's no tomorrow",
+            optionB: "Plan for the future"
         },
         {
-            question: "Photography or Drawing?",
-            optionA: "Photography",
-            optionB: "Drawing"
-        },
-
-        // Entertainment (20 questions)
-        {
-            question: "Movies or TV shows?",
-            optionA: "Movies",
-            optionB: "TV shows"
+            question: "Ask for help or figure it out yourself?",
+            optionA: "Ask for help",
+            optionB: "Figure it out yourself"
         },
         {
-            question: "Comedy or Drama?",
-            optionA: "Comedy",
-            optionB: "Drama"
-        },
-        {
-            question: "Horror or Romance?",
-            optionA: "Horror",
-            optionB: "Romance"
-        },
-        {
-            question: "Books or Podcasts?",
-            optionA: "Books",
-            optionB: "Podcasts"
-        },
-        {
-            question: "Fiction or Non-fiction?",
-            optionA: "Fiction",
-            optionB: "Non-fiction"
-        },
-        {
-            question: "Music or Silence?",
-            optionA: "Music",
-            optionB: "Silence"
-        },
-        {
-            question: "Pop music or Rock music?",
-            optionA: "Pop music",
-            optionB: "Rock music"
-        },
-        {
-            question: "Concert or Theater?",
-            optionA: "Concert",
-            optionB: "Theater"
-        },
-        {
-            question: "Video games or Board games?",
-            optionA: "Video games",
-            optionB: "Board games"
-        },
-        {
-            question: "Netflix or YouTube?",
-            optionA: "Netflix",
-            optionB: "YouTube"
-        },
-        {
-            question: "Action movies or Animated movies?",
-            optionA: "Action movies",
-            optionB: "Animated movies"
-        },
-        {
-            question: "Live sports or Watching on TV?",
-            optionA: "Live sports",
-            optionB: "Watching on TV"
-        },
-        {
-            question: "Documentary or Reality TV?",
-            optionA: "Documentary",
-            optionB: "Reality TV"
-        },
-        {
-            question: "Headphones or Speakers?",
-            optionA: "Headphones",
-            optionB: "Speakers"
-        },
-        {
-            question: "New music or Classic hits?",
-            optionA: "New music",
-            optionB: "Classic hits"
-        },
-        {
-            question: "Streaming or Physical media?",
-            optionA: "Streaming",
-            optionB: "Physical media"
-        },
-        {
-            question: "Karaoke or Just listening?",
-            optionA: "Karaoke",
-            optionB: "Just listening"
-        },
-        {
-            question: "Binge-watching or One episode?",
-            optionA: "Binge-watching",
-            optionB: "One episode"
-        },
-        {
-            question: "Marvel or DC?",
-            optionA: "Marvel",
-            optionB: "DC"
-        },
-        {
-            question: "Star Wars or Star Trek?",
-            optionA: "Star Wars",
-            optionB: "Star Trek"
+            question: "Celebrate small wins or wait for big victories?",
+            optionA: "Celebrate small wins",
+            optionB: "Wait for big victories"
         },
 
-        // Style & Preferences (20 questions)
+        // Fun & Quirky (25 questions)
         {
-            question: "Casual or Formal clothing?",
-            optionA: "Casual",
-            optionB: "Formal"
+            question: "Superhero or villain powers?",
+            optionA: "Superhero powers",
+            optionB: "Villain powers"
         },
         {
-            question: "Bright colors or Dark colors?",
-            optionA: "Bright colors",
-            optionB: "Dark colors"
+            question: "Time travel to the past or future?",
+            optionA: "Past",
+            optionB: "Future"
         },
         {
-            question: "Sneakers or Dress shoes?",
-            optionA: "Sneakers",
-            optionB: "Dress shoes"
+            question: "Mind reading or invisibility?",
+            optionA: "Mind reading",
+            optionB: "Invisibility"
         },
         {
-            question: "Long hair or Short hair?",
-            optionA: "Long hair",
-            optionB: "Short hair"
+            question: "Zombie apocalypse or alien invasion?",
+            optionA: "Zombie apocalypse",
+            optionB: "Alien invasion"
         },
         {
-            question: "Gold or Silver jewelry?",
-            optionA: "Gold",
-            optionB: "Silver"
+            question: "Magic wand or crystal ball?",
+            optionA: "Magic wand",
+            optionB: "Crystal ball"
         },
         {
-            question: "Minimalist or Maximalist style?",
-            optionA: "Minimalist",
-            optionB: "Maximalist"
+            question: "Immortality or ability to fly?",
+            optionA: "Immortality",
+            optionB: "Ability to fly"
         },
         {
-            question: "Vintage or Modern style?",
-            optionA: "Vintage",
-            optionB: "Modern"
+            question: "Win the lottery or find true love?",
+            optionA: "Win the lottery",
+            optionB: "Find true love"
         },
         {
-            question: "Patterns or Solid colors?",
-            optionA: "Patterns",
-            optionB: "Solid colors"
+            question: "Be famous or be wealthy but unknown?",
+            optionA: "Be famous",
+            optionB: "Be wealthy but unknown"
         },
         {
-            question: "Comfort or Style?",
-            optionA: "Comfort",
-            optionB: "Style"
+            question: "Live in a castle or on a beach?",
+            optionA: "Live in a castle",
+            optionB: "Live on a beach"
         },
         {
-            question: "Makeup or Natural look?",
-            optionA: "Makeup",
-            optionB: "Natural look"
+            question: "Have a personal chef or personal trainer?",
+            optionA: "Personal chef",
+            optionB: "Personal trainer"
         },
         {
-            question: "Perfume or No fragrance?",
-            optionA: "Perfume",
-            optionB: "No fragrance"
+            question: "Always tell the truth or read minds?",
+            optionA: "Always tell the truth",
+            optionB: "Read minds"
         },
         {
-            question: "Glasses or Contact lenses?",
-            optionA: "Glasses",
-            optionB: "Contact lenses"
+            question: "Teleportation or time manipulation?",
+            optionA: "Teleportation",
+            optionB: "Time manipulation"
         },
         {
-            question: "Backpack or Handbag?",
-            optionA: "Backpack",
-            optionB: "Handbag"
+            question: "Speak all languages or play all instruments?",
+            optionA: "Speak all languages",
+            optionB: "Play all instruments"
         },
         {
-            question: "Watch or Phone for time?",
-            optionA: "Watch",
-            optionB: "Phone for time"
+            question: "Never age or never get sick?",
+            optionA: "Never age",
+            optionB: "Never get sick"
         },
         {
-            question: "Hat or No hat?",
-            optionA: "Hat",
-            optionB: "No hat"
+            question: "Control the weather or control gravity?",
+            optionA: "Control the weather",
+            optionB: "Control gravity"
         },
         {
-            question: "Scarf or No scarf?",
-            optionA: "Scarf",
-            optionB: "No scarf"
+            question: "Have dinner with your hero or your worst enemy?",
+            optionA: "Your hero",
+            optionB: "Your worst enemy"
         },
         {
-            question: "Belt or No belt?",
-            optionA: "Belt",
-            optionB: "No belt"
+            question: "Know when you'll die or how you'll die?",
+            optionA: "When you'll die",
+            optionB: "How you'll die"
         },
         {
-            question: "Sunglasses or Regular glasses?",
-            optionA: "Sunglasses",
-            optionB: "Regular glasses"
+            question: "Relive your best day or skip your worst day?",
+            optionA: "Relive your best day",
+            optionB: "Skip your worst day"
         },
         {
-            question: "Designer brands or Generic brands?",
-            optionA: "Designer brands",
-            optionB: "Generic brands"
+            question: "Have unlimited money or unlimited time?",
+            optionA: "Unlimited money",
+            optionB: "Unlimited time"
         },
         {
-            question: "Trendy or Timeless style?",
-            optionA: "Trendy",
-            optionB: "Timeless"
+            question: "Be able to rewind or fast forward your life?",
+            optionA: "Rewind your life",
+            optionB: "Fast forward your life"
+        },
+        {
+            question: "Always know if someone is lying or always be believed?",
+            optionA: "Know if someone is lying",
+            optionB: "Always be believed"
+        },
+        {
+            question: "Have a rewind button or a pause button for life?",
+            optionA: "Rewind button",
+            optionB: "Pause button"
+        },
+        {
+            question: "Live without music or live without movies?",
+            optionA: "Live without music",
+            optionB: "Live without movies"
+        },
+        {
+            question: "Always be 10 minutes late or 20 minutes early?",
+            optionA: "10 minutes late",
+            optionB: "20 minutes early"
+        },
+        {
+            question: "Have the ability to heal others or never feel pain?",
+            optionA: "Heal others",
+            optionB: "Never feel pain"
         },
 
-        // Technology & Modern Life (20 questions)
+        // Relationship Scenarios (25 questions)
         {
-            question: "iPhone or Android?",
-            optionA: "iPhone",
-            optionB: "Android"
+            question: "Separate bedrooms or share everything?",
+            optionA: "Separate bedrooms",
+            optionB: "Share everything"
         },
         {
-            question: "Mac or PC?",
-            optionA: "Mac",
-            optionB: "PC"
+            question: "Partner's best friend or partner's ex?",
+            optionA: "Partner's best friend",
+            optionB: "Partner's ex"
         },
         {
-            question: "Social media or No social media?",
-            optionA: "Social media",
-            optionB: "No social media"
+            question: "Always compromise or take turns winning?",
+            optionA: "Always compromise",
+            optionB: "Take turns winning"
         },
         {
-            question: "Instagram or TikTok?",
-            optionA: "Instagram",
-            optionB: "TikTok"
+            question: "Matching couple tattoos or separate individual ones?",
+            optionA: "Matching couple tattoos",
+            optionB: "Separate individual ones"
         },
         {
-            question: "Email or Text messaging?",
-            optionA: "Email",
-            optionB: "Text messaging"
+            question: "Share all passwords or maintain privacy?",
+            optionA: "Share all passwords",
+            optionB: "Maintain privacy"
         },
         {
-            question: "Online shopping or In-store shopping?",
-            optionA: "Online shopping",
-            optionB: "In-store shopping"
+            question: "Joint bank account or keep finances separate?",
+            optionA: "Joint bank account",
+            optionB: "Keep finances separate"
         },
         {
-            question: "Digital photos or Printed photos?",
-            optionA: "Digital photos",
-            optionB: "Printed photos"
+            question: "Live near family or far from family?",
+            optionA: "Near family",
+            optionB: "Far from family"
         },
         {
-            question: "E-books or Physical books?",
-            optionA: "E-books",
-            optionB: "Physical books"
+            question: "Traditional roles or completely equal everything?",
+            optionA: "Traditional roles",
+            optionB: "Completely equal everything"
         },
         {
-            question: "GPS or Paper maps?",
-            optionA: "GPS",
-            optionB: "Paper maps"
+            question: "Big wedding or elope?",
+            optionA: "Big wedding",
+            optionB: "Elope"
         },
         {
-            question: "Voice messages or Text messages?",
-            optionA: "Voice messages",
-            optionB: "Text messages"
+            question: "Have kids right away or wait several years?",
+            optionA: "Have kids right away",
+            optionB: "Wait several years"
         },
         {
-            question: "Wireless earbuds or Wired headphones?",
-            optionA: "Wireless earbuds",
-            optionB: "Wired headphones"
+            question: "Date nights weekly or monthly adventures?",
+            optionA: "Date nights weekly",
+            optionB: "Monthly adventures"
         },
         {
-            question: "Smart home or Traditional home?",
-            optionA: "Smart home",
-            optionB: "Traditional home"
+            question: "Share hobbies or have separate interests?",
+            optionA: "Share hobbies",
+            optionB: "Have separate interests"
         },
         {
-            question: "Electric car or Gas car?",
-            optionA: "Electric car",
-            optionB: "Gas car"
+            question: "Work together or never mix work and love?",
+            optionA: "Work together",
+            optionB: "Never mix work and love"
         },
         {
-            question: "Video calls or Audio calls?",
-            optionA: "Video calls",
-            optionB: "Audio calls"
+            question: "Move for love or love where you are?",
+            optionA: "Move for love",
+            optionB: "Love where you are"
         },
         {
-            question: "Cloud storage or Local storage?",
-            optionA: "Cloud storage",
-            optionB: "Local storage"
+            question: "Always be honest or sometimes spare feelings?",
+            optionA: "Always be honest",
+            optionB: "Sometimes spare feelings"
         },
         {
-            question: "Smartphone camera or Digital camera?",
-            optionA: "Smartphone camera",
-            optionB: "Digital camera"
+            question: "Joint social media or individual accounts?",
+            optionA: "Joint social media",
+            optionB: "Individual accounts"
         },
         {
-            question: "Streaming music or Downloaded music?",
-            optionA: "Streaming music",
-            optionB: "Downloaded music"
+            question: "Surprise each other or plan together?",
+            optionA: "Surprise each other",
+            optionB: "Plan together"
         },
         {
-            question: "Password manager or Remember passwords?",
-            optionA: "Password manager",
-            optionB: "Remember passwords"
+            question: "One pet or multiple pets?",
+            optionA: "One pet",
+            optionB: "Multiple pets"
         },
         {
-            question: "Dark mode or Light mode?",
-            optionA: "Dark mode",
-            optionB: "Light mode"
+            question: "Travel the world or buy a house?",
+            optionA: "Travel the world",
+            optionB: "Buy a house"
         },
         {
-            question: "Latest tech or Proven technology?",
-            optionA: "Latest tech",
-            optionB: "Proven technology"
+            question: "Argue it out or cool off separately?",
+            optionA: "Argue it out",
+            optionB: "Cool off separately"
+        },
+        {
+            question: "Anniversary tradition or different each year?",
+            optionA: "Anniversary tradition",
+            optionB: "Different each year"
+        },
+        {
+            question: "Know everything about each other or keep some mystery?",
+            optionA: "Know everything",
+            optionB: "Keep some mystery"
+        },
+        {
+            question: "Retire early together or work longer separately?",
+            optionA: "Retire early together",
+            optionB: "Work longer separately"
+        },
+        {
+            question: "Always be together or occasional time apart?",
+            optionA: "Always be together",
+            optionB: "Occasional time apart"
+        },
+        {
+            question: "Grow old gracefully or fight aging together?",
+            optionA: "Grow old gracefully",
+            optionB: "Fight aging together"
         }
     ]
 };
