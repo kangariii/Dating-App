@@ -1648,6 +1648,64 @@ function leaveGame() {
     showScreen('start-screen');
 }
 
+// NEW: Ready state management for both players to continue
+function handleContinueClick(continueType) {
+    console.log('Player clicked continue for:', continueType);
+    soundSystem.playClick();
+    
+    // Disable the button and show waiting state
+    const buttonMap = {
+        'guess': 'continue-from-guess-btn',
+        'trivia': 'continue-from-trivia-btn', 
+        'trivia-complete': 'continue-from-trivia-complete-btn',
+        'speed': 'continue-from-speed-btn',
+        'question': 'next-btn'
+    };
+    
+    const buttonId = buttonMap[continueType];
+    if (buttonId) {
+        const button = document.getElementById(buttonId);
+        if (button) {
+            button.textContent = 'Waiting...';
+            button.disabled = true;
+        }
+    }
+    
+    // Update Firebase with this player's ready state
+    const playerIds = Object.keys(currentGame.players);
+    const myIndex = playerIds.indexOf(playerId);
+    const readyField = `${continueType}Ready`;
+    
+    const updateData = {};
+    updateData[`${readyField}Player${myIndex + 1}`] = true;
+    
+    gameRef.update(updateData);
+}
+
+// NEW: Check if both players are ready for a continue type
+function checkBothPlayersReady(gameData, continueType) {
+    const readyField = `${continueType}Ready`;
+    const player1Ready = gameData[`${readyField}Player1`] || false;
+    const player2Ready = gameData[`${readyField}Player2`] || false;
+    
+    console.log(`Checking ${continueType} ready state:`, { player1Ready, player2Ready });
+    
+    return player1Ready && player2Ready;
+}
+
+// NEW: Reset ready states for a specific continue type
+function resetReadyState(continueType) {
+    if (!isHost) return;
+    
+    const readyField = `${continueType}Ready`;
+    const updateData = {};
+    updateData[`${readyField}Player1`] = false;
+    updateData[`${readyField}Player2`] = false;
+    
+    console.log('Resetting ready state for:', continueType);
+    gameRef.update(updateData);
+}
+
 // EVENT LISTENERS - ENHANCED with safety checks
 document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
     console.log('Continue from guess button clicked');
