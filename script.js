@@ -371,7 +371,7 @@ function joinRoom() {
     // Show loading state
     const joinBtn = document.getElementById('join-game-btn');
     const originalText = joinBtn.textContent;
-    joinBtn.textContent = 'Waiting...';
+    joinBtn.textContent = 'Joining...';
     joinBtn.disabled = true;
     
     // Show waiting message
@@ -435,7 +435,7 @@ function joinRoom() {
         });
 }
 
-// Main game update handler - ENHANCED with ready state checking
+// Main game update handler - ENHANCED with instruction screen handling
 function handleGameUpdate(snapshot) {
     const gameData = snapshot.val();
     if (!gameData) {
@@ -457,45 +457,6 @@ function handleGameUpdate(snapshot) {
     
     const playerCount = Object.keys(gameData.players).length;
     console.log('Player count:', playerCount); // Debug log
-    
-    // CHECK READY STATES FOR AUTO-PROGRESSION
-    if (gameData.gameStarted) {
-        // Check if both players are ready to continue from This or That results
-        if (checkBothPlayersReady(gameData, 'guess')) {
-            console.log('Both players ready to continue from This or That');
-            if (isHost) {
-                handleThisOrThatContinue();
-                resetReadyState('guess');
-            }
-        }
-        
-        // Check if both players are ready to continue from trivia question
-        if (checkBothPlayersReady(gameData, 'trivia')) {
-            console.log('Both players ready to continue from trivia question');
-            if (isHost) {
-                handleTriviaContinue();
-                resetReadyState('trivia');
-            }
-        }
-        
-        // Check if both players are ready to continue from trivia complete
-        if (checkBothPlayersReady(gameData, 'trivia-complete')) {
-            console.log('Both players ready to continue from trivia complete');
-            if (isHost) {
-                determineTriviaWinner();
-                resetReadyState('trivia-complete');
-            }
-        }
-        
-        // Check if both players are ready to continue from speed results
-        if (checkBothPlayersReady(gameData, 'speed')) {
-            console.log('Both players ready to continue from speed results');
-            if (isHost) {
-                determineSpeedWinner();
-                resetReadyState('speed');
-            }
-        }
-    }
     
     // ENHANCED: Start game when both players ready
     if (playerCount === 2 && !gameData.gameStarted) {
@@ -985,43 +946,13 @@ function showThisOrThatResult(gameData) {
     document.getElementById('player-guess').textContent = 
         gameData.playerGuess === 0 ? question.optionA : question.optionB;
     
-    // Update continue button text
+    // Update continue button
     const continueBtn = document.getElementById('continue-from-guess-btn');
     const questionsLeft = 6 - (currentGame.thisOrThatQuestionsAsked + 1);
     if (questionsLeft > 0) {
         continueBtn.textContent = `Continue (${questionsLeft} questions left)`;
     } else {
         continueBtn.textContent = 'Continue to Next Round';
-    }
-    
-    // Reset button state for new ready tracking
-    continueBtn.disabled = false;
-}
-
-// NEW: Handle This or That continue logic
-function handleThisOrThatContinue() {
-    const nextQuestionNumber = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
-    console.log('Next question number:', nextQuestionNumber);
-    
-    if (nextQuestionNumber >= 6) {
-        // This or That round complete - determine winner
-        console.log('This or That round complete, determining winner');
-        determineThisOrThatWinner();
-    } else {
-        // Continue with next this-or-that question
-        console.log('Continuing with next This or That question');
-        const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
-        const questionNumber = nextQuestionNumber + 1;
-        const hostIsChooser = (questionNumber % 2 === 1);
-        
-        gameRef.update({
-            thisOrThatQuestion: newQuestion,
-            hostIsChooser: hostIsChooser,
-            thisOrThatPhase: 'choosing',
-            playerChoice: null,
-            playerGuess: null,
-            thisOrThatQuestionsAsked: nextQuestionNumber
-        });
     }
 }
 
@@ -1204,36 +1135,9 @@ function showTriviaResults(gameData) {
         overallScores = gameData.overallScores;
     }
     
-    // Reset continue button for new ready tracking
     const continueBtn = document.getElementById('continue-from-trivia-btn');
-    continueBtn.disabled = false;
-    continueBtn.textContent = 'Continue';
-}
-
-// NEW: Handle trivia continue logic
-function handleTriviaContinue() {
-    const nextQuestionNumber = (currentGame.triviaQuestionsAsked || 0) + 1;
-    console.log('Next trivia question number:', nextQuestionNumber);
-    
-    if (nextQuestionNumber >= 6) {
-        console.log('Trivia round complete');
-        gameRef.update({
-            triviaPhase: 'complete',
-            triviaQuestionsAsked: nextQuestionNumber
-        });
-    } else {
-        console.log('Continuing with next trivia question');
-        const triviaQuestion = getRandomTriviaQuestion(currentGame.currentRound);
-        const shuffledQuestion = shuffleTriviaOptions(triviaQuestion);
-        
-        gameRef.update({
-            triviaQuestion: shuffledQuestion,
-            triviaPhase: 'questioning',
-            player1Answer: null,
-            player2Answer: null,
-            triviaQuestionsAsked: nextQuestionNumber
-        });
-    }
+    continueBtn.disabled = !isHost;
+    continueBtn.textContent = isHost ? 'Continue' : 'Waiting for host...';
 }
 
 function showTriviaRoundComplete(gameData) {
@@ -1260,10 +1164,9 @@ function showTriviaRoundComplete(gameData) {
     }
     document.getElementById('trivia-winner').textContent = winnerText;
     
-    // Reset continue button for new ready tracking
     const continueBtn = document.getElementById('continue-from-trivia-complete-btn');
-    continueBtn.disabled = false;
-    continueBtn.textContent = 'Continue';
+    continueBtn.disabled = !isHost;
+    continueBtn.textContent = isHost ? 'Continue' : 'Waiting for host...';
 }
 
 // SPEED CATEGORIES FUNCTIONS
@@ -1454,10 +1357,9 @@ function showSpeedCategoriesResults(gameData) {
     document.getElementById('speed-result-player1-name-2').textContent = `${gameData.players[playerIds[0]].name} Answers:`;
     document.getElementById('speed-result-player2-name-2').textContent = `${gameData.players[playerIds[1]].name} Answers:`;
     
-    // Reset continue button for new ready tracking
     const continueBtn = document.getElementById('continue-from-speed-btn');
-    continueBtn.disabled = false;
-    continueBtn.textContent = 'Continue';
+    continueBtn.disabled = !isHost;
+    continueBtn.textContent = isHost ? 'Continue' : 'Waiting for host...';
 }
 
 // QUESTION PHASE FUNCTIONS (Winner determination and question flow)
@@ -1746,79 +1648,77 @@ function leaveGame() {
     showScreen('start-screen');
 }
 
-// NEW: Ready state management for both players to continue
-function handleContinueClick(continueType) {
-    console.log('Player clicked continue for:', continueType);
-    soundSystem.playClick();
-    
-    // Disable the button and show waiting state
-    const buttonMap = {
-        'guess': 'continue-from-guess-btn',
-        'trivia': 'continue-from-trivia-btn', 
-        'trivia-complete': 'continue-from-trivia-complete-btn',
-        'speed': 'continue-from-speed-btn',
-        'question': 'next-btn'
-    };
-    
-    const buttonId = buttonMap[continueType];
-    if (buttonId) {
-        const button = document.getElementById(buttonId);
-        if (button) {
-            button.textContent = 'Waiting...';
-            button.disabled = true;
-        }
+// EVENT LISTENERS - ENHANCED with safety checks
+document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
+    console.log('Continue from guess button clicked');
+    if (!isHost) {
+        console.log('Only host can continue');
+        return;
     }
     
-    // Update Firebase with this player's ready state
-    const playerIds = Object.keys(currentGame.players);
-    const myIndex = playerIds.indexOf(playerId);
-    const readyField = `${continueType}Ready`;
+    const nextQuestionNumber = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
+    console.log('Next question number:', nextQuestionNumber);
     
-    const updateData = {};
-    updateData[`${readyField}Player${myIndex + 1}`] = true;
-    
-    gameRef.update(updateData);
-}
-
-// NEW: Check if both players are ready for a continue type
-function checkBothPlayersReady(gameData, continueType) {
-    const readyField = `${continueType}Ready`;
-    const player1Ready = gameData[`${readyField}Player1`] || false;
-    const player2Ready = gameData[`${readyField}Player2`] || false;
-    
-    console.log(`Checking ${continueType} ready state:`, { player1Ready, player2Ready });
-    
-    return player1Ready && player2Ready;
-}
-
-// NEW: Reset ready states for a specific continue type
-function resetReadyState(continueType) {
-    if (!isHost) return;
-    
-    const readyField = `${continueType}Ready`;
-    const updateData = {};
-    updateData[`${readyField}Player1`] = false;
-    updateData[`${readyField}Player2`] = false;
-    
-    console.log('Resetting ready state for:', continueType);
-    gameRef.update(updateData);
-}
-
-// UPDATED EVENT LISTENERS - Using new ready tracking system
-document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
-    handleContinueClick('guess');
+    if (nextQuestionNumber >= 6) {
+        // This or That round complete - determine winner
+        console.log('This or That round complete, determining winner');
+        determineThisOrThatWinner();
+    } else {
+        // Continue with next this-or-that question
+        console.log('Continuing with next This or That question');
+        const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
+        const questionNumber = nextQuestionNumber + 1;
+        const hostIsChooser = (questionNumber % 2 === 1);
+        
+        gameRef.update({
+            thisOrThatQuestion: newQuestion,
+            hostIsChooser: hostIsChooser,
+            thisOrThatPhase: 'choosing',
+            playerChoice: null,
+            playerGuess: null,
+            thisOrThatQuestionsAsked: nextQuestionNumber
+        });
+    }
 });
 
 document.getElementById('continue-from-trivia-btn').addEventListener('click', () => {
-    handleContinueClick('trivia');
+    console.log('Continue from trivia button clicked');
+    if (!isHost) return;
+    
+    const nextQuestionNumber = (currentGame.triviaQuestionsAsked || 0) + 1;
+    console.log('Next trivia question number:', nextQuestionNumber);
+    
+    if (nextQuestionNumber >= 6) {
+        console.log('Trivia round complete');
+        gameRef.update({
+            triviaPhase: 'complete',
+            triviaQuestionsAsked: nextQuestionNumber
+        });
+    } else {
+        console.log('Continuing with next trivia question');
+        const triviaQuestion = getRandomTriviaQuestion(currentGame.currentRound);
+        const shuffledQuestion = shuffleTriviaOptions(triviaQuestion);
+        
+        gameRef.update({
+            triviaQuestion: shuffledQuestion,
+            triviaPhase: 'questioning',
+            player1Answer: null,
+            player2Answer: null,
+            triviaQuestionsAsked: nextQuestionNumber
+        });
+    }
 });
 
 document.getElementById('continue-from-trivia-complete-btn').addEventListener('click', () => {
-    handleContinueClick('trivia-complete');
+    console.log('Continue from trivia complete button clicked');
+    if (!isHost) return;
+    determineTriviaWinner();
 });
 
 document.getElementById('continue-from-speed-btn').addEventListener('click', () => {
-    handleContinueClick('speed');
+    console.log('Continue from speed button clicked');
+    if (!isHost) return;
+    determineSpeedWinner();
 });
 
 // Speed Categories input handler
