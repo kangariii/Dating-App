@@ -1009,14 +1009,33 @@ function showThisOrThatResult(gameData) {
     document.getElementById('player-guess').textContent = 
         gameData.playerGuess === 0 ? question.optionA : question.optionB;
     
-    // Update continue button
+    // FIXED: Update continue button with proper state management
     const continueBtn = document.getElementById('continue-from-guess-btn');
-    const questionsLeft = 6 - (currentGame.thisOrThatQuestionsAsked + 1);
+    const currentQuestionsAsked = gameData.thisOrThatQuestionsAsked || 0;
+    const questionsCompleted = currentQuestionsAsked + 1;
+    const questionsLeft = 6 - questionsCompleted;
+    
+    console.log('Questions completed:', questionsCompleted, 'Questions left:', questionsLeft);
+    
     if (questionsLeft > 0) {
-        continueBtn.textContent = `Continue (${questionsLeft} questions left)`;
+        continueBtn.textContent = isHost ? `Continue (${questionsLeft} questions left)` : 'Waiting for host...';
     } else {
-        continueBtn.textContent = 'Continue to Next Round';
+        continueBtn.textContent = isHost ? 'Continue to Next Round' : 'Waiting for host...';
     }
+    
+    // FIXED: Always enable button for host, disable for non-host
+    continueBtn.disabled = !isHost;
+    
+    if (!isHost) {
+        continueBtn.style.opacity = '0.6';
+        continueBtn.style.cursor = 'not-allowed';
+    } else {
+        continueBtn.style.opacity = '1';
+        continueBtn.style.cursor = 'pointer';
+    }
+    
+    // Update scoreboard
+    updateScoreboard();
 }
 
 // TRIVIA GAME FUNCTIONS
@@ -1744,13 +1763,28 @@ function leaveGame() {
     showScreen('start-screen');
 }
 
-// EVENT LISTENERS - ENHANCED with safety checks
 document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
     console.log('Continue from guess button clicked');
+    console.log('isHost:', isHost);
+    console.log('currentGame:', currentGame);
+    
     if (!isHost) {
         console.log('Only host can continue');
+        alert('Only the host can continue the game!');
         return;
     }
+    
+    if (!currentGame) {
+        console.log('No current game data');
+        alert('Game data not available. Please wait a moment.');
+        return;
+    }
+    
+    // Add visual feedback
+    const button = document.getElementById('continue-from-guess-btn');
+    const originalText = button.textContent;
+    button.textContent = 'Loading...';
+    button.disabled = true;
     
     const currentQuestionsAsked = currentGame.thisOrThatQuestionsAsked || 0;
     const nextQuestionNumber = currentQuestionsAsked + 1;
@@ -1759,29 +1793,39 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
     console.log('Next question number will be:', nextQuestionNumber);
     console.log('Questions remaining:', 6 - nextQuestionNumber);
     
-    if (nextQuestionNumber >= 6) {
-        // This or That round complete - determine winner
-        console.log('This or That round complete (6 questions finished), determining winner');
-        determineThisOrThatWinner();
-    } else {
-        // Continue with next this-or-that question
-        console.log('Continuing with This or That question #' + (nextQuestionNumber + 1));
-        const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
-        
-        // Alternate who is the chooser: odd questions (1,3,5) = host chooses, even questions (2,4,6) = guest chooses
-        const hostIsChooser = ((nextQuestionNumber + 1) % 2 === 1);
-        
-        console.log('Host is chooser for next question:', hostIsChooser);
-        
-        gameRef.update({
-            thisOrThatQuestion: newQuestion,
-            hostIsChooser: hostIsChooser,
-            thisOrThatPhase: 'choosing',
-            playerChoice: null,
-            playerGuess: null,
-            thisOrThatQuestionsAsked: nextQuestionNumber
-        });
-    }
+    setTimeout(() => {
+        if (nextQuestionNumber >= 6) {
+            // This or That round complete - determine winner
+            console.log('This or That round complete (6 questions finished), determining winner');
+            determineThisOrThatWinner();
+        } else {
+            // Continue with next this-or-that question
+            console.log('Continuing with This or That question #' + (nextQuestionNumber + 1));
+            const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
+            
+            // Alternate who is the chooser: odd questions (1,3,5) = host chooses, even questions (2,4,6) = guest chooses
+            const hostIsChooser = ((nextQuestionNumber + 1) % 2 === 1);
+            
+            console.log('Host is chooser for next question:', hostIsChooser);
+            
+            gameRef.update({
+                thisOrThatQuestion: newQuestion,
+                hostIsChooser: hostIsChooser,
+                thisOrThatPhase: 'choosing',
+                playerChoice: null,
+                playerGuess: null,
+                thisOrThatQuestionsAsked: nextQuestionNumber
+            }).then(() => {
+                console.log('Successfully updated game for next question');
+            }).catch((error) => {
+                console.error('Error updating game:', error);
+                // Restore button
+                button.textContent = originalText;
+                button.disabled = false;
+                alert('Error continuing game. Please try again.');
+            });
+        }
+    }, 500);
 });
 
 document.getElementById('continue-from-trivia-btn').addEventListener('click', () => {
