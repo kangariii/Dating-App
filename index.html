@@ -505,6 +505,7 @@
         </div>
 
         <!-- Game Complete Screen -->
+        <!-- Game Complete Screen -->
         <div id="game-complete-screen" class="screen">
             <div class="container" style="text-align: center;">
                 <h2 class="round-title">🎉 Game Complete! 🎉</h2>
@@ -520,13 +521,13 @@
                 </div>
                 <p id="final-winner" class="winner-text">Thanks for playing!</p>
                 <div class="game-summary">
-                    <p>You completed 3 competitive rounds and 3 deep conversations!</p>
-                    <p>✨ Hope you learned something new about each other ✨</p>
+                    <pre id="game-summary-text" style="white-space: pre-line; font-family: 'Poppins', sans-serif; font-size: 1.1rem; line-height: 1.6; color: rgba(255,255,255,0.9);">You completed 3 competitive rounds and 3 deep conversations!</pre>
                 </div>
-                <button class="play-btn" onclick="leaveGame()">Play Again</button>
+                <div style="margin-top: 2rem;">
+                    <button class="play-btn" onclick="leaveGame()">Return to Main Menu</button>
+                </div>
             </div>
         </div>
-    </div>
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>

@@ -436,6 +436,7 @@ function joinRoom() {
 }
 
 // Main game update handler - ENHANCED with instruction screen handling
+// Main game update handler - ENHANCED with instruction screen handling
 function handleGameUpdate(snapshot) {
     const gameData = snapshot.val();
     if (!gameData) {
@@ -487,6 +488,12 @@ function handleGameUpdate(snapshot) {
             console.log('Not all players ready yet');
         }
     } else if (gameData.gameStarted) {
+        // Check for game completion first
+        if (gameData.gamePhase === 'complete' || gameData.gameComplete) {
+            showGameCompleteScreen();
+            return;
+        }
+        
         // FIXED: Handle special game phases FIRST before checking round types
         if (gameData.gamePhase === 'instructions') {
             handleInstructionPhase(gameData);
@@ -512,13 +519,20 @@ function handleGameUpdate(snapshot) {
         
         // FIXED: Auto-progression logic for completed questions (host only)
         if (isHost && gameData.questionAnswered && gameData.gamePhase === 'question-answering') {
-            console.log('Question answered, auto-progressing to next round...');
+            console.log('Question answered, auto-progressing...');
             
             const nextRound = (gameData.currentRound || 0) + 1;
             
             if (nextRound > 3) {
                 console.log('All rounds complete, showing final screen');
-                showGameCompleteScreen();
+                // FIXED: Add a small delay and proper game completion
+                setTimeout(() => {
+                    gameRef.update({
+                        gamePhase: 'complete',
+                        gameComplete: true
+                    });
+                    showGameCompleteScreen();
+                }, 1000);
             } else {
                 console.log('Starting next round:', nextRound);
                 startNewRound(nextRound);
@@ -1224,27 +1238,50 @@ function handleSpeedCategoriesUpdate(gameData) {
     }
 }
 
-function showSpeedCategoriesScreen(gameData) {
-    showScreen('speed-categories-screen');
+function showSpeedCategoriesResults(gameData) {
+    showScreen('speed-categories-results');
     
-    document.getElementById('speed-category').textContent = gameData.speedCategory;
-    document.getElementById('speed-timer').textContent = '45';
-    document.getElementById('speed-input').value = '';
-    document.getElementById('speed-answers-list').innerHTML = '';
-    document.getElementById('speed-input').disabled = false;
-    document.getElementById('speed-current-score').textContent = '0';
+    const playerIds = Object.keys(gameData.players);
+    const player1Answers = gameData.player1Answers || [];
+    const player2Answers = gameData.player2Answers || [];
     
-    speedMyAnswers = [];
-    speedGameActive = true;
-    
-    // Start timer
-    if (gameData.speedEndTime) {
-        startSpeedTimer(gameData.speedEndTime);
+    // FIXED: Sync the updated scores locally
+    if (gameData.overallScores) {
+        overallScores = gameData.overallScores;
     }
     
-    setTimeout(() => {
-        document.getElementById('speed-input').focus();
-    }, 100);
+    // Update scoreboard with new scores
+    updateScoreboard();
+    
+    document.getElementById('speed-result-category').textContent = gameData.speedCategory;
+    
+    document.getElementById('speed-result-player1-name').textContent = gameData.players[playerIds[0]].name;
+    document.getElementById('speed-result-player1-score').textContent = player1Answers.length;
+    
+    document.getElementById('speed-result-player2-name').textContent = gameData.players[playerIds[1]].name;
+    document.getElementById('speed-result-player2-score').textContent = player2Answers.length;
+    
+    let winnerText = '';
+    if (player1Answers.length > player2Answers.length) {
+        winnerText = `${gameData.players[playerIds[0]].name} wins!`;
+        triggerConfetti('correct');
+    } else if (player2Answers.length > player1Answers.length) {
+        winnerText = `${gameData.players[playerIds[1]].name} wins!`;
+        triggerConfetti('correct');
+    } else {
+        winnerText = "It's a tie!";
+    }
+    document.getElementById('speed-winner').textContent = winnerText;
+    
+    document.getElementById('speed-result-player1-answers').textContent = player1Answers.join(', ');
+    document.getElementById('speed-result-player2-answers').textContent = player2Answers.join(', ');
+    
+    document.getElementById('speed-result-player1-name-2').textContent = `${gameData.players[playerIds[0]].name} Answers:`;
+    document.getElementById('speed-result-player2-name-2').textContent = `${gameData.players[playerIds[1]].name} Answers:`;
+    
+    const continueBtn = document.getElementById('continue-from-speed-btn');
+    continueBtn.disabled = !isHost;
+    continueBtn.textContent = isHost ? 'Continue' : 'Waiting for host...';
 }
 
 function startSpeedTimer(endTime) {
@@ -1549,9 +1586,19 @@ function showGameCompleteScreen() {
         }
         
         document.getElementById('final-winner').textContent = finalWinnerText;
+        
+        // ENHANCED: Add game summary
+        const totalScore = (overallScores.player1 || 0) + (overallScores.player2 || 0);
+        let summaryText = `🎯 Total points earned together: ${totalScore}\n`;
+        summaryText += `🎮 You completed 3 competitive challenges\n`;
+        summaryText += `💝 You shared 3 meaningful conversations\n`;
+        summaryText += `✨ Hope you learned something new about each other! ✨`;
+        
+        document.getElementById('game-summary-text').textContent = summaryText;
     } else {
         // Fallback in case of missing data
         document.getElementById('final-winner').textContent = "Thanks for playing! 🎉";
+        document.getElementById('game-summary-text').textContent = "Hope you enjoyed connecting with each other!";
     }
 }
 
