@@ -1008,7 +1008,7 @@ function showTriviaQuestion(gameData) {
     showScreen('trivia-question-screen');
     
     const questionNum = triviaQuestionsAsked + 1;
-    document.getElementById('trivia-question-number').textContent = `Question ${questionNum} of 6`;
+    document.getElementById('trivia-question-number').textContent = `Question ${questionNum} of 7`;
     
     // Update scores
     const playerIds = Object.keys(gameData.players);
@@ -1649,34 +1649,30 @@ function leaveGame() {
 }
 
 // EVENT LISTENERS - ENHANCED with safety checks
-document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
-    console.log('Continue from guess button clicked');
-    if (!isHost) {
-        console.log('Only host can continue');
-        return;
-    }
+document.getElementById('continue-from-trivia-btn').addEventListener('click', () => {
+    console.log('Continue from trivia button clicked');
+    if (!isHost) return;
     
-    const nextQuestionNumber = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
-    console.log('Next question number:', nextQuestionNumber);
+    const nextQuestionNumber = (currentGame.triviaQuestionsAsked || 0) + 1;
+    console.log('Next trivia question number:', nextQuestionNumber);
     
-    if (nextQuestionNumber >= 6) {
-        // This or That round complete - determine winner
-        console.log('This or That round complete, determining winner');
-        determineThisOrThatWinner();
+    if (nextQuestionNumber >= 7) {
+        console.log('Trivia round complete');
+        gameRef.update({
+            triviaPhase: 'complete',
+            triviaQuestionsAsked: nextQuestionNumber
+        });
     } else {
-        // Continue with next this-or-that question
-        console.log('Continuing with next This or That question');
-        const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
-        const questionNumber = nextQuestionNumber + 1;
-        const hostIsChooser = (questionNumber % 2 === 1);
+        console.log('Continuing with next trivia question');
+        const triviaQuestion = getRandomTriviaQuestion(currentGame.currentRound);
+        const shuffledQuestion = shuffleTriviaOptions(triviaQuestion);
         
         gameRef.update({
-            thisOrThatQuestion: newQuestion,
-            hostIsChooser: hostIsChooser,
-            thisOrThatPhase: 'choosing',
-            playerChoice: null,
-            playerGuess: null,
-            thisOrThatQuestionsAsked: nextQuestionNumber
+            triviaQuestion: shuffledQuestion,
+            triviaPhase: 'questioning',
+            player1Answer: null,
+            player2Answer: null,
+            triviaQuestionsAsked: nextQuestionNumber
         });
     }
 });
@@ -1755,4 +1751,4 @@ document.getElementById('joiner-name').addEventListener('keypress', function(e) 
     if (e.key === 'Enter') {
         joinRoom();
     }
-});
+});   
