@@ -562,34 +562,83 @@ function handleInstructionPhase(gameData) {
     
     // Update scoreboards on instruction screens
     updateScoreboard();
+    
+    // FIXED: Update button states based on host status
+    setTimeout(() => {
+        updateInstructionButtons(roundType);
+    }, 100);
 }
 
-// NEW: Handle question instruction phase
-function handleQuestionInstructionPhase(gameData) {
-    showScreen('question-instructions');
-    updateScoreboard();
+// NEW: Update instruction buttons based on host status
+function updateInstructionButtons(gameType) {
+    let buttonSelector = '';
+    let buttonText = '';
+    
+    if (gameType === 'this-or-that') {
+        buttonSelector = '.screen#this-or-that-instructions .play-btn';
+        buttonText = isHost ? 'Start This or That!' : 'Waiting for host to start...';
+    } else if (gameType === 'trivia') {
+        buttonSelector = '.screen#trivia-instructions .play-btn';
+        buttonText = isHost ? 'Start Trivia Challenge!' : 'Waiting for host to start...';
+    } else if (gameType === 'speed') {
+        buttonSelector = '.screen#speed-instructions .play-btn';
+        buttonText = isHost ? 'Start Speed Challenge!' : 'Waiting for host to start...';
+    }
+    
+    const button = document.querySelector(buttonSelector);
+    if (button) {
+        button.textContent = buttonText;
+        button.disabled = !isHost;
+        
+        if (!isHost) {
+            button.style.opacity = '0.6';
+            button.style.cursor = 'not-allowed';
+        } else {
+            button.style.opacity = '1';
+            button.style.cursor = 'pointer';
+        }
+    }
 }
 
 // NEW: Function called when user clicks "Start Game" on instruction screens
 function startGameModeFromInstructions(gameType) {
+    console.log('startGameModeFromInstructions called with:', gameType);
+    console.log('isHost:', isHost);
+    console.log('currentGame:', currentGame);
+    
     if (!isHost) {
         console.log('Only host can start game mode');
+        alert('Only the host can start the game!');
+        return;
+    }
+    
+    if (!currentGame) {
+        console.log('No current game data available');
+        alert('Game data not ready. Please wait a moment and try again.');
         return;
     }
     
     console.log('Starting game mode from instructions:', gameType);
     soundSystem.playClick();
     
+    // Add visual feedback - disable button temporarily
+    const button = event.target;
+    const originalText = button.textContent;
+    button.textContent = 'Starting...';
+    button.disabled = true;
+    
     // Set both players as ready for this round and start the actual game
     const roundNumber = currentGame.currentRound;
     
-    if (gameType === 'this-or-that') {
-        startThisOrThatGame(roundNumber);
-    } else if (gameType === 'trivia') {
-        startTriviaGame(roundNumber);
-    } else if (gameType === 'speed') {
-        startSpeedCategoriesGame(roundNumber);
-    }
+    setTimeout(() => {
+        if (gameType === 'this-or-that') {
+            startThisOrThatGame(roundNumber);
+        } else if (gameType === 'trivia') {
+            startTriviaGame(roundNumber);
+        } else if (gameType === 'speed') {
+            startSpeedCategoriesGame(roundNumber);
+        }
+    }, 500); // Small delay to show feedback
 }
 
 // NEW: Function called when user clicks "Ready to Connect" on question instructions
