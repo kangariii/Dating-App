@@ -1649,30 +1649,41 @@ function leaveGame() {
 }
 
 // EVENT LISTENERS - ENHANCED with safety checks
-document.getElementById('continue-from-trivia-btn').addEventListener('click', () => {
-    console.log('Continue from trivia button clicked');
-    if (!isHost) return;
+document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
+    console.log('Continue from guess button clicked');
+    if (!isHost) {
+        console.log('Only host can continue');
+        return;
+    }
     
-    const nextQuestionNumber = (currentGame.triviaQuestionsAsked || 0) + 1;
-    console.log('Next trivia question number:', nextQuestionNumber);
+    const currentQuestionsAsked = currentGame.thisOrThatQuestionsAsked || 0;
+    const nextQuestionNumber = currentQuestionsAsked + 1;
     
-    if (nextQuestionNumber >= 7) {
-        console.log('Trivia round complete');
-        gameRef.update({
-            triviaPhase: 'complete',
-            triviaQuestionsAsked: nextQuestionNumber
-        });
+    console.log('Current questions asked:', currentQuestionsAsked);
+    console.log('Next question number will be:', nextQuestionNumber);
+    console.log('Questions remaining:', 6 - nextQuestionNumber);
+    
+    if (nextQuestionNumber >= 6) {
+        // This or That round complete - determine winner
+        console.log('This or That round complete (6 questions finished), determining winner');
+        determineThisOrThatWinner();
     } else {
-        console.log('Continuing with next trivia question');
-        const triviaQuestion = getRandomTriviaQuestion(currentGame.currentRound);
-        const shuffledQuestion = shuffleTriviaOptions(triviaQuestion);
+        // Continue with next this-or-that question
+        console.log('Continuing with This or That question #' + (nextQuestionNumber + 1));
+        const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
+        
+        // Alternate who is the chooser: odd questions (1,3,5) = host chooses, even questions (2,4,6) = guest chooses
+        const hostIsChooser = ((nextQuestionNumber + 1) % 2 === 1);
+        
+        console.log('Host is chooser for next question:', hostIsChooser);
         
         gameRef.update({
-            triviaQuestion: shuffledQuestion,
-            triviaPhase: 'questioning',
-            player1Answer: null,
-            player2Answer: null,
-            triviaQuestionsAsked: nextQuestionNumber
+            thisOrThatQuestion: newQuestion,
+            hostIsChooser: hostIsChooser,
+            thisOrThatPhase: 'choosing',
+            playerChoice: null,
+            playerGuess: null,
+            thisOrThatQuestionsAsked: nextQuestionNumber
         });
     }
 });
@@ -1684,7 +1695,7 @@ document.getElementById('continue-from-trivia-btn').addEventListener('click', ()
     const nextQuestionNumber = (currentGame.triviaQuestionsAsked || 0) + 1;
     console.log('Next trivia question number:', nextQuestionNumber);
     
-    if (nextQuestionNumber >= 6) {
+    if (nextQuestionNumber >= 7) {
         console.log('Trivia round complete');
         gameRef.update({
             triviaPhase: 'complete',
@@ -1751,4 +1762,4 @@ document.getElementById('joiner-name').addEventListener('keypress', function(e) 
     if (e.key === 'Enter') {
         joinRoom();
     }
-});   
+});
