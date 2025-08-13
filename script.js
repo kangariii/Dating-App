@@ -181,6 +181,7 @@ let speedTimer = null;
 let speedTimeLeft = 45;
 let speedMyAnswers = [];
 let speedGameActive = false;
+let speedAnswersSubmitted = false; // FIXED: Add new flag to prevent double submission
 
 // FIXED: Add tracking for question results to prevent duplicate scoring
 let processedResults = new Set();
@@ -1172,6 +1173,19 @@ function showThisOrThatResult(gameData) {
     updateScoreboard();
 }
 
+// FIXED: Add missing determineThisOrThatWinner function
+function determineThisOrThatWinner() {
+    if (!isHost) return;
+    
+    console.log('Determining This or That winner...');
+    
+    // Only show instructions, let continueFromQuestionInstructions handle winner logic
+    gameRef.update({
+        gamePhase: 'question-instructions',
+        questionGameType: 'this-or-that'
+    });
+}
+
 // TRIVIA GAME FUNCTIONS
 function startTriviaGame(roundNumber) {
     console.log('Starting trivia game for round:', roundNumber);
@@ -1465,12 +1479,14 @@ function handleSpeedCategoriesUpdate(gameData) {
     }
 }
 
+// FIXED: Improved showSpeedCategoriesScreen function with better event listener management
 function showSpeedCategoriesScreen(gameData) {
     showScreen('speed-categories-screen');
     
-    // FIXED: Initialize properly
+    // FIXED: Initialize properly with better flag management
     speedMyAnswers = [];
     speedGameActive = true;
+    speedAnswersSubmitted = false; // Reset submission flag
     
     document.getElementById('speed-category').textContent = gameData.speedCategory;
     document.getElementById('speed-current-score').textContent = '0';
@@ -1480,18 +1496,19 @@ function showSpeedCategoriesScreen(gameData) {
     input.disabled = false;
     input.value = '';
     
-    // FIXED: Remove any existing event listeners first
-    input.onkeypress = null;
+    // FIXED: Remove ALL existing event listeners properly
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
     
-    // FIXED: Add single event listener
-    input.addEventListener('keypress', function(e) {
+    // FIXED: Add single, fresh event listener
+    newInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             handleSpeedAnswer();
         }
-    }, { once: false });
+    });
     
-    input.focus();
+    newInput.focus();
     
     // Start timer
     if (gameData.speedEndTime) {
@@ -1567,7 +1584,7 @@ function startSpeedTimer(endTime) {
 }
 
 function handleSpeedAnswer() {
-    if (!speedGameActive) return;
+    if (!speedGameActive || speedAnswersSubmitted) return;
     
     const input = document.getElementById('speed-input');
     const answer = input.value.trim();
@@ -1591,17 +1608,22 @@ function handleSpeedAnswer() {
     }
 }
 
+// FIXED: Improved endSpeedGame function with better flag management
 function endSpeedGame() {
-    // FIXED: Prevent multiple calls with a simple flag
-    if (!speedGameActive || speedMyAnswers === null) {
-        console.log('Speed game already ended or answers already submitted');
+    // FIXED: Use both flags to prevent any possibility of double submission
+    if (!speedGameActive || speedAnswersSubmitted) {
+        console.log('Speed game already ended or answers already submitted - preventing duplicate submission');
         return;
     }
     
-    // Immediately mark as inactive and preserve answers
+    // FIXED: Immediately set both flags to prevent any race conditions
     speedGameActive = false;
-    const finalAnswers = [...speedMyAnswers]; // Copy before clearing
-    speedMyAnswers = null; // Set to null to prevent re-submission
+    speedAnswersSubmitted = true;
+    
+    // FIXED: Preserve answers immediately before any async operations
+    const finalAnswers = speedMyAnswers ? [...speedMyAnswers] : [];
+    
+    console.log('Speed game ending - final answers:', finalAnswers);
     
     if (speedTimer) {
         clearInterval(speedTimer);
@@ -1609,12 +1631,16 @@ function endSpeedGame() {
     }
     
     soundSystem.playSpeedComplete();
-    document.getElementById('speed-input').disabled = true;
+    
+    // Disable input immediately
+    const input = document.getElementById('speed-input');
+    if (input) {
+        input.disabled = true;
+    }
+    
     document.getElementById('speed-timer').textContent = '0';
     
-    console.log('Submitting speed game answers:', finalAnswers);
-    
-    // Submit answers
+    // Submit answers to Firebase
     const playerIds = Object.keys(currentGame.players);
     const myIndex = playerIds.indexOf(playerId);
     
@@ -1627,7 +1653,7 @@ function endSpeedGame() {
         updateData.player2Done = true;
     }
     
-    console.log('Submitting speed game answers:', updateData);
+    console.log('Submitting speed game data:', updateData);
     gameRef.update(updateData);
 }
 
@@ -1738,6 +1764,7 @@ function getRandomSpeedCategory() {
     return categories[randomIndex];
 }
 
+// FIXED: Enhanced validateSpeedAnswer function with more flexible matching
 function validateSpeedAnswer(userAnswer, category) {
     const validAnswers = speedCategoriesWithAnswers[category];
     if (!validAnswers) {
@@ -1747,30 +1774,80 @@ function validateSpeedAnswer(userAnswer, category) {
     
     const cleanAnswer = userAnswer.toLowerCase().trim();
     
-    // Direct match
+    // Direct match first
     if (validAnswers.includes(cleanAnswer)) {
         return true;
     }
     
-    // FIXED: More flexible matching
+    // FIXED: Enhanced abbreviation and variation mapping
     const variations = {
+        // US States
         'us': 'united states',
-        'uk': 'united kingdom', 
         'usa': 'united states',
         'ny': 'new york',
         'ca': 'california',
         'tx': 'texas',
-        'fl': 'florida'
+        'fl': 'florida',
+        'pa': 'pennsylvania',
+        'il': 'illinois',
+        'oh': 'ohio',
+        'mi': 'michigan',
+        'nc': 'north carolina',
+        'sc': 'south carolina',
+        'nd': 'north dakota',
+        'sd': 'south dakota',
+        'wv': 'west virginia',
+        'nh': 'new hampshire',
+        'nj': 'new jersey',
+        'nm': 'new mexico',
+        'ri': 'rhode island',
+        // Countries
+        'uk': 'united kingdom',
+        'uae': 'united arab emirates',
+        'drc': 'democratic republic of congo',
+        'car': 'central african republic',
+        // Common alternate names
+        'america': 'united states',
+        'england': 'united kingdom',
+        'britain': 'united kingdom',
+        'holland': 'netherlands',
+        'burma': 'myanmar',
+        'persia': 'iran',
+        'siam': 'thailand'
     };
     
+    // Check variations
     if (variations[cleanAnswer] && validAnswers.includes(variations[cleanAnswer])) {
         return true;
     }
     
-    // FIXED: Partial matching for common abbreviations
+    // FIXED: More flexible partial matching for longer names
     for (const validAnswer of validAnswers) {
-        if (validAnswer.startsWith(cleanAnswer) && cleanAnswer.length >= 3) {
+        // Allow partial matches for names 5+ characters if user typed 4+ characters
+        if (validAnswer.length >= 5 && cleanAnswer.length >= 4) {
+            if (validAnswer.startsWith(cleanAnswer)) {
+                return true;
+            }
+        }
+        
+        // Allow matching any word in multi-word answers
+        const validWords = validAnswer.split(' ');
+        if (validWords.length > 1 && validWords.some(word => word === cleanAnswer)) {
             return true;
+        }
+        
+        // Allow close matches with one character difference for longer answers
+        if (validAnswer.length >= 6 && cleanAnswer.length >= 5) {
+            let differences = 0;
+            const maxLen = Math.max(validAnswer.length, cleanAnswer.length);
+            for (let i = 0; i < maxLen; i++) {
+                if (validAnswer[i] !== cleanAnswer[i]) {
+                    differences++;
+                }
+            }
+            if (differences <= 1) {
+                return true;
+            }
         }
     }
     
@@ -1811,6 +1888,7 @@ function leaveGame() {
     triviaRoundScores = { player1: 0, player2: 0 };
     speedMyAnswers = [];
     speedGameActive = false;
+    speedAnswersSubmitted = false; // FIXED: Reset submission flag
     processedResults.clear(); // FIXED: Clear processed results
     
     showScreen('start-screen');
@@ -1895,13 +1973,6 @@ document.getElementById('continue-from-speed-btn').addEventListener('click', () 
     console.log('Continue from speed button clicked');
     if (!isHost) return;
     determineSpeedWinner();
-});
-
-// Speed Categories input handler
-document.getElementById('speed-input').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        handleSpeedAnswer();
-    }
 });
 
 // Auto-format room code input
