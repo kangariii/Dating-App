@@ -1468,6 +1468,7 @@ function handleSpeedCategoriesUpdate(gameData) {
 function showSpeedCategoriesScreen(gameData) {
     showScreen('speed-categories-screen');
     
+    // FIXED: Initialize properly
     speedMyAnswers = [];
     speedGameActive = true;
     
@@ -1479,6 +1480,13 @@ function showSpeedCategoriesScreen(gameData) {
     input.disabled = false;
     input.value = '';
     input.focus();
+    
+    // FIXED: Add event listener here to ensure it's attached
+    input.onkeypress = function(e) {
+        if (e.key === 'Enter') {
+            handleSpeedAnswer();
+        }
+    };
     
     // Start timer
     if (gameData.speedEndTime) {
@@ -1592,16 +1600,20 @@ function endSpeedGame() {
     document.getElementById('speed-input').disabled = true;
     document.getElementById('speed-timer').textContent = '0';
     
+    // FIXED: Ensure we have answers to submit
+    const answersToSubmit = speedMyAnswers || [];
+    console.log('Submitting speed game answers:', answersToSubmit);
+    
     // Submit answers
     const playerIds = Object.keys(currentGame.players);
     const myIndex = playerIds.indexOf(playerId);
     
     const updateData = {};
     if (myIndex === 0) {
-        updateData.player1Answers = speedMyAnswers || [];
+        updateData.player1Answers = answersToSubmit;
         updateData.player1Done = true;
     } else {
-        updateData.player2Answers = speedMyAnswers || [];
+        updateData.player2Answers = answersToSubmit;
         updateData.player2Done = true;
     }
     
@@ -1731,22 +1743,38 @@ function getRandomSpeedCategory() {
 
 function validateSpeedAnswer(userAnswer, category) {
     const validAnswers = speedCategoriesWithAnswers[category];
-    if (!validAnswers) return false;
+    if (!validAnswers) {
+        console.log('No valid answers found for category:', category);
+        return false;
+    }
     
     const cleanAnswer = userAnswer.toLowerCase().trim();
     
+    // Direct match
     if (validAnswers.includes(cleanAnswer)) {
         return true;
     }
     
+    // FIXED: More flexible matching
     const variations = {
         'us': 'united states',
-        'uk': 'united kingdom',
-        'usa': 'united states'
+        'uk': 'united kingdom', 
+        'usa': 'united states',
+        'ny': 'new york',
+        'ca': 'california',
+        'tx': 'texas',
+        'fl': 'florida'
     };
     
     if (variations[cleanAnswer] && validAnswers.includes(variations[cleanAnswer])) {
         return true;
+    }
+    
+    // FIXED: Partial matching for common abbreviations
+    for (const validAnswer of validAnswers) {
+        if (validAnswer.startsWith(cleanAnswer) && cleanAnswer.length >= 3) {
+            return true;
+        }
     }
     
     return false;
