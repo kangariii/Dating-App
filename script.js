@@ -1402,6 +1402,12 @@ function showTriviaRoundComplete(gameData) {
 // SPEED CATEGORIES FUNCTIONS
 function startSpeedCategoriesGame(roundNumber) {
     console.log('Starting speed categories for round:', roundNumber);
+    
+    // FIXED: Reset all speed game flags when starting new game
+    speedGameActive = false; // Will be set to true in showSpeedCategoriesScreen
+    speedAnswersSubmitted = false;
+    speedMyAnswers = [];
+    
     const category = getRandomSpeedCategory();
     
     gameRef.update({
@@ -1479,40 +1485,52 @@ function handleSpeedCategoriesUpdate(gameData) {
     }
 }
 
-// FIXED: Improved showSpeedCategoriesScreen function with better event listener management
+// FIXED: Improved showSpeedCategoriesScreen function with better state management
 function showSpeedCategoriesScreen(gameData) {
     showScreen('speed-categories-screen');
     
-    // FIXED: Initialize properly with better flag management
-    speedMyAnswers = [];
-    speedGameActive = true;
-    speedAnswersSubmitted = false; // Reset submission flag
-    
-    document.getElementById('speed-category').textContent = gameData.speedCategory;
-    document.getElementById('speed-current-score').textContent = '0';
-    document.getElementById('speed-answers-list').innerHTML = '';
-    
-    const input = document.getElementById('speed-input');
-    input.disabled = false;
-    input.value = '';
-    
-    // FIXED: Remove ALL existing event listeners properly
-    const newInput = input.cloneNode(true);
-    input.parentNode.replaceChild(newInput, input);
-    
-    // FIXED: Add single, fresh event listener
-    newInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            handleSpeedAnswer();
+    // FIXED: Only initialize if we haven't started the game yet or haven't submitted answers
+    if (!speedGameActive && !speedAnswersSubmitted) {
+        console.log('Initializing speed game for the first time');
+        speedMyAnswers = [];
+        speedGameActive = true;
+        speedAnswersSubmitted = false;
+        
+        document.getElementById('speed-category').textContent = gameData.speedCategory;
+        document.getElementById('speed-current-score').textContent = '0';
+        document.getElementById('speed-answers-list').innerHTML = '';
+        
+        const input = document.getElementById('speed-input');
+        input.disabled = false;
+        input.value = '';
+        
+        // FIXED: Remove ALL existing event listeners properly
+        const newInput = input.cloneNode(true);
+        input.parentNode.replaceChild(newInput, input);
+        
+        // FIXED: Add single, fresh event listener
+        newInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSpeedAnswer();
+            }
+        });
+        
+        newInput.focus();
+        
+        // Start timer
+        if (gameData.speedEndTime) {
+            startSpeedTimer(gameData.speedEndTime);
         }
-    });
-    
-    newInput.focus();
-    
-    // Start timer
-    if (gameData.speedEndTime) {
-        startSpeedTimer(gameData.speedEndTime);
+    } else {
+        console.log('Speed game already in progress or completed - not reinitializing');
+        // Just update the display without resetting game state
+        document.getElementById('speed-category').textContent = gameData.speedCategory;
+        
+        // Update score display if we have answers
+        if (speedMyAnswers && speedMyAnswers.length > 0) {
+            document.getElementById('speed-current-score').textContent = speedMyAnswers.length;
+        }
     }
 }
 
@@ -1608,11 +1626,18 @@ function handleSpeedAnswer() {
     }
 }
 
-// FIXED: Improved endSpeedGame function with better flag management
+// FIXED: Enhanced endSpeedGame function with better debugging and protection
 function endSpeedGame() {
+    console.log('endSpeedGame called - current state:', {
+        speedGameActive: speedGameActive,
+        speedAnswersSubmitted: speedAnswersSubmitted,
+        speedMyAnswers: speedMyAnswers ? speedMyAnswers.slice() : null,
+        answersLength: speedMyAnswers ? speedMyAnswers.length : 'null'
+    });
+    
     // FIXED: Use both flags to prevent any possibility of double submission
     if (!speedGameActive || speedAnswersSubmitted) {
-        console.log('Speed game already ended or answers already submitted - preventing duplicate submission');
+        console.log('Speed game already ended or answers already submitted - BLOCKING duplicate submission');
         return;
     }
     
@@ -1623,7 +1648,7 @@ function endSpeedGame() {
     // FIXED: Preserve answers immediately before any async operations
     const finalAnswers = speedMyAnswers ? [...speedMyAnswers] : [];
     
-    console.log('Speed game ending - final answers:', finalAnswers);
+    console.log('Speed game ending - submitting final answers:', finalAnswers);
     
     if (speedTimer) {
         clearInterval(speedTimer);
@@ -1653,7 +1678,7 @@ function endSpeedGame() {
         updateData.player2Done = true;
     }
     
-    console.log('Submitting speed game data:', updateData);
+    console.log('Submitting speed game data to Firebase:', updateData);
     gameRef.update(updateData);
 }
 
