@@ -1479,14 +1479,19 @@ function showSpeedCategoriesScreen(gameData) {
     const input = document.getElementById('speed-input');
     input.disabled = false;
     input.value = '';
-    input.focus();
     
-    // FIXED: Add event listener here to ensure it's attached
-    input.onkeypress = function(e) {
+    // FIXED: Remove any existing event listeners first
+    input.onkeypress = null;
+    
+    // FIXED: Add single event listener
+    input.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
+            e.preventDefault();
             handleSpeedAnswer();
         }
-    };
+    }, { once: false });
+    
+    input.focus();
     
     // Start timer
     if (gameData.speedEndTime) {
@@ -1587,7 +1592,10 @@ function handleSpeedAnswer() {
 }
 
 function endSpeedGame() {
-    if (!speedGameActive) return;
+    if (!speedGameActive) {
+        console.log('Speed game already ended, ignoring duplicate call');
+        return;
+    }
     
     speedGameActive = false;
     
@@ -1600,11 +1608,11 @@ function endSpeedGame() {
     document.getElementById('speed-input').disabled = true;
     document.getElementById('speed-timer').textContent = '0';
     
-    // FIXED: Ensure we have answers to submit
-    const answersToSubmit = speedMyAnswers || [];
+    // FIXED: Ensure we have answers to submit and prevent duplicates
+    const answersToSubmit = [...speedMyAnswers]; // Make a copy
     console.log('Submitting speed game answers:', answersToSubmit);
     
-    // Submit answers
+    // Submit answers ONLY ONCE
     const playerIds = Object.keys(currentGame.players);
     const myIndex = playerIds.indexOf(playerId);
     
@@ -1617,20 +1625,15 @@ function endSpeedGame() {
         updateData.player2Done = true;
     }
     
-    console.log('Submitting speed game answers:', updateData);
-    gameRef.update(updateData);
-}
-
-// QUESTION PHASE FUNCTIONS (Winner determination and question flow)
-function determineThisOrThatWinner() {
-    if (!isHost) return;
+    console.log('Final submission data:', updateData);
     
-    console.log('Determining This or That winner...');
+    // FIXED: Clear speedMyAnswers after submission to prevent re-submission
+    speedMyAnswers = [];
     
-    // FIXED: Only show instructions, let continueFromQuestionInstructions handle winner logic
-    gameRef.update({
-        gamePhase: 'question-instructions',
-        questionGameType: 'this-or-that'
+    gameRef.update(updateData).then(() => {
+        console.log('Speed game answers submitted successfully');
+    }).catch(error => {
+        console.error('Error submitting speed answers:', error);
     });
 }
 
