@@ -1408,6 +1408,15 @@ function startSpeedCategoriesGame(roundNumber) {
 function handleSpeedCategoriesUpdate(gameData) {
     if (!gameData.speedCategory) return;
     
+    console.log('Speed categories update received:', {
+        phase: gameData.speedPhase,
+        player1Done: gameData.player1Done,
+        player2Done: gameData.player2Done,
+        player1Answers: gameData.player1Answers?.length || 0,
+        player2Answers: gameData.player2Answers?.length || 0,
+        isHost: isHost
+    });
+    
     switch(gameData.speedPhase) {
         case 'playing':
             showSpeedCategoriesScreen(gameData);
@@ -1417,26 +1426,42 @@ function handleSpeedCategoriesUpdate(gameData) {
             break;
     }
     
-    // Check if both players are done and transition to results (host only)
-    if (gameData.speedPhase === 'playing' && 
-        gameData.player1Done && 
-        gameData.player2Done && 
-        isHost) {
+    // FIXED: More reliable check for when both players are done
+    if (gameData.speedPhase === 'playing' && isHost) {
+        const player1Done = gameData.player1Done || false;
+        const player2Done = gameData.player2Done || false;
+        const player1Answers = gameData.player1Answers || [];
+        const player2Answers = gameData.player2Answers || [];
         
-        console.log('Both players finished speed categories, calculating results...');
+        console.log('Host checking if both done:', { player1Done, player2Done });
         
-        const player1Score = (gameData.player1Answers || []).length;
-        const player2Score = (gameData.player2Answers || []).length;
-        
-        const updatedScores = {
-            player1: (overallScores.player1 || 0) + player1Score,
-            player2: (overallScores.player2 || 0) + player2Score
-        };
-        
-        gameRef.update({
-            speedPhase: 'complete',
-            overallScores: updatedScores
-        });
+        if (player1Done && player2Done) {
+            console.log('Both players finished! Calculating scores...', {
+                player1Score: player1Answers.length,
+                player2Score: player2Answers.length,
+                currentOverallScores: overallScores
+            });
+            
+            const player1Score = player1Answers.length;
+            const player2Score = player2Answers.length;
+            
+            // Make sure we have the latest overall scores
+            const currentScores = gameData.overallScores || overallScores || { player1: 0, player2: 0 };
+            
+            const updatedScores = {
+                player1: currentScores.player1 + player1Score,
+                player2: currentScores.player2 + player2Score
+            };
+            
+            console.log('Updating to final scores:', updatedScores);
+            
+            gameRef.update({
+                speedPhase: 'complete',
+                overallScores: updatedScores,
+                player1SpeedScore: player1Score,
+                player2SpeedScore: player2Score
+            });
+        }
     }
 }
 
