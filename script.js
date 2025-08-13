@@ -1592,12 +1592,16 @@ function handleSpeedAnswer() {
 }
 
 function endSpeedGame() {
-    if (!speedGameActive) {
-        console.log('Speed game already ended, ignoring duplicate call');
+    // FIXED: Prevent multiple calls with a simple flag
+    if (!speedGameActive || speedMyAnswers === null) {
+        console.log('Speed game already ended or answers already submitted');
         return;
     }
     
+    // Immediately mark as inactive and preserve answers
     speedGameActive = false;
+    const finalAnswers = [...speedMyAnswers]; // Copy before clearing
+    speedMyAnswers = null; // Set to null to prevent re-submission
     
     if (speedTimer) {
         clearInterval(speedTimer);
@@ -1608,33 +1612,23 @@ function endSpeedGame() {
     document.getElementById('speed-input').disabled = true;
     document.getElementById('speed-timer').textContent = '0';
     
-    // FIXED: Ensure we have answers to submit and prevent duplicates
-    const answersToSubmit = [...speedMyAnswers]; // Make a copy
-    console.log('Submitting speed game answers:', answersToSubmit);
+    console.log('Submitting speed game answers:', finalAnswers);
     
-    // Submit answers ONLY ONCE
+    // Submit answers
     const playerIds = Object.keys(currentGame.players);
     const myIndex = playerIds.indexOf(playerId);
     
     const updateData = {};
     if (myIndex === 0) {
-        updateData.player1Answers = answersToSubmit;
+        updateData.player1Answers = finalAnswers;
         updateData.player1Done = true;
     } else {
-        updateData.player2Answers = answersToSubmit;
+        updateData.player2Answers = finalAnswers;
         updateData.player2Done = true;
     }
     
-    console.log('Final submission data:', updateData);
-    
-    // FIXED: Clear speedMyAnswers after submission to prevent re-submission
-    speedMyAnswers = [];
-    
-    gameRef.update(updateData).then(() => {
-        console.log('Speed game answers submitted successfully');
-    }).catch(error => {
-        console.error('Error submitting speed answers:', error);
-    });
+    console.log('Submitting speed game answers:', updateData);
+    gameRef.update(updateData);
 }
 
 function determineTriviaWinner() {
