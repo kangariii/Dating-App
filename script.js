@@ -436,7 +436,6 @@ function joinRoom() {
 }
 
 // Main game update handler - ENHANCED with instruction screen handling
-// Main game update handler - ENHANCED with instruction screen handling
 function handleGameUpdate(snapshot) {
     const gameData = snapshot.val();
     if (!gameData) {
@@ -641,6 +640,30 @@ function startGameModeFromInstructions(gameType) {
     }, 500); // Small delay to show feedback
 }
 
+// NEW: Handle question instruction phase (after competitive rounds)
+function handleQuestionInstructionPhase(gameData) {
+    console.log('Handling question instruction phase');
+    showScreen('question-instructions');
+    
+    // Update scoreboards
+    updateScoreboard();
+    
+    // Only host can continue from question instructions
+    const button = document.querySelector('#question-instructions .play-btn');
+    if (button) {
+        button.disabled = !isHost;
+        button.textContent = isHost ? 'Ready to Connect!' : 'Waiting for host...';
+        
+        if (!isHost) {
+            button.style.opacity = '0.6';
+            button.style.cursor = 'not-allowed';
+        } else {
+            button.style.opacity = '1';
+            button.style.cursor = 'pointer';
+        }
+    }
+}
+
 // NEW: Function called when user clicks "Ready to Connect" on question instructions
 function continueFromQuestionInstructions() {
     if (!isHost) {
@@ -706,6 +729,127 @@ function continueFromQuestionInstructions() {
             questionAnswered: false  // Initialize the flag
         });
     });
+}
+
+// NEW: Handle category selection phase (winner chooses question category)
+function handleCategorySelectionPhase(gameData) {
+    const isWinner = gameData.questionWinner === playerId;
+    
+    if (isWinner) {
+        showCategorySelection(gameData.currentRound);
+    } else {
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Waiting for your partner to choose a question category...';
+        document.getElementById('question-content').style.display = 'none';
+        document.getElementById('waiting-content').style.display = 'block';
+    }
+}
+
+// NEW: Show category selection screen for winner
+function showCategorySelection(roundNumber) {
+    showScreen('category-selection-screen');
+    
+    // Update scoreboards
+    updateScoreboard();
+    
+    const categories = QUESTION_CATEGORIES[roundNumber];
+    const optionsContainer = document.getElementById('category-options');
+    optionsContainer.innerHTML = '';
+    
+    categories.forEach((categoryKey) => {
+        const button = document.createElement('button');
+        button.className = 'guess-option';
+        button.textContent = CATEGORY_DISPLAY_NAMES[categoryKey];
+        button.addEventListener('click', () => selectCategory(categoryKey));
+        optionsContainer.appendChild(button);
+    });
+}
+
+// NEW: Handle category selection
+function selectCategory(category) {
+    soundSystem.playClick();
+    
+    const buttons = document.querySelectorAll('#category-options .guess-option');
+    buttons.forEach(btn => {
+        btn.disabled = true;
+        if (btn.textContent === CATEGORY_DISPLAY_NAMES[category]) {
+            btn.classList.add('selected');
+        }
+    });
+    
+    const categoryQuestions = questions[category];
+    if (categoryQuestions && categoryQuestions.length > 0) {
+        const randomIndex = Math.floor(Math.random() * categoryQuestions.length);
+        const selectedQuestion = categoryQuestions[randomIndex];
+        
+        gameRef.update({
+            selectedCategory: category,
+            questionToAnswer: selectedQuestion,
+            questionRead: false,
+            questionAnswered: false,  // Initialize the flag
+            gamePhase: 'question-answering'
+        });
+    }
+}
+
+// NEW: Handle question answering phase (discussion phase)
+function handleQuestionAnsweringPhase(gameData) {
+    const isWinner = gameData.questionWinner === playerId;
+    
+    if (isWinner && gameData.questionToAnswer && !gameData.questionRead) {
+        // Winner sees question to read out loud
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Read this question out loud to your partner!';
+        document.getElementById('question-text').textContent = gameData.questionToAnswer;
+        document.getElementById('question-content').style.display = 'block';
+        document.getElementById('waiting-content').style.display = 'none';
+        
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.textContent = 'Question Read - Continue';
+        nextBtn.disabled = false;
+        nextBtn.onclick = () => markQuestionAsRead();
+        
+    } else if (!isWinner && !gameData.questionRead) {
+        // Loser waits for question to be read
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Listen carefully to the question...';
+        document.getElementById('question-content').style.display = 'none';
+        document.getElementById('waiting-content').style.display = 'block';
+        
+    } else if (!isWinner && gameData.questionRead) {
+        // Loser now sees the question and can answer
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Your turn to answer and discuss!';
+        document.getElementById('question-text').textContent = gameData.questionToAnswer;
+        document.getElementById('question-content').style.display = 'block';
+        document.getElementById('waiting-content').style.display = 'none';
+        
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.textContent = 'Discussion Complete';
+        nextBtn.disabled = false;
+        nextBtn.onclick = () => completeQuestionAnswer();
+        
+    } else if (isWinner && gameData.questionRead) {
+        // Winner waits for partner to finish discussing
+        showScreen('game-screen');
+        document.getElementById('turn-indicator').textContent = 'Waiting for your partner to finish their answer...';
+        document.getElementById('question-content').style.display = 'none';
+        document.getElementById('waiting-content').style.display = 'block';
+    }
+}
+
+// NEW: Mark question as read (any player can do this - the winner who reads it)
+function markQuestionAsRead() {
+    console.log('Marking question as read');
+    gameRef.update({ questionRead: true });
+}
+
+// NEW: Complete question answer (sets flag for host to auto-progress)
+function completeQuestionAnswer() {
+    console.log('Completing question answer - setting flag for host to progress');
+    
+    // Set flag for host to detect and auto-progress
+    gameRef.update({ questionAnswered: true });
 }
 
 // Update scoreboard with player names and scores
@@ -1296,6 +1440,27 @@ function handleSpeedCategoriesUpdate(gameData) {
     }
 }
 
+function showSpeedCategoriesScreen(gameData) {
+    showScreen('speed-categories-screen');
+    
+    speedMyAnswers = [];
+    speedGameActive = true;
+    
+    document.getElementById('speed-category').textContent = gameData.speedCategory;
+    document.getElementById('speed-current-score').textContent = '0';
+    document.getElementById('speed-answers-list').innerHTML = '';
+    
+    const input = document.getElementById('speed-input');
+    input.disabled = false;
+    input.value = '';
+    input.focus();
+    
+    // Start timer
+    if (gameData.speedEndTime) {
+        startSpeedTimer(gameData.speedEndTime);
+    }
+}
+
 function showSpeedCategoriesResults(gameData) {
     showScreen('speed-categories-results');
     
@@ -1419,44 +1584,6 @@ function endSpeedGame() {
     gameRef.update(updateData);
 }
 
-function showSpeedCategoriesResults(gameData) {
-    showScreen('speed-categories-results');
-    
-    const playerIds = Object.keys(gameData.players);
-    const player1Answers = gameData.player1Answers || [];
-    const player2Answers = gameData.player2Answers || [];
-    
-    document.getElementById('speed-result-category').textContent = gameData.speedCategory;
-    
-    document.getElementById('speed-result-player1-name').textContent = gameData.players[playerIds[0]].name;
-    document.getElementById('speed-result-player1-score').textContent = player1Answers.length;
-    
-    document.getElementById('speed-result-player2-name').textContent = gameData.players[playerIds[1]].name;
-    document.getElementById('speed-result-player2-score').textContent = player2Answers.length;
-    
-    let winnerText = '';
-    if (player1Answers.length > player2Answers.length) {
-        winnerText = `${gameData.players[playerIds[0]].name} wins!`;
-        triggerConfetti('correct');
-    } else if (player2Answers.length > player1Answers.length) {
-        winnerText = `${gameData.players[playerIds[1]].name} wins!`;
-        triggerConfetti('correct');
-    } else {
-        winnerText = "It's a tie!";
-    }
-    document.getElementById('speed-winner').textContent = winnerText;
-    
-    document.getElementById('speed-result-player1-answers').textContent = player1Answers.join(', ');
-    document.getElementById('speed-result-player2-answers').textContent = player2Answers.join(', ');
-    
-    document.getElementById('speed-result-player1-name-2').textContent = `${gameData.players[playerIds[0]].name} Answers:`;
-    document.getElementById('speed-result-player2-name-2').textContent = `${gameData.players[playerIds[1]].name} Answers:`;
-    
-    const continueBtn = document.getElementById('continue-from-speed-btn');
-    continueBtn.disabled = !isHost;
-    continueBtn.textContent = isHost ? 'Continue' : 'Waiting for host...';
-}
-
 // QUESTION PHASE FUNCTIONS (Winner determination and question flow)
 function determineThisOrThatWinner() {
     if (!isHost) return;
@@ -1492,120 +1619,6 @@ function determineSpeedWinner() {
         gamePhase: 'question-instructions',
         questionGameType: 'speed'
     });
-}
-
-function handleCategorySelectionPhase(gameData) {
-    const isWinner = gameData.questionWinner === playerId;
-    
-    if (isWinner) {
-        showCategorySelection(gameData.currentRound);
-    } else {
-        showScreen('game-screen');
-        document.getElementById('turn-indicator').textContent = 'Waiting for your partner to choose a question category...';
-        document.getElementById('question-content').style.display = 'none';
-        document.getElementById('waiting-content').style.display = 'block';
-    }
-}
-
-function showCategorySelection(roundNumber) {
-    showScreen('category-selection-screen');
-    
-    const categories = QUESTION_CATEGORIES[roundNumber];
-    const optionsContainer = document.getElementById('category-options');
-    optionsContainer.innerHTML = '';
-    
-    categories.forEach((categoryKey) => {
-        const button = document.createElement('button');
-        button.className = 'guess-option';
-        button.textContent = CATEGORY_DISPLAY_NAMES[categoryKey];
-        button.addEventListener('click', () => selectCategory(categoryKey));
-        optionsContainer.appendChild(button);
-    });
-}
-
-function selectCategory(category) {
-    soundSystem.playClick();
-    
-    const buttons = document.querySelectorAll('#category-options .guess-option');
-    buttons.forEach(btn => {
-        btn.disabled = true;
-        if (btn.textContent === CATEGORY_DISPLAY_NAMES[category]) {
-            btn.classList.add('selected');
-        }
-    });
-    
-    const categoryQuestions = questions[category];
-    if (categoryQuestions && categoryQuestions.length > 0) {
-        const randomIndex = Math.floor(Math.random() * categoryQuestions.length);
-        const selectedQuestion = categoryQuestions[randomIndex];
-        
-        gameRef.update({
-            selectedCategory: category,
-            questionToAnswer: selectedQuestion,
-            questionRead: false,
-            questionAnswered: false,  // Initialize the flag
-            gamePhase: 'question-answering'
-        });
-    }
-}
-
-function handleQuestionAnsweringPhase(gameData) {
-    const isWinner = gameData.questionWinner === playerId;
-    
-    if (isWinner && gameData.questionToAnswer && !gameData.questionRead) {
-        // Winner sees question to read out loud
-        showScreen('game-screen');
-        document.getElementById('turn-indicator').textContent = 'Read this question out loud to your partner!';
-        document.getElementById('question-text').textContent = gameData.questionToAnswer;
-        document.getElementById('question-content').style.display = 'block';
-        document.getElementById('waiting-content').style.display = 'none';
-        
-        const nextBtn = document.getElementById('next-btn');
-        nextBtn.textContent = 'Question Read - Continue';
-        nextBtn.disabled = false;
-        nextBtn.onclick = () => markQuestionAsRead();
-        
-    } else if (!isWinner && !gameData.questionRead) {
-        // Loser waits for question to be read
-        showScreen('game-screen');
-        document.getElementById('turn-indicator').textContent = 'Listen carefully to the question...';
-        document.getElementById('question-content').style.display = 'none';
-        document.getElementById('waiting-content').style.display = 'block';
-        
-    } else if (!isWinner && gameData.questionRead) {
-        // Loser now sees the question and can answer
-        showScreen('game-screen');
-        document.getElementById('turn-indicator').textContent = 'Your turn to answer and discuss!';
-        document.getElementById('question-text').textContent = gameData.questionToAnswer;
-        document.getElementById('question-content').style.display = 'block';
-        document.getElementById('waiting-content').style.display = 'none';
-        
-        const nextBtn = document.getElementById('next-btn');
-        nextBtn.textContent = 'Discussion Complete';
-        nextBtn.disabled = false;
-        nextBtn.onclick = () => completeQuestionAnswer();
-        
-    } else if (isWinner && gameData.questionRead) {
-        // Winner waits for partner to finish discussing
-        showScreen('game-screen');
-        document.getElementById('turn-indicator').textContent = 'Waiting for your partner to finish their answer...';
-        document.getElementById('question-content').style.display = 'none';
-        document.getElementById('waiting-content').style.display = 'block';
-    }
-}
-
-// FIXED: Remove host restriction - any player (winner) can mark question as read
-function markQuestionAsRead() {
-    console.log('Marking question as read');
-    gameRef.update({ questionRead: true });
-}
-
-// FIXED: Remove host restriction and change to set flag instead of direct progression
-function completeQuestionAnswer() {
-    console.log('Completing question answer - setting flag for host to progress');
-    
-    // Set flag for host to detect and auto-progress
-    gameRef.update({ questionAnswered: true });
 }
 
 // GAME COMPLETE SCREEN - ENHANCED with safety checks
@@ -1752,6 +1765,8 @@ function leaveGame() {
     
     showScreen('start-screen');
 }
+
+// EVENT LISTENERS AND BUTTON HANDLERS
 
 document.getElementById('continue-from-guess-btn').addEventListener('click', () => {
     console.log('Continue from guess button clicked');
