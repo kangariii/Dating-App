@@ -89,53 +89,6 @@ class SoundSystem {
 // Create global sound instance
 const soundSystem = new SoundSystem();
 
-// Speed Categories with Complete Answer Banks
-const speedCategoriesWithAnswers = {
-    "US States": [
-        "alabama", "alaska", "arizona", "arkansas", "california", "colorado", "connecticut", "delaware", 
-        "florida", "georgia", "hawaii", "idaho", "illinois", "indiana", "iowa", "kansas", "kentucky", 
-        "louisiana", "maine", "maryland", "massachusetts", "michigan", "minnesota", "mississippi", 
-        "missouri", "montana", "nebraska", "nevada", "new hampshire", "new jersey", "new mexico", 
-        "new york", "north carolina", "north dakota", "ohio", "oklahoma", "oregon", "pennsylvania", 
-        "rhode island", "south carolina", "south dakota", "tennessee", "texas", "utah", "vermont", 
-        "virginia", "washington", "west virginia", "wisconsin", "wyoming"
-    ],
-    "Countries": [
-        "afghanistan", "albania", "algeria", "argentina", "armenia", "australia", "austria", "azerbaijan",
-        "bahrain", "bangladesh", "belarus", "belgium", "bolivia", "brazil", "bulgaria", "cambodia",
-        "cameroon", "canada", "chile", "china", "colombia", "croatia", "cuba", "cyprus", "denmark",
-        "ecuador", "egypt", "estonia", "ethiopia", "finland", "france", "georgia", "germany", "ghana",
-        "greece", "guatemala", "hungary", "iceland", "india", "indonesia", "iran", "iraq", "ireland",
-        "israel", "italy", "jamaica", "japan", "jordan", "kazakhstan", "kenya", "kuwait", "latvia",
-        "lebanon", "libya", "lithuania", "luxembourg", "malaysia", "mexico", "morocco", "netherlands",
-        "new zealand", "nigeria", "norway", "pakistan", "panama", "peru", "philippines", "poland",
-        "portugal", "qatar", "romania", "russia", "saudi arabia", "singapore", "slovakia", "slovenia",
-        "south africa", "south korea", "spain", "sri lanka", "sweden", "switzerland", "thailand",
-        "turkey", "ukraine", "united kingdom", "united states", "uruguay", "venezuela", "vietnam"
-    ],
-    "Animals": [
-        "lion", "tiger", "elephant", "giraffe", "zebra", "hippo", "rhinoceros", "cheetah", "leopard",
-        "bear", "wolf", "fox", "deer", "rabbit", "squirrel", "mouse", "rat", "cat", "dog", "horse",
-        "cow", "pig", "sheep", "goat", "chicken", "duck", "goose", "turkey", "eagle", "hawk", "owl",
-        "parrot", "penguin", "flamingo", "ostrich", "kangaroo", "koala", "panda", "monkey", "gorilla",
-        "chimpanzee", "orangutan", "whale", "dolphin", "shark", "octopus", "jellyfish", "starfish",
-        "crab", "lobster", "shrimp", "fish", "salmon", "tuna", "goldfish", "frog", "turtle", "snake",
-        "lizard", "crocodile", "alligator", "spider", "butterfly", "bee", "ant", "fly", "mosquito",
-        "beetle", "cricket", "grasshopper", "dragonfly", "ladybug", "caterpillar", "worm", "snail"
-    ],
-    "Fruits": [
-        "apple", "banana", "orange", "grape", "strawberry", "blueberry", "raspberry", "blackberry",
-        "cherry", "peach", "plum", "pear", "pineapple", "mango", "papaya", "kiwi", "watermelon",
-        "cantaloupe", "honeydew", "lemon", "lime", "grapefruit", "coconut", "avocado", "tomato",
-        "apricot", "fig", "date", "pomegranate", "cranberry", "gooseberry", "elderberry", "mulberry"
-    ],
-    "Colors": [
-        "red", "blue", "green", "yellow", "orange", "purple", "pink", "brown", "black", "white",
-        "gray", "grey", "silver", "gold", "beige", "tan", "navy", "turquoise", "teal", "cyan",
-        "magenta", "maroon", "crimson", "scarlet", "coral", "salmon", "peach", "khaki", "olive"
-    ]
-};
-
 // Game state variables
 let roomCode = '';
 let playerId = '';
