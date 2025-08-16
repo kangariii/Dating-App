@@ -954,8 +954,9 @@ function showChoiceScreen(question) {
     showScreen('guessing-answer-screen');
     
     const questionNum = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
+    // UPDATED: Changed from "6" to "10" questions total
     document.querySelector('#guessing-answer-screen .round-title').textContent = 
-        `Question ${questionNum} of 6 - Pick your preference:`;
+        `Question ${questionNum} of 10 - Pick your preference:`;
     
     document.getElementById('guessing-question').textContent = question.question;
     
@@ -1001,8 +1002,9 @@ function showWaitingForChoice() {
     showScreen('guessing-guess-screen');
     const questionNum = (currentGame?.thisOrThatQuestionsAsked || 0) + 1;
     
+    // UPDATED: Changed from "6" to "10" questions total
     document.querySelector('#guessing-guess-screen .round-title').textContent = 
-        `Question ${questionNum} of 6 - Waiting...`;
+        `Question ${questionNum} of 10 - Waiting...`;
     document.getElementById('guess-question').textContent = 'Waiting for your partner to choose...';
     document.getElementById('guess-options').innerHTML = 
         '<p style="color: rgba(255,255,255,0.7); text-align: center;">Waiting for your partner to choose...</p>';
@@ -1012,8 +1014,9 @@ function showGuessScreen(question) {
     showScreen('guessing-guess-screen');
     
     const questionNum = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
+    // UPDATED: Changed from "6" to "10" questions total
     document.querySelector('#guessing-guess-screen .round-title').textContent = 
-        `Question ${questionNum} of 6 - What did they choose?`;
+        `Question ${questionNum} of 10 - What did they choose?`;
     
     document.getElementById('guess-question').textContent = question.question;
     
@@ -1111,7 +1114,8 @@ function showThisOrThatResult(gameData) {
     const continueBtn = document.getElementById('continue-from-guess-btn');
     const currentQuestionsAsked = gameData.thisOrThatQuestionsAsked || 0;
     const questionsCompleted = currentQuestionsAsked + 1;
-    const questionsLeft = 6 - questionsCompleted;
+    // UPDATED: Changed from 6 to 10 total questions
+    const questionsLeft = 10 - questionsCompleted;
     
     if (questionsLeft > 0) {
         continueBtn.textContent = `Continue (${questionsLeft} questions left)`;
@@ -1888,17 +1892,18 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
     console.log('Current questions asked:', currentQuestionsAsked);
     console.log('Next question number will be:', nextQuestionNumber);
     
-    if (nextQuestionNumber >= 6) {
+    // UPDATED: Changed from 6 to 10 total questions
+    if (nextQuestionNumber >= 10) {
         // This or That round complete - determine winner
-        console.log('This or That round complete (6 questions finished), determining winner');
+        console.log('This or That round complete (10 questions finished), determining winner');
         determineThisOrThatWinner();
     } else {
         // Continue with next this-or-that question
         console.log('Continuing with This or That question #' + (nextQuestionNumber + 1));
         const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
         
-        // Alternate who is the chooser: odd questions (1,3,5) = host chooses, even questions (2,4,6) = guest chooses
-        const hostIsChooser = ((nextQuestionNumber + 1) % 2 === 1);
+        // UPDATED: New role switching logic - first 5 questions host chooses, next 5 guest chooses
+        const hostIsChooser = nextQuestionNumber < 5;
         
         console.log('Host is chooser for next question:', hostIsChooser);
         
