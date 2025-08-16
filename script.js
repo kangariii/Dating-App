@@ -84,6 +84,13 @@ class SoundSystem {
     playSpeedComplete() {
         this.playTone(220, 0.5, 'sawtooth', 0.12);
     }
+
+    // NEW: Play switching sound for role transitions
+    playSwitch() {
+        this.playTone(440, 0.2);
+        setTimeout(() => this.playTone(330, 0.2), 150);
+        setTimeout(() => this.playTone(440, 0.2), 300);
+    }
 }
 
 // Create global sound instance
@@ -456,6 +463,9 @@ function handleGameUpdate(snapshot) {
             handleCategorySelectionPhase(gameData);
         } else if (gameData.gamePhase === 'question-answering') {
             handleQuestionAnsweringPhase(gameData);
+        } else if (gameData.gamePhase === 'role-switching') {
+            // NEW: Handle role switching transition screen
+            handleRoleSwitchingPhase(gameData);
         } else {
             // Handle different game phases based on current round ONLY if no special phase
             const roundType = GAME_STRUCTURE[gameData.currentRound]?.type;
@@ -683,6 +693,42 @@ function continueFromQuestionInstructions() {
             questionAnswered: false  // Initialize the flag
         });
     });
+}
+
+// NEW: Handle role switching phase - shows "Switching!" screen
+function handleRoleSwitchingPhase(gameData) {
+    showScreen('game-screen');
+    document.getElementById('turn-indicator').textContent = '🔄 Switching Roles! 🔄';
+    document.getElementById('question-content').style.display = 'none';
+    document.getElementById('waiting-content').style.display = 'block';
+    
+    // Update waiting content to show switching message
+    const waitingContent = document.getElementById('waiting-content');
+    waitingContent.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <h2 style="color: #fff; font-size: 2rem; margin-bottom: 1rem; animation: pulse 1.5s infinite;">
+                🔄 Switching! 🔄
+            </h2>
+            <p style="color: rgba(255,255,255,0.8); font-size: 1.2rem; margin-bottom: 0.5rem;">
+                Time to switch roles!
+            </p>
+            <p style="color: rgba(255,255,255,0.6); font-size: 1rem;">
+                ${thisOrThatRole === 'chooser' ? 'Now you\'ll be guessing!' : 'Now you\'ll be choosing!'}
+            </p>
+        </div>
+    `;
+    
+    // Play switching sound
+    soundSystem.playSwitch();
+    
+    // Auto-progress after 2 seconds (host only)
+    if (isHost) {
+        setTimeout(() => {
+            gameRef.update({
+                gamePhase: 'playing'
+            });
+        }, 2000);
+    }
 }
 
 // NEW: Handle category selection phase (winner chooses question category)
@@ -950,15 +996,26 @@ function handleThisOrThatGameUpdate(gameData) {
     }
 }
 
+// ENHANCED: Updated showChoiceScreen with role clarity
 function showChoiceScreen(question) {
     showScreen('guessing-answer-screen');
     
     const questionNum = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
-    // UPDATED: Changed from "6" to "10" questions total
-    document.querySelector('#guessing-answer-screen .round-title').textContent = 
-        `Question ${questionNum} of 10 - Pick your preference:`;
     
-    document.getElementById('guessing-question').textContent = question.question;
+    // ENHANCED: Add role indicator and more descriptive title
+    document.querySelector('#guessing-answer-screen .round-title').textContent = 
+        `Question ${questionNum} of 10 - You're the CHOOSER! 🎯`;
+    
+    // ENHANCED: Add role description
+    document.getElementById('guessing-question').innerHTML = `
+        <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
+            <p style="color: #4CAF50; font-weight: bold; margin: 0 0 0.5rem 0;">👑 You're choosing!</p>
+            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 0.9rem;">Pick your preference, then your partner will try to guess what you chose!</p>
+        </div>
+        <div style="font-size: 1.3rem; font-weight: 500; margin-top: 1rem;">
+            ${question.question}
+        </div>
+    `;
     
     // Replace input with two choice buttons
     const inputGroup = document.querySelector('#guessing-answer-screen .input-group');
@@ -998,27 +1055,50 @@ function handleThisOrThatChoice(choiceIndex) {
     document.getElementById('answer-waiting').textContent = 'Waiting for your partner to guess...';
 }
 
+// ENHANCED: Updated showWaitingForChoice with role clarity
 function showWaitingForChoice() {
     showScreen('guessing-guess-screen');
     const questionNum = (currentGame?.thisOrThatQuestionsAsked || 0) + 1;
     
-    // UPDATED: Changed from "6" to "10" questions total
+    // ENHANCED: Add role indicator
     document.querySelector('#guessing-guess-screen .round-title').textContent = 
-        `Question ${questionNum} of 10 - Waiting...`;
-    document.getElementById('guess-question').textContent = 'Waiting for your partner to choose...';
+        `Question ${questionNum} of 10 - You're the GUESSER! 🔍`;
+    
+    // ENHANCED: Add role description while waiting
+    document.getElementById('guess-question').innerHTML = `
+        <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
+            <p style="color: #2196F3; font-weight: bold; margin: 0 0 0.5rem 0;">🔍 You're guessing!</p>
+            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 0.9rem;">Your partner is choosing their preference. Soon you'll guess what they picked!</p>
+        </div>
+        <div style="font-size: 1.2rem; color: rgba(255,255,255,0.7); text-align: center; margin-top: 1rem;">
+            Waiting for your partner to choose...
+        </div>
+    `;
+    
     document.getElementById('guess-options').innerHTML = 
         '<p style="color: rgba(255,255,255,0.7); text-align: center;">Waiting for your partner to choose...</p>';
 }
 
+// ENHANCED: Updated showGuessScreen with role clarity
 function showGuessScreen(question) {
     showScreen('guessing-guess-screen');
     
     const questionNum = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
-    // UPDATED: Changed from "6" to "10" questions total
-    document.querySelector('#guessing-guess-screen .round-title').textContent = 
-        `Question ${questionNum} of 10 - What did they choose?`;
     
-    document.getElementById('guess-question').textContent = question.question;
+    // ENHANCED: Add role indicator
+    document.querySelector('#guessing-guess-screen .round-title').textContent = 
+        `Question ${questionNum} of 10 - You're the GUESSER! 🔍`;
+    
+    // ENHANCED: Add role description
+    document.getElementById('guess-question').innerHTML = `
+        <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
+            <p style="color: #2196F3; font-weight: bold; margin: 0 0 0.5rem 0;">🔍 You're guessing!</p>
+            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 0.9rem;">Your partner has made their choice. What do you think they picked?</p>
+        </div>
+        <div style="font-size: 1.3rem; font-weight: 500; margin-top: 1rem;">
+            ${question.question}
+        </div>
+    `;
     
     // Create option buttons
     const optionsContainer = document.getElementById('guess-options');
@@ -1907,14 +1987,29 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
         
         console.log('Host is chooser for next question:', hostIsChooser);
         
-        gameRef.update({
-            thisOrThatQuestion: newQuestion,
-            hostIsChooser: hostIsChooser,
-            thisOrThatPhase: 'choosing',
-            playerChoice: null,
-            playerGuess: null,
-            thisOrThatQuestionsAsked: nextQuestionNumber
-        });
+        // ENHANCED: Check if we need to show the switching screen
+        if (nextQuestionNumber === 5) {
+            // Show switching screen first
+            gameRef.update({
+                gamePhase: 'role-switching',
+                thisOrThatQuestion: newQuestion,
+                hostIsChooser: hostIsChooser,
+                thisOrThatPhase: 'choosing',
+                playerChoice: null,
+                playerGuess: null,
+                thisOrThatQuestionsAsked: nextQuestionNumber
+            });
+        } else {
+            // Regular question update
+            gameRef.update({
+                thisOrThatQuestion: newQuestion,
+                hostIsChooser: hostIsChooser,
+                thisOrThatPhase: 'choosing',
+                playerChoice: null,
+                playerGuess: null,
+                thisOrThatQuestionsAsked: nextQuestionNumber
+            });
+        }
     }
 });
 
