@@ -85,7 +85,7 @@ class SoundSystem {
         this.playTone(220, 0.5, 'sawtooth', 0.12);
     }
 
-    // NEW: Play switching sound for role transitions
+    // Play switching sound for role transitions
     playSwitch() {
         this.playTone(440, 0.2);
         setTimeout(() => this.playTone(330, 0.2), 150);
@@ -104,14 +104,14 @@ let isHost = false;
 let gameRef = null;
 let currentGame = null;
 
-// Game structure - 3 competitive rounds only
+// Game structure - 3 competitive rounds with question discussions after each
 const GAME_STRUCTURE = {
     1: { type: 'this-or-that', name: 'This or That' },
     2: { type: 'trivia', name: 'Trivia Challenge' },
     3: { type: 'speed', name: 'Speed Categories' }
 };
 
-// Question category mappings for each round
+// Question category mappings for discussion phases after each competitive round
 const QUESTION_CATEGORIES = {
     1: ['personal-preferences', 'fun-personality', 'background-stories'],
     2: ['values-beliefs', 'relationships-love', 'dreams-goals'], 
@@ -141,9 +141,9 @@ let speedTimer = null;
 let speedTimeLeft = 45;
 let speedMyAnswers = [];
 let speedGameActive = false;
-let speedAnswersSubmitted = false; // FIXED: Add new flag to prevent double submission
+let speedAnswersSubmitted = false; // Add flag to prevent double submission
 
-// FIXED: Add tracking for question results to prevent duplicate scoring
+// Add tracking for question results to prevent duplicate scoring
 let processedResults = new Set();
 
 // Confetti animation functions
@@ -254,7 +254,7 @@ function showJoinScreen() {
     soundSystem.init();
 }
 
-// Setup room for creator - FIXED to set host as ready
+// Setup room for creator - Set host as ready
 function setupRoom() {
     const name = document.getElementById('creator-name').value || 'Player 1';
     playerName = name;
@@ -281,7 +281,7 @@ function setupRoom() {
             gameRef.on('value', handleGameUpdate);
             gameRef.child(`players/${playerId}/connected`).onDisconnect().set(false);
             
-            // CRITICAL FIX: Set host as ready after room is created
+            // Set host as ready after room is created
             return gameRef.child(`players/${playerId}/ready`).set(true);
         })
         .then(() => {
@@ -293,7 +293,7 @@ function setupRoom() {
         });
 }
 
-// Submit creator name - FIXED to properly handle host ready state
+// Submit creator name - Handle host ready state properly
 function submitCreatorName() {
     const name = document.getElementById('creator-name').value.trim();
     if (!name) {
@@ -309,7 +309,7 @@ function submitCreatorName() {
     document.getElementById('creator-waiting').style.display = 'block';
 }
 
-// Join existing room - ENHANCED with better error handling and logging
+// Join existing room - Enhanced with better error handling and logging
 function joinRoom() {
     console.log('Attempting to join room...'); // Debug log
     
@@ -396,7 +396,7 @@ function joinRoom() {
         });
 }
 
-// Main game update handler - ENHANCED with instruction screen handling
+// Main game update handler - Enhanced with instruction screen handling
 function handleGameUpdate(snapshot) {
     const gameData = snapshot.val();
     if (!gameData) {
@@ -419,7 +419,7 @@ function handleGameUpdate(snapshot) {
     const playerCount = Object.keys(gameData.players).length;
     console.log('Player count:', playerCount); // Debug log
     
-    // ENHANCED: Start game when both players ready
+    // Start game when both players ready
     if (playerCount === 2 && !gameData.gameStarted) {
         const allReady = Object.values(gameData.players).every(player => player.ready);
         console.log('All players ready status:', Object.values(gameData.players).map(p => ({name: p.name, ready: p.ready})));
@@ -454,7 +454,7 @@ function handleGameUpdate(snapshot) {
             return;
         }
         
-        // FIXED: Handle special game phases FIRST before checking round types
+        // Handle special game phases FIRST before checking round types
         if (gameData.gamePhase === 'instructions') {
             handleInstructionPhase(gameData);
         } else if (gameData.gamePhase === 'question-instructions') {
@@ -464,7 +464,7 @@ function handleGameUpdate(snapshot) {
         } else if (gameData.gamePhase === 'question-answering') {
             handleQuestionAnsweringPhase(gameData);
         } else if (gameData.gamePhase === 'role-switching') {
-            // NEW: Handle role switching transition screen
+            // Handle role switching transition screen
             handleRoleSwitchingPhase(gameData);
         } else {
             // Handle different game phases based on current round ONLY if no special phase
@@ -480,7 +480,7 @@ function handleGameUpdate(snapshot) {
             }
         }
         
-        // FIXED: Auto-progression logic for completed questions (host only)
+        // Auto-progression logic for completed questions (host only)
         if (isHost && gameData.questionAnswered && gameData.gamePhase === 'question-answering') {
             console.log('Question answered, auto-progressing...');
             
@@ -488,7 +488,7 @@ function handleGameUpdate(snapshot) {
             
             if (nextRound > 3) {
                 console.log('All rounds complete, showing final screen');
-                // FIXED: Add a small delay and proper game completion
+                // Add a small delay and proper game completion
                 setTimeout(() => {
                     gameRef.update({
                         gamePhase: 'complete',
@@ -511,7 +511,7 @@ function handleGameUpdate(snapshot) {
     }
 }
 
-// NEW: Handle instruction screen phase
+// Handle instruction screen phase
 function handleInstructionPhase(gameData) {
     const roundType = GAME_STRUCTURE[gameData.currentRound]?.type;
     
@@ -526,13 +526,13 @@ function handleInstructionPhase(gameData) {
     // Update scoreboards on instruction screens
     updateScoreboard();
     
-    // FIXED: Update button states based on host status
+    // Update button states based on host status
     setTimeout(() => {
         updateInstructionButtons(roundType);
     }, 100);
 }
 
-// NEW: Update instruction buttons based on host status
+// Update instruction buttons based on host status
 function updateInstructionButtons(gameType) {
     let buttonSelector = '';
     let buttonText = '';
@@ -563,7 +563,7 @@ function updateInstructionButtons(gameType) {
     }
 }
 
-// NEW: Function called when user clicks "Start Game" on instruction screens
+// Function called when user clicks "Start Game" on instruction screens
 function startGameModeFromInstructions(gameType) {
     console.log('startGameModeFromInstructions called with:', gameType);
     console.log('isHost:', isHost);
@@ -604,7 +604,7 @@ function startGameModeFromInstructions(gameType) {
     }, 500); // Small delay to show feedback
 }
 
-// NEW: Handle question instruction phase (after competitive rounds)
+// Handle question instruction phase (after competitive rounds)
 function handleQuestionInstructionPhase(gameData) {
     console.log('Handling question instruction phase');
     showScreen('question-instructions');
@@ -628,7 +628,7 @@ function handleQuestionInstructionPhase(gameData) {
     }
 }
 
-// NEW: Function called when user clicks "Ready to Connect" on question instructions
+// Function called when user clicks "Ready to Connect" on question instructions
 function continueFromQuestionInstructions() {
     if (!isHost) {
         console.log('Only host can continue from question instructions');
@@ -638,7 +638,7 @@ function continueFromQuestionInstructions() {
     console.log('Continuing from question instructions');
     soundSystem.playClick();
     
-    // FIXED: Get fresh game data and determine winner based on game type
+    // Get fresh game data and determine winner based on game type
     gameRef.once('value').then((snapshot) => {
         const gameData = snapshot.val();
         const playerIds = Object.keys(gameData.players);
@@ -695,7 +695,7 @@ function continueFromQuestionInstructions() {
     });
 }
 
-// NEW: Handle role switching phase - shows "Switching!" screen
+// Handle role switching phase - shows "Switching!" screen
 function handleRoleSwitchingPhase(gameData) {
     showScreen('game-screen');
     document.getElementById('turn-indicator').textContent = '🔄 Switching Roles! 🔄';
@@ -731,7 +731,7 @@ function handleRoleSwitchingPhase(gameData) {
     }
 }
 
-// NEW: Handle category selection phase (winner chooses question category)
+// Handle category selection phase (winner chooses question category)
 function handleCategorySelectionPhase(gameData) {
     const isWinner = gameData.questionWinner === playerId;
     
@@ -745,7 +745,7 @@ function handleCategorySelectionPhase(gameData) {
     }
 }
 
-// NEW: Show category selection screen for winner
+// Show category selection screen for winner
 function showCategorySelection(roundNumber) {
     showScreen('category-selection-screen');
     
@@ -765,7 +765,7 @@ function showCategorySelection(roundNumber) {
     });
 }
 
-// NEW: Handle category selection
+// Handle category selection
 function selectCategory(category) {
     soundSystem.playClick();
     
@@ -792,7 +792,7 @@ function selectCategory(category) {
     }
 }
 
-// NEW: Handle question answering phase (discussion phase)
+// Handle question answering phase (discussion phase)
 function handleQuestionAnsweringPhase(gameData) {
     const isWinner = gameData.questionWinner === playerId;
     
@@ -838,13 +838,13 @@ function handleQuestionAnsweringPhase(gameData) {
     }
 }
 
-// NEW: Mark question as read (any player can do this - the winner who reads it)
+// Mark question as read (any player can do this - the winner who reads it)
 function markQuestionAsRead() {
     console.log('Marking question as read');
     gameRef.update({ questionRead: true });
 }
 
-// NEW: Complete question answer (sets flag for host to auto-progress)
+// Complete question answer (sets flag for host to auto-progress)
 function completeQuestionAnswer() {
     console.log('Completing question answer - setting flag for host to progress');
     
@@ -901,7 +901,7 @@ function updateScoreboard() {
     }
 }
 
-// MODIFIED: Start new round - now shows instruction screen first
+// Start new round - now shows instruction screen first
 function startNewRound(roundNumber = null) {
     if (!isHost) {
         console.log('Only host can start new round');
@@ -926,7 +926,7 @@ function startNewRound(roundNumber = null) {
     const roundInfo = GAME_STRUCTURE[roundNumber];
     console.log('Round info:', roundInfo);
     
-    // ENHANCED: Add safety check
+    // Add safety check
     if (!roundInfo) {
         console.error('Invalid round number:', roundNumber);
         return;
@@ -951,7 +951,7 @@ function startThisOrThatGame(roundNumber) {
         gameStarted: true,
         currentRound: roundNumber,
         roundName: `Round ${roundNumber} - ${GAME_STRUCTURE[roundNumber].name}`,
-        gamePhase: 'playing', // Changed from 'instructions'
+        gamePhase: 'playing',
         thisOrThatQuestion: thisOrThatQuestion,
         thisOrThatPhase: 'choosing',
         playerChoice: null,
@@ -996,17 +996,17 @@ function handleThisOrThatGameUpdate(gameData) {
     }
 }
 
-// ENHANCED: Updated showChoiceScreen with role clarity
+// Updated showChoiceScreen with role clarity
 function showChoiceScreen(question) {
     showScreen('guessing-answer-screen');
     
     const questionNum = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
     
-    // ENHANCED: Add role indicator and more descriptive title
+    // Add role indicator and more descriptive title
     document.querySelector('#guessing-answer-screen .round-title').textContent = 
         `Question ${questionNum} of 10 - You're the CHOOSER! 🎯`;
     
-    // ENHANCED: Add role description
+    // Add role description
     document.getElementById('guessing-question').innerHTML = `
         <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
             <p style="color: #4CAF50; font-weight: bold; margin: 0 0 0.5rem 0;">👑 You're choosing!</p>
@@ -1055,16 +1055,16 @@ function handleThisOrThatChoice(choiceIndex) {
     document.getElementById('answer-waiting').textContent = 'Waiting for your partner to guess...';
 }
 
-// ENHANCED: Updated showWaitingForChoice with role clarity
+// Updated showWaitingForChoice with role clarity
 function showWaitingForChoice() {
     showScreen('guessing-guess-screen');
     const questionNum = (currentGame?.thisOrThatQuestionsAsked || 0) + 1;
     
-    // ENHANCED: Add role indicator
+    // Add role indicator
     document.querySelector('#guessing-guess-screen .round-title').textContent = 
         `Question ${questionNum} of 10 - You're the GUESSER! 🔍`;
     
-    // ENHANCED: Add role description while waiting
+    // Add role description while waiting
     document.getElementById('guess-question').innerHTML = `
         <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
             <p style="color: #2196F3; font-weight: bold; margin: 0 0 0.5rem 0;">🔍 You're guessing!</p>
@@ -1079,17 +1079,17 @@ function showWaitingForChoice() {
         '<p style="color: rgba(255,255,255,0.7); text-align: center;">Waiting for your partner to choose...</p>';
 }
 
-// ENHANCED: Updated showGuessScreen with role clarity
+// Updated showGuessScreen with role clarity
 function showGuessScreen(question) {
     showScreen('guessing-guess-screen');
     
     const questionNum = (currentGame.thisOrThatQuestionsAsked || 0) + 1;
     
-    // ENHANCED: Add role indicator
+    // Add role indicator
     document.querySelector('#guessing-guess-screen .round-title').textContent = 
         `Question ${questionNum} of 10 - You're the GUESSER! 🔍`;
     
-    // ENHANCED: Add role description
+    // Add role description
     document.getElementById('guess-question').innerHTML = `
         <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
             <p style="color: #2196F3; font-weight: bold; margin: 0 0 0.5rem 0;">🔍 You're guessing!</p>
@@ -1142,14 +1142,14 @@ function showWaitingForGuess() {
     document.getElementById('answer-waiting').textContent = 'Waiting for your partner to guess...';
 }
 
-// FIXED: Prevent duplicate scoring in This or That results
+// Prevent duplicate scoring in This or That results
 function showThisOrThatResult(gameData) {
     showScreen('guessing-result-screen');
     
     const isCorrect = gameData.playerGuess === gameData.playerChoice;
     const question = gameData.thisOrThatQuestion;
     
-    // FIXED: Create unique result ID and only process once
+    // Create unique result ID and only process once
     const resultId = `${gameData.currentRound}-${gameData.thisOrThatQuestionsAsked}-${gameData.playerChoice}-${gameData.playerGuess}`;
     
     if (isCorrect && !processedResults.has(resultId)) {
@@ -1194,7 +1194,7 @@ function showThisOrThatResult(gameData) {
     const continueBtn = document.getElementById('continue-from-guess-btn');
     const currentQuestionsAsked = gameData.thisOrThatQuestionsAsked || 0;
     const questionsCompleted = currentQuestionsAsked + 1;
-    // UPDATED: Changed from 6 to 10 total questions
+    // Changed from 6 to 10 total questions
     const questionsLeft = 10 - questionsCompleted;
     
     if (questionsLeft > 0) {
@@ -1210,7 +1210,7 @@ function showThisOrThatResult(gameData) {
     updateScoreboard();
 }
 
-// FIXED: Add missing determineThisOrThatWinner function
+// Determine This or That winner function
 function determineThisOrThatWinner() {
     if (!isHost) return;
     
@@ -1232,7 +1232,7 @@ function startTriviaGame(roundNumber) {
     gameRef.update({
         currentRound: roundNumber,
         roundName: `Round ${roundNumber} - ${GAME_STRUCTURE[roundNumber].name}`,
-        gamePhase: 'playing', // Changed from 'instructions'
+        gamePhase: 'playing',
         triviaQuestion: shuffledQuestion,
         triviaPhase: 'questioning',
         player1Answer: null,
@@ -1252,7 +1252,7 @@ function handleTriviaGameUpdate(gameData) {
         case 'questioning':
             showTriviaQuestion(gameData);
             
-            // FIXED: Check if both players have answered and auto-progress (host only)
+            // Check if both players have answered and auto-progress (host only)
             if (isHost && 
                 typeof gameData.player1Answer === 'number' && 
                 typeof gameData.player2Answer === 'number' && 
@@ -1440,7 +1440,7 @@ function showTriviaRoundComplete(gameData) {
 function startSpeedCategoriesGame(roundNumber) {
     console.log('Starting speed categories for round:', roundNumber);
     
-    // FIXED: Reset all speed game flags when starting new game
+    // Reset all speed game flags when starting new game
     speedGameActive = false; // Will be set to true in showSpeedCategoriesScreen
     speedAnswersSubmitted = false;
     speedMyAnswers = [];
@@ -1450,7 +1450,7 @@ function startSpeedCategoriesGame(roundNumber) {
     gameRef.update({
         currentRound: roundNumber,
         roundName: `Round ${roundNumber} - ${GAME_STRUCTURE[roundNumber].name}`,
-        gamePhase: 'playing', // Changed from 'instructions'
+        gamePhase: 'playing',
         speedCategory: category,
         speedPhase: 'playing',
         speedStartTime: Date.now(),
@@ -1483,7 +1483,7 @@ function handleSpeedCategoriesUpdate(gameData) {
             break;
     }
     
-    // FIXED: More reliable check for when both players are done
+    // More reliable check for when both players are done
     if (gameData.speedPhase === 'playing' && isHost) {
         const player1Done = gameData.player1Done || false;
         const player2Done = gameData.player2Done || false;
@@ -1522,11 +1522,11 @@ function handleSpeedCategoriesUpdate(gameData) {
     }
 }
 
-// FIXED: Improved showSpeedCategoriesScreen function with better state management
+// Improved showSpeedCategoriesScreen function with better state management
 function showSpeedCategoriesScreen(gameData) {
     showScreen('speed-categories-screen');
     
-    // FIXED: Only initialize if we haven't started the game yet or haven't submitted answers
+    // Only initialize if we haven't started the game yet or haven't submitted answers
     if (!speedGameActive && !speedAnswersSubmitted) {
         console.log('Initializing speed game for the first time');
         speedMyAnswers = [];
@@ -1541,11 +1541,11 @@ function showSpeedCategoriesScreen(gameData) {
         input.disabled = false;
         input.value = '';
         
-        // FIXED: Remove ALL existing event listeners properly
+        // Remove ALL existing event listeners properly
         const newInput = input.cloneNode(true);
         input.parentNode.replaceChild(newInput, input);
         
-        // FIXED: Add single, fresh event listener
+        // Add single, fresh event listener
         newInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -1578,7 +1578,7 @@ function showSpeedCategoriesResults(gameData) {
     const player1Answers = gameData.player1Answers || [];
     const player2Answers = gameData.player2Answers || [];
     
-    // FIXED: Sync the updated scores locally
+    // Sync the updated scores locally
     if (gameData.overallScores) {
         overallScores = gameData.overallScores;
     }
@@ -1663,7 +1663,7 @@ function handleSpeedAnswer() {
     }
 }
 
-// FIXED: Enhanced endSpeedGame function with better debugging and protection
+// Enhanced endSpeedGame function with better debugging and protection
 function endSpeedGame() {
     console.log('endSpeedGame called - current state:', {
         speedGameActive: speedGameActive,
@@ -1672,17 +1672,17 @@ function endSpeedGame() {
         answersLength: speedMyAnswers ? speedMyAnswers.length : 'null'
     });
     
-    // FIXED: Use both flags to prevent any possibility of double submission
+    // Use both flags to prevent any possibility of double submission
     if (!speedGameActive || speedAnswersSubmitted) {
         console.log('Speed game already ended or answers already submitted - BLOCKING duplicate submission');
         return;
     }
     
-    // FIXED: Immediately set both flags to prevent any race conditions
+    // Immediately set both flags to prevent any race conditions
     speedGameActive = false;
     speedAnswersSubmitted = true;
     
-    // FIXED: Preserve answers immediately before any async operations
+    // Preserve answers immediately before any async operations
     const finalAnswers = speedMyAnswers ? [...speedMyAnswers] : [];
     
     console.log('Speed game ending - submitting final answers:', finalAnswers);
@@ -1743,7 +1743,7 @@ function determineSpeedWinner() {
     });
 }
 
-// GAME COMPLETE SCREEN - ENHANCED with safety checks
+// GAME COMPLETE SCREEN - Enhanced with safety checks
 function showGameCompleteScreen() {
     console.log('Showing game complete screen with scores:', overallScores);
     showScreen('game-complete-screen');
@@ -1780,7 +1780,7 @@ function showGameCompleteScreen() {
         
         document.getElementById('final-winner').textContent = finalWinnerText;
         
-        // ENHANCED: Add game summary
+        // Add game summary
         const totalScore = (overallScores.player1 || 0) + (overallScores.player2 || 0);
         let summaryText = `🎯 Total points earned together: ${totalScore}\n`;
         summaryText += `🎮 You completed 3 competitive challenges\n`;
@@ -1826,7 +1826,7 @@ function getRandomSpeedCategory() {
     return categories[randomIndex];
 }
 
-// FIXED: Enhanced validateSpeedAnswer function with more flexible matching
+// Enhanced validateSpeedAnswer function with more flexible matching
 function validateSpeedAnswer(userAnswer, category) {
     const validAnswers = speedCategoriesWithAnswers[category];
     if (!validAnswers) {
@@ -1841,7 +1841,7 @@ function validateSpeedAnswer(userAnswer, category) {
         return true;
     }
     
-    // FIXED: Enhanced abbreviation and variation mapping
+    // Enhanced abbreviation and variation mapping
     const variations = {
         // US States
         'us': 'united states',
@@ -1883,7 +1883,7 @@ function validateSpeedAnswer(userAnswer, category) {
         return true;
     }
     
-    // FIXED: More flexible partial matching for longer names
+    // More flexible partial matching for longer names
     for (const validAnswer of validAnswers) {
         // Allow partial matches for names 5+ characters if user typed 4+ characters
         if (validAnswer.length >= 5 && cleanAnswer.length >= 4) {
@@ -1916,7 +1916,7 @@ function validateSpeedAnswer(userAnswer, category) {
     return false;
 }
 
-// Leave game function - ENHANCED with better cleanup
+// Leave game function - Enhanced with better cleanup
 function leaveGame() {
     console.log('Leaving game...');
     
@@ -1950,8 +1950,8 @@ function leaveGame() {
     triviaRoundScores = { player1: 0, player2: 0 };
     speedMyAnswers = [];
     speedGameActive = false;
-    speedAnswersSubmitted = false; // FIXED: Reset submission flag
-    processedResults.clear(); // FIXED: Clear processed results
+    speedAnswersSubmitted = false; // Reset submission flag
+    processedResults.clear(); // Clear processed results
     
     showScreen('start-screen');
 }
@@ -1972,7 +1972,7 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
     console.log('Current questions asked:', currentQuestionsAsked);
     console.log('Next question number will be:', nextQuestionNumber);
     
-    // UPDATED: Changed from 6 to 10 total questions
+    // Changed from 6 to 10 total questions
     if (nextQuestionNumber >= 10) {
         // This or That round complete - determine winner
         console.log('This or That round complete (10 questions finished), determining winner');
@@ -1982,12 +1982,12 @@ document.getElementById('continue-from-guess-btn').addEventListener('click', () 
         console.log('Continuing with This or That question #' + (nextQuestionNumber + 1));
         const newQuestion = getRandomThisOrThatQuestion(currentGame.currentRound);
         
-        // UPDATED: New role switching logic - first 5 questions host chooses, next 5 guest chooses
+        // New role switching logic - first 5 questions host chooses, next 5 guest chooses
         const hostIsChooser = nextQuestionNumber < 5;
         
         console.log('Host is chooser for next question:', hostIsChooser);
         
-        // ENHANCED: Check if we need to show the switching screen
+        // Check if we need to show the switching screen
         if (nextQuestionNumber === 5) {
             // Show switching screen first
             gameRef.update({

@@ -1,10 +1,11 @@
 # QUICK COMMANDS - Nice to Meet You Game
 
 ## 🎮 GAME STRUCTURE
-- 9 rounds total, 6 questions each = 54 total interactions
-- Round 1, 4, 7: Guessing Games
-- Round 2, 5, 8: Trivia Challenges  
-- Round 3, 6, 9: Deep Questions
+- 3 competitive rounds + discussion phases
+- Round 1: This or That (10 questions with role switching at question 5)
+- Round 2: Trivia Challenge (7 questions)
+- Round 3: Speed Categories (45-second challenge)
+- After each round: Winner chooses conversation topic for discussion
 
 ## 👀 See Changes Locally
 1. Open index.html in browser
@@ -27,9 +28,10 @@
 
 ## 📁 File Locations
 ### Content Files:
-- **questions.js** - Deep conversation questions (6 per category)
-- **guessing-questions.js** - Guessing game questions with fake options
-- **trivia-questions.js** - Trivia questions with 4 choices each
+- **questions.js** - Deep conversation questions organized by categories
+- **this-or-that-questions.js** - This or that questions with two options
+- **trivia-questions.js** - Trivia questions with 4 multiple choice answers
+- **speed-categories.js** - Speed categories with valid answer lists
 
 ### Core Files:
 - **script.js** - Game logic, Firebase integration, round management
@@ -52,13 +54,53 @@
 ### Change Round Structure:
 1. Edit GAME_STRUCTURE in script.js
 2. Update round types/names as needed
+3. Modify QUESTION_CATEGORIES for discussion topics
 
 ### Debug Issues:
 1. Open browser console (F12)
 2. Check for red errors
 3. Look for Firebase connection issues
 
+## 🎲 Game Types Quick Reference
+### This or That:
+- 10 total questions
+- Host chooses for questions 1-5
+- Roles switch at question 6
+- Guest chooses for questions 6-10
+- Points awarded for correct guesses
+
+### Trivia:
+- 7 questions per round
+- Both players answer simultaneously
+- Points for correct answers
+- Shows results after each question
+
+### Speed Categories:
+- 45-second timer
+- Name items in given category
+- Points equal to valid answers submitted
+- Real-time validation
+
+### Discussion Phases:
+- Winner of competitive round chooses topic
+- 3 categories available per round
+- One meaningful question selected
+- Turn-based discussion format
+
 ## 🔥 Firebase Notes
 - Test rules expire periodically
 - Check Firebase Console for usage
 - Database path: games/{roomCode}/...
+- Game phases: instructions → playing → question-instructions → category-selection → question-answering → complete
+
+## 🎵 Sound Effects
+- playJoin() - When player joins
+- playCorrect() - Correct answer
+- playIncorrect() - Wrong answer
+- playClick() - Button clicks
+- playNewRound() - Round start
+- playSwitch() - Role switching
+- playRoundComplete() - Round finished
+- playGameComplete() - Game finished
+- playSpeedTimer() - Speed countdown
+- playSpeedComplete() - Speed time up

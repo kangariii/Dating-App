@@ -2,7 +2,7 @@
 Last Updated: January 2025
 
 ## 🚀 QUICK START FOR NEW CHAT
-"I have a couples game app at github.com/kangariii/Dating-App. It's a 9-round multiplayer game (guessing, trivia, questions) using Firebase. Currently working on [specific issue/feature]"
+"I have a couples game app at github.com/kangariii/Dating-App. It's a 3-round competitive game with discussion phases (this-or-that, trivia, speed categories) using Firebase. Currently working on [specific issue/feature]"
 
 ## 📍 PROJECT LINKS
 - GitHub Repo: https://github.com/kangariii/Dating-App
@@ -17,31 +17,29 @@ Last Updated: January 2025
 - Font: Poppins (Google Fonts)
 
 ## 🎮 GAME STRUCTURE
-### 9 Rounds Total (54 interactions)
-1. **Round 1**: Guessing Game #1 (6 questions)
-2. **Round 2**: Trivia Challenge #1 (6 questions)
-3. **Round 3**: Getting to Know You (6 deep questions)
-4. **Round 4**: Guessing Game #2 (6 questions)
-5. **Round 5**: Trivia Challenge #2 (6 questions)
-6. **Round 6**: Going Deeper (6 deep questions)
-7. **Round 7**: Guessing Game #3 (6 questions)
-8. **Round 8**: Trivia Challenge #3 (6 questions)
-9. **Round 9**: Final Round - Soul Connection OR Heating Up 🔥 (randomly chosen)
+### 3 Competitive Rounds + Discussion Phases
+1. **Round 1**: This or That (10 questions with role switching)
+2. **Round 2**: Trivia Challenge (7 questions)
+3. **Round 3**: Speed Categories (45-second challenge)
+
+**After each competitive round**: Winner chooses a conversation topic from 3 categories for meaningful discussion
 
 ### Game Types Explained:
-- **Guessing Game**: One player answers a question, partner guesses from 4 options
+- **This or That**: One player chooses between two options, partner guesses the choice. Host chooses for first 5 questions, then roles switch for remaining 5 questions.
 - **Trivia**: Both answer same question simultaneously, scores tracked per round
-- **Questions**: Turn-based deep conversation starters (3 each)
+- **Speed Categories**: Race to name items in a category within 45 seconds
+- **Discussion**: Winner picks from 3 themed question categories for deeper conversation
 
 ## 📁 COMPLETE FILE STRUCTURE
 ```
 Dating-App/
-├── index.html          # All game screens (start, create, join, game, guessing, trivia)
+├── index.html          # All game screens (start, create, join, game, this-or-that, trivia, speed)
 ├── script.js           # Core game logic, Firebase handlers, round management
 ├── styles.css          # Glassmorphism, animations, responsive design
-├── questions.js        # Deep questions for rounds 3, 6, 9 (~100+ per category)
-├── guessing-questions.js # Guessing game questions with fake options
-├── trivia-questions.js # Trivia questions (round2, round5, round8 arrays)
+├── questions.js        # Deep questions for discussion phases (~100+ per category)
+├── this-or-that-questions.js # This or that questions with two options each
+├── trivia-questions.js # Trivia questions with 4 multiple choice answers
+├── speed-categories.js # Speed category challenges with valid answers
 ├── config.js           # Firebase configuration
 ├── readme.md          # Basic GitHub readme
 ├── PROJECT_INFO.txt   # This file
@@ -55,9 +53,10 @@ Dating-App/
 2. `startNewRound()` - Determines game type, initializes round
 3. `handleGameUpdate()` - Firebase listener, routes to appropriate handler
 4. Round-specific handlers:
-   - `handleGuessingGameUpdate()` - Manages guessing game phases
+   - `handleThisOrThatGameUpdate()` - Manages this-or-that game phases
    - `handleTriviaGameUpdate()` - Manages trivia phases
-   - `updateQuestionGame()` - Manages turn-based questions
+   - `handleSpeedCategoriesUpdate()` - Manages speed category phases
+   - `handleQuestionAnsweringPhase()` - Manages discussion phases
 
 ### Firebase Structure:
 ```
@@ -69,8 +68,10 @@ games/
         name: string
         connected: boolean
         ready: boolean
-    currentRound: 1-9
+    currentRound: 1-3
     gameStarted: boolean
+    gamePhase: instructions|playing|question-instructions|category-selection|question-answering|role-switching|complete
+    overallScores: { player1: number, player2: number }
     // Round-specific data...
 ```
 
@@ -79,18 +80,22 @@ games/
 - `playerId` - Unique player ID
 - `isHost` - Boolean for host privileges
 - `currentGame` - Current Firebase game state
-- Round-specific counters (guessingQuestionsAsked, triviaQuestionsAsked, etc.)
+- `overallScores` - Cumulative scores across all competitive rounds
+- Round-specific counters (thisOrThatQuestionsAsked, triviaQuestionsAsked, etc.)
 
 ## 🎯 CURRENT FEATURES
 - Real-time multiplayer synchronization
 - No login required - just room codes
-- Progress bar tracking all 54 questions
-- Skip feature (3 per game) for regular questions
+- Score tracking across all competitive rounds
+- Role switching in This or That after 5 questions
 - Animated gradient background
 - Glassmorphism UI elements
 - Mobile responsive
-- Round intro animations
-- Score tracking for trivia rounds
+- Round intro animations with instruction screens
+- Sound effects for various game events
+- Confetti animations for correct answers and completions
+- Discussion phases with winner-chosen categories
+- Auto-progression between game phases
 
 ## 🐛 KNOWN ISSUES & QUIRKS
 - Firebase test rules need periodic renewal
@@ -103,7 +108,7 @@ games/
 
 ### Add New Questions:
 ```javascript
-// In appropriate file (questions.js, guessing-questions.js, trivia-questions.js)
+// In appropriate file (questions.js, this-or-that-questions.js, trivia-questions.js, speed-categories.js)
 // Add to the relevant array following existing format
 ```
 
@@ -111,7 +116,7 @@ games/
 ```javascript
 // In script.js, modify GAME_STRUCTURE object
 const GAME_STRUCTURE = {
-    1: { type: 'guessing', name: 'Your Custom Name' },
+    1: { type: 'this-or-that', name: 'Your Custom Name' },
     // etc...
 };
 ```
@@ -130,31 +135,23 @@ const GAME_STRUCTURE = {
 - Hard refresh (Ctrl+F5) to see changes
 
 ## 🔮 POTENTIAL ENHANCEMENTS
-- [ ] Sound effects (join, correct guess, round complete)
-- [ ] Persistent scores across all rounds
+- [x] Sound effects (join, correct guess, round complete)
+- [x] Persistent scores across all rounds
 - [ ] Reconnection handling
 - [ ] Custom question packs
-- [ ] Time limits on questions
-- [ ] More visual feedback (confetti, animations)
+- [ ] Time limits on discussion questions
+- [x] Visual feedback (confetti, animations)
 - [ ] Save/export game results
 - [ ] Voice/video integration
 - [ ] AI-generated personalized questions
 - [ ] Tournament mode for multiple couples
+- [ ] Pause/resume functionality
+- [ ] Spectator mode
 
 ## 🤝 CONVERSATION STARTERS FOR AI HELP
 
-**Quick Fix**: "In my couples game (9 rounds, guessing/trivia/questions), I need to fix [specific issue]"
+**Quick Fix**: "In my couples game (3 competitive rounds + discussions), I need to fix [specific issue]"
 
-**New Feature**: "I want to add [feature] to my Dating-App game. It currently has guessing games, trivia, and deep questions across 9 rounds."
+**New Feature**: "I want to add [feature] to my Dating-App game. It currently has this-or-that, trivia, and speed categories with discussion phases."
 
-**Debugging**: "My Firebase multiplayer game isn't [specific behavior]. Here's what happens: [description]"
-
-**Styling**: "I want to change the [specific element] in my glassmorphism-styled couples game"
-
-## 📝 RECENT CHANGES
-- Expanded from 3 to 9 rounds
-- Added guessing game mechanics
-- Added trivia with scoring
-- Increased questions per round from 3 to 6
-- Enhanced mobile responsiveness
-- Improved phase transition handling
+**Game Flow Question**: "In my game's current structure (competitive round → discussion → next round), I want to modify [specific aspect]"
